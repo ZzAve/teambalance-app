@@ -197,7 +197,7 @@ export const Interactions: Story = {
 
     // The request is refused (someone else added them meanwhile), then fails outright: each time the
     // form stays open with the name, and says why under the field (#389).
-    args.onCreate.mockRejectedValueOnce(new SubstituteError('Kees Bakker jr is already on the list.'))
+    args.onCreate.mockRejectedValueOnce(new SubstituteError('Kees Bakker jr is already on the list.', 409))
     await userEvent.click(sheet.getByRole('button', { name: 'Add as Maybe' }))
     await expect(args.onCreate).toHaveBeenCalledWith('kees BAKKER jr', 'pos-libero')
     await expect(await sheet.findByRole('alert')).toHaveTextContent('Kees Bakker jr is already on the list.')

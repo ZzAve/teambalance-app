@@ -1,5 +1,6 @@
 import { useMutation, useMutationState, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ApiError, apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 import { useCurrentUser } from './auth'
 import type { Substitute } from './generated/model/Substitute'
@@ -11,14 +12,14 @@ import { i18n } from '@shared/i18n/i18n'
 export type { Substitute } from './generated/model/Substitute'
 
 /** A refusal a Substitute write reports to the person who made it, with a message to show. */
-export class SubstituteError extends Error {
-  constructor(message: string) {
-    super(message)
+export class SubstituteError extends ApiError {
+  constructor(message: string, status: number) {
+    super(status, undefined, message)
     this.name = 'SubstituteError'
   }
 }
 
-const nameTaken = (name: string) => new SubstituteError(i18n.t('errors.substitute.nameTaken', { name }))
+const nameTaken = (name: string) => new SubstituteError(i18n.t('errors.substitute.nameTaken', { name }), 409)
 
 /** The Team's list of Substitutes, for the picker. Keyed ['substitutes'] so a create refreshes it. */
 export function useSubstitutes(options?: { enabled?: boolean }) {
@@ -47,7 +48,7 @@ export function useCreateSubstitute() {
     mutationFn: async ({ name, positionId }: CreateSubstituteVars) => {
       const res = await api.createSubstitute({ body: { name, positionId: positionId ?? undefined } })
       if (res.status === 409) throw nameTaken(name)
-      if (res.status === 404) throw new Error('Position not found')
+      if (res.status === 404) throw apiErrorOf(res, 'Position not found')
       return res.body
     },
     onSettled: () => {
@@ -79,12 +80,12 @@ export function useUpdateSubstitute() {
       })
       // The contract types the 409 body as undefined, but the handler sends a { code } to tell them apart.
       if (res.status === 409 && (res.body as { code?: string } | undefined)?.code === 'NUMBER_TAKEN') {
-        throw new SubstituteError(i18n.t('errors.substitute.numberTaken', { number: shirtNumber }))
+        throw new SubstituteError(i18n.t('errors.substitute.numberTaken', { number: shirtNumber }), res.status)
       }
       if (res.status === 409) throw nameTaken(name)
-      if (res.status === 403) throw new SubstituteError(i18n.t('errors.notAllowed'))
-      if (res.status === 404) throw new SubstituteError(i18n.t('errors.substitute.gone'))
-      if (res.status !== 200) throw new SubstituteError(i18n.t('errors.substitute.saveFailed'))
+      if (res.status === 403) throw new SubstituteError(i18n.t('errors.notAllowed'), res.status)
+      if (res.status === 404) throw new SubstituteError(i18n.t('errors.substitute.gone'), res.status)
+      if (res.status !== 200) throw new SubstituteError(i18n.t('errors.substitute.saveFailed'), (res as { status: number }).status)
       return res.body
     },
     onSettled: () => {
@@ -100,7 +101,7 @@ export function useSubstituteEventCount(id: string | null) {
     queryKey: ['substitutes', id, 'usage'],
     queryFn: async () => {
       const res = await api.getSubstituteUsage({ id: id as string })
-      if (res.status !== 200) throw new SubstituteError("Couldn't count this substitute's events.")
+      if (res.status !== 200) throw new SubstituteError("Couldn't count this substitute's events.", res.status)
       return res.body.eventCount
     },
     enabled: id !== null,
@@ -115,9 +116,9 @@ export function useDeleteSubstitute() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.deleteSubstitute({ id })
-      if (res.status === 403) throw new SubstituteError(i18n.t('errors.substitute.removeNotAllowed'))
-      if (res.status === 404) throw new SubstituteError(i18n.t('errors.substitute.gone'))
-      if (res.status !== 204) throw new SubstituteError(i18n.t('errors.substitute.removeFailed'))
+      if (res.status === 403) throw new SubstituteError(i18n.t('errors.substitute.removeNotAllowed'), res.status)
+      if (res.status === 404) throw new SubstituteError(i18n.t('errors.substitute.gone'), res.status)
+      if (res.status !== 204) throw new SubstituteError(i18n.t('errors.substitute.removeFailed'), (res as { status: number }).status)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['substitutes'] })
@@ -171,7 +172,7 @@ export function useSetSubstituteAttendance() {
     mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId, state }: SetSubstituteAttendanceVars) => {
       const res = await api.setSubstituteAttendance({ eventId, substituteId, body: { state } })
-      if (res.status !== 200) throw new Error(`Couldn't set substitute (${res.status})`)
+      if (res.status !== 200) throw apiErrorOf(res, `Couldn't set substitute (${res.status})`)
       return res.body
     },
     onMutate: ({ eventId, substituteId, state }) => {
@@ -203,7 +204,7 @@ export function useRemoveSubstituteAttendance() {
     mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId }: RemoveSubstituteAttendanceVars) => {
       const res = await api.removeSubstituteAttendance({ eventId, substituteId })
-      if (res.status !== 204) throw new Error(`Couldn't take the substitute off (${res.status})`)
+      if (res.status !== 204) throw apiErrorOf(res, `Couldn't take the substitute off (${res.status})`)
     },
     onMutate: ({ eventId, substituteId }) =>
       patchCachedEvents(queryClient, (cached) => removeOptimisticSubstitute(cached, eventId, substituteId)),

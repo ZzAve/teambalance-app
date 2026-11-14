@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiError, apiErrorOf } from './api-error'
 import { nullsToUndefined } from './money-pool'
 import { api } from './wirespec-client'
 
@@ -12,7 +13,7 @@ export const bunqConnectionQueryOptions = queryOptions({
   queryKey: ['money-pool', 'connection'],
   queryFn: async () => {
     const res = await api.getBunqConnection()
-    if (res.status === 403) throw new Error('You are not allowed to see the Bunq connection.')
+    if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to see the Bunq connection.')
     return res.body
   },
 })
@@ -22,9 +23,9 @@ export function useBunqConnection(enabled = true) {
 }
 
 /** Connecting is switched off for this deployment (the API answers 404), or the Admin may not start it. */
-export class BunqConnectUnavailableError extends Error {
-  constructor() {
-    super('Connecting Bunq is not available.')
+export class BunqConnectUnavailableError extends ApiError {
+  constructor(status: number) {
+    super(status, 'FAILED', 'Connecting Bunq is not available.')
   }
 }
 
@@ -34,10 +35,10 @@ export class BunqConnectUnavailableError extends Error {
  * (a `javascript:` url must never reach `window.location`).
  */
 export function bunqAuthorizeUrlOf(response: { status: number; body?: unknown }): string {
-  if (response.status === 403 || response.status === 404) throw new BunqConnectUnavailableError()
-  if (response.status !== 201) throw new Error(`Starting the Bunq connection failed with status ${response.status}`)
+  if (response.status === 403 || response.status === 404) throw new BunqConnectUnavailableError(response.status)
+  if (response.status !== 201) throw apiErrorOf(response, `Starting the Bunq connection failed with status ${response.status}`)
   const url = (response.body as { url?: unknown } | undefined)?.url
-  if (typeof url !== 'string' || !/^https?:\/\//.test(url)) throw new Error('Bunq connection url is not a web address')
+  if (typeof url !== 'string' || !/^https?:\/\//.test(url)) throw apiErrorOf(response, 'Bunq connection url is not a web address')
   return url
 }
 
@@ -46,13 +47,10 @@ export async function startBunqConnection(): Promise<string> {
   return bunqAuthorizeUrlOf(await api.startBunqConnection())
 }
 
-/**
- * A Bunq connection request the API refused (400, 403, 404, 422). It carries the status so the shared retry
- * policy treats it as a real client error and does not retry it.
- */
-export class BunqConnectionError extends Error {
-  constructor(readonly status: number) {
-    super(`The Bunq connection request failed with status ${status}`)
+/** A Bunq connection request the API refused (400, 403, 404, 422). */
+export class BunqConnectionError extends ApiError {
+  constructor(status: number) {
+    super(status, 'FAILED', `The Bunq connection request failed with status ${status}`)
   }
 }
 

@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 import type { TeamRef } from './generated/model/TeamRef'
 import { i18n } from '@shared/i18n/i18n'
@@ -17,10 +18,13 @@ export type CreateTeamErrorCode =
   | 'INVALID_NAME'
   | 'GENERIC'
 
+// `status` is the HTTP status of the response that failed. A failure with no response (a network reject)
+// has none, so the shared retry policy still retries it.
 export class CreateTeamError extends Error {
   constructor(
     public readonly code: CreateTeamErrorCode,
     message: string,
+    public readonly status?: number,
   ) {
     super(message)
     this.name = 'CreateTeamError'
@@ -40,19 +44,21 @@ export function placeCreateTeamError(error: CreateTeamError | null | undefined, 
  */
 export function toCreateTeamError(status: number, code: string | undefined): CreateTeamError {
   if (status === 403) {
-    return new CreateTeamError('INVALID_CREATION_CODE', i18n.t('errors.createTeam.invalidCode'))
+    return new CreateTeamError('INVALID_CREATION_CODE', i18n.t('errors.createTeam.invalidCode'), status)
   }
   if (status === 409) {
-    return new CreateTeamError('SLUG_TAKEN', i18n.t('errors.createTeam.slugTaken'))
+    return new CreateTeamError('SLUG_TAKEN', i18n.t('errors.createTeam.slugTaken'), status)
   }
   if (status === 400) {
-    if (code === 'INVALID_NAME') return new CreateTeamError('INVALID_NAME', i18n.t('errors.createTeam.nameRequired'))
+    if (code === 'INVALID_NAME') return new CreateTeamError('INVALID_NAME', i18n.t('errors.createTeam.nameRequired'), status)
     if (code === 'INVALID_SLUG') {
-      return new CreateTeamError('INVALID_SLUG', i18n.t('createTeam.slug.format'))
+      return new CreateTeamError('INVALID_SLUG', i18n.t('createTeam.slug.format'), status)
     }
   }
-  return new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
+  return new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'), status)
 }
+
+const statusOf = (error: unknown) => (error instanceof ApiError ? error.status : undefined)
 
 export interface CreateTeamInput {
   name: string
@@ -67,9 +73,9 @@ export function useCreateTeam() {
     mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
       // The page's language, for the team-created email when the founder has stored none (ADR-0043 §4).
       const language = i18n.language === 'nl' ? 'NL' : 'EN'
-      const res = await api.createTeam({ body: { name, slug, creationCode, language } }).catch(() => {
+      const res = await api.createTeam({ body: { name, slug, creationCode, language } }).catch((error: unknown) => {
         // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
-        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
+        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'), statusOf(error))
       })
       if (res.status === 201) return res.body
       const code = (res.body as { code?: string } | undefined)?.code
@@ -93,12 +99,12 @@ export interface CreateMemberlessTeamInput {
 export function useCreateMemberlessTeam() {
   return useMutation({
     mutationFn: async ({ name, slug }: CreateMemberlessTeamInput) => {
-      const res = await api.createMemberlessTeam({ body: { name, slug } }).catch(() => {
-        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.genericMemberless'))
+      const res = await api.createMemberlessTeam({ body: { name, slug } }).catch((error: unknown) => {
+        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.genericMemberless'), statusOf(error))
       })
       if (res.status === 201) return res.body
       if (res.status === 403) {
-        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.noAccess'))
+        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.noAccess'), res.status)
       }
       const code = (res.body as { code?: string } | undefined)?.code
       throw toCreateTeamError(res.status, code)

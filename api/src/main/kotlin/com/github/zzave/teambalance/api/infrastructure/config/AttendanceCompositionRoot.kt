@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.EventResolver
 import com.github.zzave.teambalance.api.application.SubstituteService
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
@@ -24,14 +25,12 @@ class AttendanceCompositionRoot {
         attendanceRepository: AttendanceRepository,
         eventRepository: EventRepository,
         teamMemberRepository: TeamMemberRepository,
-        substituteRepository: SubstituteRepository,
         authorizationService: AuthorizationService,
         clock: Clock,
     ) = AttendanceService(
         attendanceRepository = attendanceRepository,
         eventRepository = eventRepository,
         teamMemberRepository = teamMemberRepository,
-        substituteRepository = substituteRepository,
         authorizationService = authorizationService,
         clock = clock,
     )
@@ -47,5 +46,18 @@ class AttendanceCompositionRoot {
         positionRepository = positionRepository,
         authorizationService = authorizationService,
         clock = clock,
+    )
+
+    @Bean
+    fun eventResolver(
+        attendanceRepository: AttendanceRepository,
+        substituteRepository: SubstituteRepository,
+        teamMemberRepository: TeamMemberRepository,
+        positionRepository: PositionRepository,
+    ) = EventResolver(
+        attendanceRepository = attendanceRepository,
+        substituteRepository = substituteRepository,
+        teamMemberRepository = teamMemberRepository,
+        positionRepository = positionRepository,
     )
 }

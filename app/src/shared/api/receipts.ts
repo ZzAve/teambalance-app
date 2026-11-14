@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { csrfHeaders } from './csrf'
 import { moneyPoolQueryOptions } from './money-pool'
 
@@ -12,9 +13,10 @@ export const receiptUrl = (paymentId: string, version: string) =>
 
 export type ReceiptErrorCode = 'RECEIPT_TOO_LARGE' | 'INVALID_RECEIPT' | 'EXPENSE_NOT_FOUND' | 'FAILED'
 
-export class ReceiptError extends Error {
-  constructor(public readonly code: ReceiptErrorCode) {
-    super(code)
+export class ReceiptError extends ApiError {
+  declare readonly code: ReceiptErrorCode
+  constructor(code: ReceiptErrorCode, status: number) {
+    super(status, code, code)
     this.name = 'ReceiptError'
   }
 }
@@ -31,8 +33,8 @@ async function sendReceipt(method: 'PUT' | 'DELETE', paymentId: string, body?: B
     .json()
     .then((json: { code?: string }) => json.code)
     .catch(() => undefined)
-  if (code === 'RECEIPT_TOO_LARGE' || code === 'INVALID_RECEIPT') throw new ReceiptError(code)
-  throw new ReceiptError(res.status === 404 ? 'EXPENSE_NOT_FOUND' : 'FAILED')
+  if (code === 'RECEIPT_TOO_LARGE' || code === 'INVALID_RECEIPT') throw new ReceiptError(code, res.status)
+  throw new ReceiptError(res.status === 404 ? 'EXPENSE_NOT_FOUND' : 'FAILED', res.status)
 }
 
 // The receipt's version rides on the pool.

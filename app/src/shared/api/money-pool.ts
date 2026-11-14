@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiErrorOf } from './api-error'
 import { authMeQueryOptions } from './auth'
 import type { MoneyPoolSettings } from './generated/model/MoneyPoolSettings'
 import { topUpUrlOf } from './top-up-link'
@@ -42,7 +43,7 @@ export const moneyPoolSettingsQueryOptions = queryOptions({
   queryKey: ['money-pool', 'settings'],
   queryFn: async () => {
     const res = await api.getMoneyPoolSettings()
-    if (res.status === 403) throw new Error('You are not allowed to see the money pool settings.')
+    if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to see the money pool settings.')
     return nullsToUndefined(res.body)
   },
 })
@@ -58,7 +59,7 @@ export function useSetMoneyPoolSettings() {
   return useMutation({
     mutationFn: async (settings: MoneyPoolSettings) => {
       const res = await api.putMoneyPoolSettings({ body: settings })
-      if (res.status === 403) throw new Error('You are not allowed to change the money pool settings.')
+      if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to change the money pool settings.')
       return res.body
     },
     onSuccess: () =>

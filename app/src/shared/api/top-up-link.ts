@@ -1,3 +1,5 @@
+import { ApiError, apiErrorOf } from './api-error'
+
 const BUNQ_ME_PREFIX = 'https://bunq.me/'
 
 /** The in-app page the demo build opens instead of the pool's bunq.me page. */
@@ -9,9 +11,9 @@ export function topUpDestination(url: string, demo: boolean): string {
 }
 
 /** The pool is off or has no bunq.me link, so there is nothing to pay to. */
-export class TopUpUnavailableError extends Error {
+export class TopUpUnavailableError extends ApiError {
   constructor() {
-    super('Top-up is not available for this team.')
+    super(404, 'FAILED', 'Top-up is not available for this team.')
   }
 }
 
@@ -22,7 +24,7 @@ export class TopUpUnavailableError extends Error {
  */
 export function topUpUrlOf(response: { status: number; body?: unknown }): string {
   if (response.status === 404) throw new TopUpUnavailableError()
-  if (response.status !== 200) throw new Error(`Top-up link failed with status ${response.status}`)
+  if (response.status !== 200) throw apiErrorOf(response, `Top-up link failed with status ${response.status}`)
   const url = (response.body as { url?: unknown } | undefined)?.url
   if (typeof url !== 'string' || !url.startsWith(BUNQ_ME_PREFIX)) throw new Error('Top-up link is not a bunq.me page')
   return url

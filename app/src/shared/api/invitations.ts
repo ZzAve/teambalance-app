@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 
 export type { Invitation } from './generated/model/Invitation'
@@ -23,7 +24,7 @@ export function useActiveInvitation({ enabled }: { enabled: boolean }) {
     enabled,
     queryFn: async () => {
       const res = await api.getActiveInvitation()
-      if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+      if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to manage the invite link.')
       // 204: the team has no link yet. An ordinary state, not an error — the UI offers to make one.
       return res.status === 200 ? res.body : null
     },
@@ -65,7 +66,7 @@ export function useActiveAdminInvitation({ enabled }: { enabled: boolean }) {
     enabled,
     queryFn: async () => {
       const res = await api.getActiveAdminInvitation()
-      if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+      if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to manage the invite link.')
       // 204: no admin link yet — an ordinary state the UI turns into a "create one" offer.
       return res.status === 200 ? res.body : null
     },
@@ -89,7 +90,7 @@ function useAdminInvitationMutation<T>(mutationFn: () => Promise<T>) {
 export function useCreateAdminInvitation() {
   return useAdminInvitationMutation(async () => {
     const res = await api.createAdminInvitation()
-    if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+    if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to manage the invite link.')
     return res.body
   })
 }
@@ -98,7 +99,7 @@ export function useCreateAdminInvitation() {
 export function useRotateAdminInvitation() {
   return useAdminInvitationMutation(async () => {
     const res = await api.rotateAdminInvitation()
-    if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+    if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to manage the invite link.')
     return res.body
   })
 }
@@ -127,8 +128,8 @@ export function useAcceptInvitation() {
   return useMutation({
     mutationFn: async (token: string) => {
       const res = await api.acceptInvitation({ token })
-      if (res.status === 404 || res.status === 401) throw new Error('invite link invalid or expired')
-      if (res.status === 403) throw new Error('You cannot accept this invitation.')
+      if (res.status === 404 || res.status === 401) throw apiErrorOf(res, 'invite link invalid or expired')
+      if (res.status === 403) throw apiErrorOf(res, 'You cannot accept this invitation.')
       return res.body
     },
   })

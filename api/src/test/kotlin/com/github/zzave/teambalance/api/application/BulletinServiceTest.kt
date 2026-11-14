@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.BulletinPostNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BulletinPost
 import com.github.zzave.teambalance.api.domain.model.BulletinPostId
+import com.github.zzave.teambalance.api.domain.model.PostEdit
 import com.github.zzave.teambalance.api.domain.model.PostMarkdown
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -24,6 +26,12 @@ private class FakeBulletinPostRepository : BulletinPostRepository {
 
     override fun create(markdown: PostMarkdown, authorId: UserId, postedAt: Instant): BulletinPost =
         BulletinPost(BulletinPostId(UUID.randomUUID()), markdown, authorId, postedAt).also { store += it }
+
+    override fun update(id: BulletinPostId, markdown: PostMarkdown, editorId: UserId, editedAt: Instant): BulletinPost? {
+        val index = store.indexOfFirst { it.id == id }.takeIf { it >= 0 } ?: return null
+        return store[index].let { it.copy(markdown = markdown, edits = it.edits + PostEdit(editorId, editedAt)) }
+            .also { store[index] = it }
+    }
 }
 
 class BulletinServiceTest : FunSpec() {
@@ -51,6 +59,28 @@ class BulletinServiceTest : FunSpec() {
 
         test("a member may not post") {
             shouldThrow<NotTeamAdminException> { newService().createPost(memberId, teamId, "Hello") }
+        }
+
+        test("each admin save records who edited and when, oldest first") {
+            val service = newService()
+            val otherAdminId = UserId.random().also { directory.join(it, teamId, Role.ADMIN) }
+            val post = service.createPost(adminId, teamId, "First")
+
+            service.updatePost(otherAdminId, teamId, post.id, "Second")
+            val edited = service.updatePost(adminId, teamId, post.id, " Third ")
+
+            edited.markdown.value shouldBe "Third"
+            edited.authorId shouldBe adminId
+            edited.edits shouldBe listOf(PostEdit(otherAdminId, NOW), PostEdit(adminId, NOW))
+        }
+
+        test("a member may not edit, and a missing post is not found") {
+            val service = newService()
+            val post = service.createPost(adminId, teamId, "Mine")
+            shouldThrow<NotTeamAdminException> { service.updatePost(memberId, teamId, post.id, "Changed") }
+            shouldThrow<BulletinPostNotFoundException> {
+                service.updatePost(adminId, teamId, BulletinPostId(UUID.randomUUID()), "Changed")
+            }
         }
 
         test("a blank post or one over the limit is refused") {

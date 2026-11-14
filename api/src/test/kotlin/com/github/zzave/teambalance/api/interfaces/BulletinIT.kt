@@ -59,6 +59,31 @@ class BulletinIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.posts.length()").value(0))
         }
 
+        test("an admin's edit replaces the text and is listed with who edited and when") {
+            val id = createdId("Clubhouse closes at 22:00")
+
+            put(id, "Clubhouse closes at 22:30", ADMIN_USER_ID)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.edits.length()").value(1))
+
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts[0].markdown").value("Clubhouse closes at 22:30"))
+                .andExpect(jsonPath("$.posts[0].authorId").value(ADMIN_USER_ID))
+                .andExpect(jsonPath("$.posts[0].edits.length()").value(1))
+                .andExpect(jsonPath("$.posts[0].edits[0].editorId").value(ADMIN_USER_ID))
+                .andExpect(jsonPath("$.posts[0].edits[0].editedAt").isNotEmpty)
+        }
+
+        test("a member may not edit, and a missing post is 404") {
+            val id = createdId("Original")
+
+            put(id, "Changed", MEMBER_USER_ID).andExpect(status().isForbidden)
+            put("00480000-0000-0000-0000-0000000000ff", "Changed", ADMIN_USER_ID).andExpect(status().isNotFound)
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts[0].markdown").value("Original"))
+                .andExpect(jsonPath("$.posts[0].edits.length()").value(0))
+        }
+
         test("a blank post is refused") {
             post("   ", ADMIN_USER_ID).andExpect(status().isBadRequest)
         }
@@ -67,6 +92,19 @@ class BulletinIT : TeamBalanceIT() {
     private fun post(markdown: String, asUser: String) =
         perform(
             MockMvcRequestBuilders.post("/api/bulletin-posts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"markdown": ${jsonString(markdown)}}"""),
+            asUser,
+        )
+
+    private fun createdId(markdown: String): String {
+        val response = post(markdown, ADMIN_USER_ID).andExpect(status().isCreated).andReturn().response.contentAsString
+        return Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(response)!!.groupValues[1]
+    }
+
+    private fun put(id: String, markdown: String, asUser: String) =
+        perform(
+            MockMvcRequestBuilders.put("/api/bulletin-posts/$id")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"markdown": ${jsonString(markdown)}}"""),
             asUser,

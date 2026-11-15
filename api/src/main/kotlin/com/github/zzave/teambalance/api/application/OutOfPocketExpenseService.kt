@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.ExpenseNotFoundException
-import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.MoneyPoolNotReadableException
 import com.github.zzave.teambalance.api.domain.model.ExpenseDescription
 import com.github.zzave.teambalance.api.domain.model.Money
@@ -12,7 +11,6 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.OutOfPocketExpenseRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import java.time.Clock
 import java.time.LocalDate
 
@@ -26,7 +24,6 @@ class OutOfPocketExpenseService(
     private val receiptRepository: ReceiptRepository,
     private val moneyPoolService: MoneyPoolService,
     private val authorizationService: AuthorizationService,
-    private val teamMemberRepository: TeamMemberRepository,
     private val clock: Clock,
 ) {
     /** What a member enters about an expense. [date] must be inside the history the pool shows, so the expense is visible afterwards. */
@@ -34,7 +31,8 @@ class OutOfPocketExpenseService(
 
     fun record(callerId: UserId, teamId: TeamId, details: Details): OutOfPocketExpense {
         requireMayManage(callerId, teamId, details.paidBy)
-        requireMemberOfTeam(teamId, details.paidBy)
+        // The Virtual Member of an Act-as grant has no team_members row, so an expense cannot be theirs.
+        authorizationService.requireRealMember(details.paidBy, teamId)
         return expenseOf(OutOfPocketExpenseId.random(), callerId, teamId, details).also(expenseRepository::insert)
     }
 
@@ -46,7 +44,7 @@ class OutOfPocketExpenseService(
         val stored = manageable(callerId, teamId, paymentId)
         if (details.paidBy != stored.paidBy) {
             requireMayManage(callerId, teamId, details.paidBy)
-            requireMemberOfTeam(teamId, details.paidBy)
+            authorizationService.requireRealMember(details.paidBy, teamId)
         }
         return expenseOf(stored.id, callerId, teamId, details).also(expenseRepository::update)
     }
@@ -80,10 +78,5 @@ class OutOfPocketExpenseService(
         } else {
             authorizationService.requireAdmin(callerId, teamId)
         }
-    }
-
-    // A Platform Admin acting as the team has no team_members row, so an expense cannot be theirs.
-    private fun requireMemberOfTeam(teamId: TeamId, paidBy: UserId) {
-        teamMemberRepository.findRole(teamId, paidBy) ?: throw MemberNotFoundException(paidBy)
     }
 }

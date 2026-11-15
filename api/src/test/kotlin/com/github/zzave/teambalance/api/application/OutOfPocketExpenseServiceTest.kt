@@ -87,7 +87,6 @@ class OutOfPocketExpenseServiceTest : FunSpec({
             receiptRepository = receipts,
             moneyPoolService = moneyPool,
             authorizationService = authorization,
-            teamMemberRepository = directory.teamMemberRepository(),
             clock = CLOCK,
         )
 

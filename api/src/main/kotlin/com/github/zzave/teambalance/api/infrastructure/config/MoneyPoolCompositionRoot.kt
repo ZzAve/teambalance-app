@@ -99,14 +99,12 @@ class MoneyPoolCompositionRoot {
         receiptRepository: ReceiptRepository,
         moneyPoolService: MoneyPoolService,
         authorizationService: AuthorizationService,
-        teamMemberRepository: TeamMemberRepository,
         clock: Clock,
     ) = OutOfPocketExpenseService(
         expenseRepository = outOfPocketExpenseRepository,
         receiptRepository = receiptRepository,
         moneyPoolService = moneyPoolService,
         authorizationService = authorizationService,
-        teamMemberRepository = teamMemberRepository,
         clock = clock,
     )
 

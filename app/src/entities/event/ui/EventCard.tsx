@@ -2,11 +2,12 @@ import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { formatLocale } from '@shared/i18n/i18n'
 import { AlignLeft, Clock, MapPin } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
 import { InfoRow } from '@shared/ui/InfoRow'
 import type { Event } from '@shared/api/events'
 import { relativeEventLabel } from '../lib/relative-event-label'
+import { eventTransitionName } from '../lib/transition-name'
 import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
@@ -67,7 +68,8 @@ export function EventCard({
     // after:inset-0 overlay that makes the whole card clickable, so the answer row's controls can
     // sit above it as siblings rather than nested inside an <a>.
     <Card
-      style={{ animationDelay: `${index * 60}ms` }}
+      data-event-card=""
+      style={{ animationDelay: `${index * 60}ms`, '--transition-name': eventTransitionName(event.id) } as CSSProperties}
       className="card-enter card-shadow relative p-4 transition-[box-shadow] hover:card-shadow-hover motion-reduce:transition-none"
     >
       <div className="flex gap-3.5">

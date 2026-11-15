@@ -56,6 +56,7 @@ export function AppShellFrame({ teamSwitcher, banner, nav, children }: AppShellF
           --header-height (global.css). Its row has the main column's width at every viewport, as the
           tab bar does, so the back link and the title line up with the page under them. */}
       <header
+        data-app-chrome="header"
         className="sticky top-0 z-40 h-[var(--header-height)] border-b border-border/40 bg-card/88 backdrop-blur-lg"
         style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
       >

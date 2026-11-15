@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, waitFor, within } from 'storybook/test'
 import type { Event } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
 import { makeAttendee, makeEvent, makeEventType, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
@@ -213,6 +213,7 @@ function EventsPageHarness(args: HarnessArgs) {
         },
       }}
       panelMenu={{ defaultExpanded, onDefaultExpandedChange: setDefaultExpanded }}
+      heroEventId={hero?.id}
       hero={
         hero && (
           <NextEventHeroView
@@ -421,10 +422,53 @@ export const Shells: Story = {
 }
 
 // Picture owned by Data — behavioural only (ADR-0032 §1). Every slot's wiring, in one walk.
+//
+// The cards and the hero change inside a view transition (useViewTransitionValue), so what a filter
+// leaves on the page shows after a frame or two: those assertions wait. The play counts the page's
+// transitions to prove one runs when the set of events changes, none when only an answer does, and
+// none under reduced motion.
+const countViewTransitions = () => {
+  const started = fn()
+  const original = document.startViewTransition.bind(document)
+  document.startViewTransition = ((update?: ViewTransitionUpdateCallback) => {
+    started()
+    return original(update)
+  }) as typeof document.startViewTransition
+  return { started, stop: () => void (document.startViewTransition = original) }
+}
+
+const forceReducedMotion = () => {
+  const original = window.matchMedia
+  window.matchMedia = ((query: string) => ({
+    matches: query.includes('prefers-reduced-motion: reduce'),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia
+  return () => void (window.matchMedia = original)
+}
+
 export const Interactions: Story = {
   decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
+    const transitions = countViewTransitions()
+    try {
+      await interactions({ canvas, userEvent, args }, transitions.started)
+    } finally {
+      transitions.stop()
+    }
+  },
+}
+
+async function interactions(
+  { canvas, userEvent, args }: Pick<Parameters<NonNullable<Story['play']>>[0], 'canvas' | 'userEvent' | 'args'>,
+  transitions: ReturnType<typeof fn>,
+) {
     // RSVP from the hero: the callback fires and the harness flips the hero's own state. Bulk
     // Attend never counted the hero's training (#386), so the bar reads the same before and after.
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
@@ -432,6 +476,8 @@ export const Interactions: Story = {
     await expect(args.onHeroRespond).toHaveBeenCalledWith('ATTENDING')
     await expect(hero(canvas).getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
+    // An answer changes no card's place, so it commits at once, with no transition.
+    await expect(transitions).not.toHaveBeenCalled()
 
     // Isolate matches (the first tap from all-on isolates, ADR-0029 §3): the callback fires, the
     // trainings leave the page and the hero re-picks the next event in the window.
@@ -439,12 +485,15 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Match' }))
     await expect(args.onToggleType).toHaveBeenCalledWith(MATCH.id)
     await userEvent.keyboard('{Escape}')
-    await expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument()
+    // The set of events changed: the page commits it inside one view transition.
+    await waitFor(() => expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(1)
     await expect(canvas.getAllByText('League Match vs Smash United')).toHaveLength(1)
     await expect(hero(canvas).getByRole('button', { name: "Can't" })).toBeInTheDocument()
     // Undo it so the list below is whole again.
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
-    await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
+    await expect(await canvas.findByText('Training — Court 1')).toBeInTheDocument()
+    await expect(transitions).toHaveBeenCalledTimes(2)
 
     // Filters hold the one view preference as their last row: every panel starts open — the hero's
     // included (#386), which is why nothing below needs a tap to reach a chip.
@@ -484,7 +533,16 @@ export const Interactions: Story = {
     await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
     await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
     await expect(canvas.getByRole('heading', { level: 2, name: 'All events' })).toBeInTheDocument()
-    await expect(canvas.queryByRole('heading', { name: 'Upcoming' })).not.toBeInTheDocument()
-    await expect(canvas.queryByRole('region', { name: 'Next up' })).not.toBeInTheDocument()
-  },
+    await waitFor(() => expect(canvas.queryByRole('region', { name: 'Next up' })).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(3)
+
+    // Under reduced motion no transition starts: the change is instant.
+    const restoreMotion = forceReducedMotion()
+    try {
+      await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
+      await expect(canvas.getByRole('region', { name: 'Next up' })).toBeInTheDocument()
+      await expect(transitions).toHaveBeenCalledTimes(3)
+    } finally {
+      restoreMotion()
+    }
 }

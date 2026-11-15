@@ -3,10 +3,12 @@ import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays } from 'lucide-react'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { useViewTransitionValue } from '@shared/lib/use-view-transition-value'
 import { EventListView } from '@entities/event/ui/EventListView'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/KeepPanelsOpenRow'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
+import { eventsPageSignature } from '../lib/events-page-signature'
 
 interface EventsPageViewProps {
   /** The admin's "New Event" trigger; absent for members. */
@@ -16,6 +18,8 @@ interface EventsPageViewProps {
   panelMenu: ComponentProps<typeof KeepPanelsOpenRow>
   /** The Next Up hero, when (and only when) one is due — no placeholder in its place. */
   hero?: ReactNode
+  /** Which event the hero shows, so a change of hero is animated like a card entering or leaving. */
+  heroEventId?: string
   /** One button per event type with blanks left; renders nothing when there are none. */
   bulkBar?: ReactNode
   list: ComponentProps<typeof EventListView>
@@ -34,11 +38,18 @@ export function EventsPageView({
   createAction,
   filters,
   panelMenu,
-  hero,
-  bulkBar,
-  list,
+  hero: heroProp,
+  heroEventId,
+  bulkBar: bulkBarProp,
+  list: listProp,
   hideCalendarLink,
 }: EventsPageViewProps) {
+  // Hero, bulk bar and list change together, so they are committed together inside one view
+  // transition (global.css, `.list-motion`); the filter row and heading follow at once.
+  const { hero, bulkBar, list } = useViewTransitionValue(
+    { hero: heroProp, bulkBar: bulkBarProp, list: listProp },
+    eventsPageSignature({ heroEventId, list: listProp }),
+  )
   const routes = useTeamRoutes()
   const { t } = useTranslation()
   // Filters open inline below the header, with the view switch as their last row.

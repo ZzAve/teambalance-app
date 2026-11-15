@@ -443,6 +443,57 @@ main {
   view-transition-name: main-content;
 }
 
+/* ── Events page: cards and hero enter, leave and move (useViewTransitionValue) ──
+   The hook sets `.list-motion` on <html> for the length of the transition. Only then do the cards and
+   the hero get a view-transition-name (a name is a stacking context, so it stays off the still page),
+   and `main` gives up its own, so the page slide above does not run. A card present in both states
+   moves by the default group animation; one in a single state is `:only-child` and fades and scales.
+   The rest of the page is one root image, swapped without a cross-fade so nothing flickers. The sticky
+   header and the fixed tab bar are named too, so a card passing under them is painted below them. */
+@media (prefers-reduced-motion: no-preference) {
+  .list-motion main {
+    view-transition-name: none;
+  }
+  .list-motion [data-event-card] {
+    view-transition-name: var(--transition-name);
+  }
+  .list-motion [data-event-hero] {
+    view-transition-name: event-hero;
+  }
+  .list-motion [data-app-chrome="header"] {
+    view-transition-name: app-chrome-header;
+  }
+  .list-motion [data-app-chrome="nav"] {
+    view-transition-name: app-chrome-nav;
+  }
+  .list-motion::view-transition-old(root),
+  .list-motion::view-transition-old(app-chrome-header),
+  .list-motion::view-transition-old(app-chrome-nav) {
+    display: none;
+  }
+  .list-motion::view-transition-new(root),
+  .list-motion::view-transition-new(app-chrome-header),
+  .list-motion::view-transition-new(app-chrome-nav) {
+    animation: none;
+  }
+  .list-motion::view-transition-group(*) {
+    animation-duration: var(--duration-normal);
+    animation-timing-function: ease;
+  }
+  .list-motion::view-transition-old(*):only-child {
+    animation: var(--duration-fast) ease-in leave-scale both;
+  }
+  .list-motion::view-transition-new(*):only-child {
+    animation: var(--duration-normal) ease-out enter-scale both;
+  }
+}
+@keyframes leave-scale {
+  to { opacity: 0; transform: scale(0.96); }
+}
+@keyframes enter-scale {
+  from { opacity: 0; transform: scale(0.96); }
+}
+
 /* ── Attendance button bounce ── */
 @keyframes att-bounce {
   0%   { transform: scale(0.92); }

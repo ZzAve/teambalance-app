@@ -11,7 +11,7 @@ import com.github.zzave.teambalance.api.application.OutOfPocketExpenseService
 import com.github.zzave.teambalance.api.application.ReceiptService
 import com.github.zzave.teambalance.api.application.PaymentAliasService
 import com.github.zzave.teambalance.api.application.PaymentClaimService
-import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TopUpService
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -25,7 +25,6 @@ import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -43,14 +42,14 @@ class MoneyPoolCompositionRoot {
         connectionRepository: BunqConnectionRepository,
         seasonRepository: SeasonRepository,
         bunqGateway: BunqGateway,
-        @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
+        bunqGrantSeal: BunqGrantSeal,
         clock: Clock,
         tenantScopeGateway: TenantScopeGateway,
     ) = MoneyPoolReader(
         connectionRepository = connectionRepository,
         seasonRepository = seasonRepository,
         bunqGateway = bunqGateway,
-        grantCipher = bunqGrantCipher,
+        grantSeal = bunqGrantSeal,
         clock = clock,
         tenantScopeGateway = tenantScopeGateway,
     )
@@ -124,7 +123,7 @@ class MoneyPoolCompositionRoot {
         actAsService: ActAsService,
         authorizationService: AuthorizationService,
         clock: Clock,
-        @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
+        bunqGrantSeal: BunqGrantSeal,
         environment: Environment,
         @Value("\${teambalance.bunq.environment}") bunqEnvironment: String,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
@@ -145,7 +144,7 @@ class MoneyPoolCompositionRoot {
             connectEnabled,
             environment.matchesProfiles("prod"),
             bunqEnvironment,
-            bunqGrantCipher,
+            bunqGrantSeal,
             apiBaseUrl,
         ),
         moneyPoolCache = moneyPoolCache,
@@ -175,7 +174,7 @@ internal fun bunqConnectConfig(
     connectEnabled: Boolean,
     isProd: Boolean,
     bunqEnvironment: String,
-    grantCipher: TokenCipher,
+    grantSeal: BunqGrantSeal,
     apiBaseUrl: String,
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
@@ -184,5 +183,5 @@ internal fun bunqConnectConfig(
             "(it is \"$bunqEnvironment\"). Set TEAMBALANCE_BUNQ_ENVIRONMENT to production, or " +
             "TEAMBALANCE_BUNQ_CONNECT_ENABLED to false."
     }
-    return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
+    return BunqConnectConfig(grantSeal, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

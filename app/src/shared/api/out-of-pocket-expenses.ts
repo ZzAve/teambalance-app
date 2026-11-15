@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { moneyPoolQueryOptions } from './money-pool'
 import { uploadReceipt } from './receipts'
 import { api } from './wirespec-client'
@@ -21,19 +22,18 @@ export interface NewExpense {
 // description or the date was refused. POOL_OFF: the money pool is switched off for the team.
 export type ExpenseErrorCode = 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'POOL_OFF' | 'RECEIPT_FAILED' | 'FAILED'
 
-export class ExpenseError extends Error {
-  constructor(public readonly code: ExpenseErrorCode) {
-    super(code)
+export class ExpenseError extends ApiError {
+  declare readonly code: ExpenseErrorCode
+  constructor(code: ExpenseErrorCode, status: number) {
+    super(status, code, code)
     this.name = 'ExpenseError'
   }
 }
 
+const CODE_OF_STATUS: Record<number, ExpenseErrorCode> = { 400: 'INVALID', 403: 'FORBIDDEN', 404: 'NOT_FOUND', 409: 'POOL_OFF' }
+
 function failure(status: number): ExpenseError {
-  if (status === 400) return new ExpenseError('INVALID')
-  if (status === 403) return new ExpenseError('FORBIDDEN')
-  if (status === 404) return new ExpenseError('NOT_FOUND')
-  if (status === 409) return new ExpenseError('POOL_OFF')
-  return new ExpenseError('FAILED')
+  return new ExpenseError(CODE_OF_STATUS[status] ?? 'FAILED', status)
 }
 
 export function useRecordExpense() {
@@ -45,8 +45,9 @@ export function useRecordExpense() {
       if (!receipt) return
       try {
         await uploadReceipt(res.body.id, receipt)
-      } catch {
-        throw new ExpenseError('RECEIPT_FAILED')
+      } catch (error) {
+        // The status of the refused upload; 0 when the request did not get an answer.
+        throw new ExpenseError('RECEIPT_FAILED', error instanceof ApiError ? error.status : 0)
       }
     },
     // Also after RECEIPT_FAILED: the expense is in the pool by then.

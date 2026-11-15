@@ -56,7 +56,8 @@ class RealBunqGatewayAdapterTest : FunSpec({
 
     fun adapter(server: OAuthServer = BUNQ_SANDBOX_OAUTH): RealBunqGatewayAdapter {
         val calls = BunqCalls(CALL_PROPERTIES, Clock.systemUTC())
-        val sessions = BunqSessions(BunqServer("http://127.0.0.1:1/v1/", ""), "TeamBalance test", NoContexts, CIPHER, NoTeam, calls)
+        val apiServer = BunqServer("http://127.0.0.1:1/v1/", "")
+        val sessions = BunqSessions(apiServer, "TeamBalance test", NoContexts, CIPHER, NoTeam, calls)
         return RealBunqGatewayAdapter(CLIENT_ID, CLIENT_SECRET, server, sessions, calls, ZoneId.of("Europe/Amsterdam"))
     }
 

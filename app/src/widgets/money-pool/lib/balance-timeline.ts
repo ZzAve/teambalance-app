@@ -1,5 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
-import { countsAsIncoming } from './toppers'
+import { countsAsIncoming } from '@entities/payment/lib/payment-attribution'
 
 export interface BalancePoint {
   /** ISO calendar date of the payment this point follows; the first point sits on the oldest payment's date. */

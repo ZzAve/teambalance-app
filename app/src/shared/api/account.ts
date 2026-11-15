@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { applyUserLanguage } from '@shared/i18n/language'
 import { i18n } from '@shared/i18n/i18n'
 import type { Language } from '@shared/i18n/i18n'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 import { authMeQueryOptions } from './auth'
 
@@ -13,7 +14,7 @@ export function useSetLanguage() {
     mutationFn: async (language: Language) => {
       const contract = language === 'nl' ? 'NL' : 'EN'
       const res = await api.setLanguage({ body: { language: contract } })
-      if (res.status !== 204) throw new Error(`Setting the language failed with status ${res.status}`)
+      if (res.status !== 204) throw apiErrorOf(res, `Setting the language failed with status ${res.status}`)
       return contract
     },
     onSuccess: (contract) => {

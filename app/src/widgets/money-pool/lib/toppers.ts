@@ -1,4 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
+import { countsAsIncoming, isAttributedTopUp } from '@entities/payment/lib/payment-attribution'
 
 export type TopperPeriod = 'season' | 'last30'
 
@@ -35,17 +36,9 @@ export function periodPayments(payments: Payment[], period: TopperPeriod, today:
   return payments.filter((p) => p.date >= from)
 }
 
-/**
- * Money that came in, or an out-of-pocket expense: the member paid it with their own money, which counts
- * as a contribution of the same amount (ADR-0048).
- */
-export function countsAsIncoming(payment: Payment): boolean {
-  return payment.direction === 'In' || payment.outOfPocket
-}
-
 /** Everything attributed to a member that came in, in euro cents. */
 export function toppedUpTotal(payments: Payment[]): number {
-  return payments.reduce((sum, p) => (countsAsIncoming(p) && p.memberId ? sum + p.amount : sum), 0)
+  return payments.reduce((sum, p) => (isAttributedTopUp(p) ? sum + p.amount : sum), 0)
 }
 
 /** Who topped up most in the period, the attributed total, and the incoming money without a member. */

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { formatEuro } from '@entities/payment/lib/format-euro'
 import { useCurrentUser } from '@shared/api/auth'
 import { useMembers } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
@@ -11,10 +12,10 @@ import { ExpenseSheetView } from './ExpenseSheetView'
 
 /**
  * Container for changing or deleting one out-of-pocket expense: the pencil button on its row and the sheet
- * it opens. Rendered by MoneyPool for the member who paid and for an Admin; `amount` is the expense's amount
- * as the list formats it. Pure wiring (ADR-0017), covered by the prop-only sheet's story.
+ * it opens. Rendered by MoneyPool for the member who paid and for an Admin. Pure wiring (ADR-0017), covered
+ * by the prop-only sheet's story.
  */
-export function EditExpense({ expense, today, amount }: { expense: Payment; today: string; amount: string }) {
+export function EditExpense({ expense, today }: { expense: Payment; today: string }) {
   const { t } = useTranslation()
   const isAdmin = useCurrentUser()?.role === 'ADMIN'
   const members = useMembers().data
@@ -46,7 +47,7 @@ export function EditExpense({ expense, today, amount }: { expense: Payment; toda
         amount: expense.amount,
         date: expense.date,
         description: expense.name,
-        summary: `${expense.name}, ${amount}`,
+        summary: `${expense.name}, ${formatEuro(expense.amount)}`,
         isDeleting: remove.isPending,
         onDelete: () => {
           update.reset()

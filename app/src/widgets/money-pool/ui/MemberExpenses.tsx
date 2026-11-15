@@ -3,7 +3,7 @@ import { TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
-import { formatEuro } from '../lib/format'
+import { formatEuro } from '@entities/payment/lib/format-euro'
 import { PaymentListView } from './PaymentListView'
 import { ToppersView } from './ToppersView'
 

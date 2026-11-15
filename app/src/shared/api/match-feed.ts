@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MatchFeedStatus } from './generated/model/MatchFeedStatus'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 
 export type { MatchFeedStatus } from './generated/model/MatchFeedStatus'
@@ -9,17 +10,18 @@ export type { MatchDifference } from './generated/model/MatchDifference'
 
 export type MatchFeedErrorCode = 'INVALID_FEED_URL' | 'UNKNOWN_FEED_TEAM' | 'FEED_UNAVAILABLE' | 'GENERIC'
 
-export class MatchFeedError extends Error {
-  constructor(readonly code: MatchFeedErrorCode) {
-    super(code)
+export class MatchFeedError extends ApiError {
+  declare readonly code: MatchFeedErrorCode
+  constructor(code: MatchFeedErrorCode, status: number) {
+    super(status, code, code)
   }
 }
 
 function errorOf(res: { status: number; body?: unknown }): MatchFeedError {
-  if (res.status === 503) return new MatchFeedError('FEED_UNAVAILABLE')
+  if (res.status === 503) return new MatchFeedError('FEED_UNAVAILABLE', res.status)
   const code = (res.body as { code?: string } | undefined)?.code
-  if (code === 'INVALID_FEED_URL' || code === 'UNKNOWN_FEED_TEAM') return new MatchFeedError(code)
-  return new MatchFeedError('GENERIC')
+  if (code === 'INVALID_FEED_URL' || code === 'UNKNOWN_FEED_TEAM') return new MatchFeedError(code, res.status)
+  return new MatchFeedError('GENERIC', res.status)
 }
 
 // The team's match feed and where its events differ from it. Admin-only. Null when the team has no feed.
@@ -72,7 +74,7 @@ export function useApplyMatchFeed() {
   return useMutation({
     mutationFn: async ({ eventId, resetResponses }: { eventId: string; resetResponses: boolean }) => {
       const res = await api.applyMatchFeed({ body: { eventId, resetResponses } })
-      if (res.status !== 200) throw new MatchFeedError('GENERIC')
+      if (res.status !== 200) throw new MatchFeedError('GENERIC', res.status)
       return res.body
     },
     onSuccess: (status) => {

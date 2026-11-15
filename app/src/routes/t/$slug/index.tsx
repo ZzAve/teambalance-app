@@ -163,6 +163,7 @@ function EventListPage() {
                 defaultExpanded,
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
+            heroEventId={heroEvent?.id}
             hero={heroEvent && (
                 <NextEventHero
                     // Keyed like the cards, so a re-pick (a filter, an event starting) hands the new

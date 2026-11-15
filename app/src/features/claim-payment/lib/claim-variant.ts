@@ -1,4 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
+import { isUnattributedIncoming } from '@entities/payment/lib/payment-attribution'
 import type { ActAs } from '@shared/api/generated/model/ActAs'
 
 /**
@@ -10,7 +11,7 @@ export function claimVariant(
   user: { role?: string; actAs?: ActAs } | null,
   payment: Payment,
 ): 'member' | 'admin' | null {
-  if (!user || payment.direction !== 'In' || payment.memberId) return null
+  if (!user || !isUnattributedIncoming(payment)) return null
   if (user.role === 'ADMIN') return 'admin'
   return user.actAs ? null : 'member'
 }

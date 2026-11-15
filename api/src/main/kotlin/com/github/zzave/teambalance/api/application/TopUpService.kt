@@ -1,12 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.domain.exception.NotUnderActAsException
 import com.github.zzave.teambalance.api.domain.exception.TopUpUnavailableException
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TopUpAmount
 import com.github.zzave.teambalance.api.domain.model.TopUpDescription
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -21,10 +19,10 @@ class TopUpService(
     private val settingsRepository: MoneyPoolSettingsRepository,
     private val teamRepository: TeamRepository,
     private val teamMemberRepository: TeamMemberRepository,
-    private val actAsGateway: ActAsGateway,
+    private val authorizationService: AuthorizationService,
 ) {
     fun topUpLink(userId: UserId, teamId: TeamId, amount: TopUpAmount): String {
-        if (actAsGateway.current() != null) throw NotUnderActAsException()
+        authorizationService.requireNotUnderActAs()
         val link = settingsRepository.get().topUpLink ?: throw TopUpUnavailableException()
         val team = checkNotNull(teamRepository.findById(teamId)) { "Team $teamId has no row" }
         val member = checkNotNull(teamMemberRepository.findDisplayName(userId)) { "Member $userId has no display name" }

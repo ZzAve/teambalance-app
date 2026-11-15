@@ -12,7 +12,6 @@ import com.github.zzave.teambalance.api.application.PaymentAliasService
 import com.github.zzave.teambalance.api.application.PaymentClaimService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TopUpService
-import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
@@ -135,12 +134,12 @@ class MoneyPoolCompositionRoot {
         settingsRepository: MoneyPoolSettingsRepository,
         teamRepository: TeamRepository,
         teamMemberRepository: TeamMemberRepository,
-        actAsGateway: ActAsGateway,
+        authorizationService: AuthorizationService,
     ) = TopUpService(
         settingsRepository = settingsRepository,
         teamRepository = teamRepository,
         teamMemberRepository = teamMemberRepository,
-        actAsGateway = actAsGateway,
+        authorizationService = authorizationService,
     )
 }
 

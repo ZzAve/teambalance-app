@@ -42,6 +42,8 @@ data class BulletinPost(
     val postedAt: Instant,
     /** Oldest first. */
     val edits: List<PostEdit> = emptyList(),
+    /** Comes first on the board and shows in the strip on every page. */
+    val pinned: Boolean = false,
     /** Set when an Admin deleted it: hidden from Members, restorable until [removedAt]. */
     val deletedAt: Instant? = null,
 ) {

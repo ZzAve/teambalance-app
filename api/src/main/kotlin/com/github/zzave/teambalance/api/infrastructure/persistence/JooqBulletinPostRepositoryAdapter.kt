@@ -27,14 +27,15 @@ class JooqBulletinPostRepositoryAdapter(
         val edits = editsByPost(postIds = null)
         return dsl.selectFrom(BULLETIN_POSTS)
             .where(if (includeDeleted) DSL.noCondition() else BULLETIN_POSTS.DEACTIVATED_AT.isNull)
-            .orderBy(BULLETIN_POSTS.POSTED_AT.desc(), BULLETIN_POSTS.ID)
+            .orderBy(BULLETIN_POSTS.PINNED.desc(), BULLETIN_POSTS.POSTED_AT.desc(), BULLETIN_POSTS.ID)
             .fetch { it.toBulletinPost(edits[it.id].orEmpty()) }
     }
 
-    override fun create(markdown: PostMarkdown, authorId: UserId, postedAt: Instant): BulletinPost =
+    override fun create(markdown: PostMarkdown, pinned: Boolean, authorId: UserId, postedAt: Instant): BulletinPost =
         dsl.insertInto(BULLETIN_POSTS)
             .set(BULLETIN_POSTS.ID, UUID.randomUUID())
             .set(BULLETIN_POSTS.MARKDOWN, markdown.value)
+            .set(BULLETIN_POSTS.PINNED, pinned)
             .set(BULLETIN_POSTS.AUTHOR_ID, authorId.value)
             .set(BULLETIN_POSTS.POSTED_AT, postedAt.atOffset(ZoneOffset.UTC))
             .returning()
@@ -42,9 +43,16 @@ class JooqBulletinPostRepositoryAdapter(
             .toBulletinPost(edits = emptyList())
 
     @Transactional
-    override fun update(id: BulletinPostId, markdown: PostMarkdown, editorId: UserId, editedAt: Instant): BulletinPost? {
+    override fun update(
+        id: BulletinPostId,
+        markdown: PostMarkdown,
+        pinned: Boolean,
+        editorId: UserId,
+        editedAt: Instant,
+    ): BulletinPost? {
         val updated = dsl.update(BULLETIN_POSTS)
             .set(BULLETIN_POSTS.MARKDOWN, markdown.value)
+            .set(BULLETIN_POSTS.PINNED, pinned)
             .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNull))
             .returning()
             .fetchOne() ?: return null
@@ -90,6 +98,7 @@ class JooqBulletinPostRepositoryAdapter(
         authorId = UserId(authorId),
         postedAt = postedAt.toInstant(),
         edits = edits,
+        pinned = pinned,
         deletedAt = deactivatedAt?.toInstant(),
     )
 }

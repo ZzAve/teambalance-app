@@ -146,29 +146,45 @@ class BulletinIT : TeamBalanceIT() {
             edits shouldBe 0
         }
 
+        test("a pinned post comes first, and unpinning it is an edit") {
+            val pinned = createdId("Ball bag rotation", pinned = true)
+            createdId("Team dinner")
+
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts[0].id").value(pinned))
+                .andExpect(jsonPath("$.posts[0].pinned").value(true))
+                .andExpect(jsonPath("$.posts[1].pinned").value(false))
+
+            put(pinned, "Ball bag rotation", ADMIN_USER_ID, pinned = false)
+                .andExpect(jsonPath("$.pinned").value(false))
+                .andExpect(jsonPath("$.edits.length()").value(1))
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts[1].id").value(pinned))
+        }
+
         test("a blank post is refused") {
             post("   ", ADMIN_USER_ID).andExpect(status().isBadRequest)
         }
     }
 
-    private fun post(markdown: String, asUser: String) =
+    private fun post(markdown: String, asUser: String, pinned: Boolean = false) =
         perform(
             MockMvcRequestBuilders.post("/api/bulletin-posts")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"markdown": ${jsonString(markdown)}}"""),
+                .content("""{"markdown": ${jsonString(markdown)}, "pinned": $pinned}"""),
             asUser,
         )
 
-    private fun createdId(markdown: String): String {
-        val response = post(markdown, ADMIN_USER_ID).andExpect(status().isCreated).andReturn().response.contentAsString
+    private fun createdId(markdown: String, pinned: Boolean = false): String {
+        val response = post(markdown, ADMIN_USER_ID, pinned).andExpect(status().isCreated).andReturn().response.contentAsString
         return Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(response)!!.groupValues[1]
     }
 
-    private fun put(id: String, markdown: String, asUser: String) =
+    private fun put(id: String, markdown: String, asUser: String, pinned: Boolean = false) =
         perform(
             MockMvcRequestBuilders.put("/api/bulletin-posts/$id")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"markdown": ${jsonString(markdown)}}"""),
+                .content("""{"markdown": ${jsonString(markdown)}, "pinned": $pinned}"""),
             asUser,
         )
 

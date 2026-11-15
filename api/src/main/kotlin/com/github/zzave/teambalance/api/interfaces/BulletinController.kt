@@ -41,6 +41,7 @@ class BulletinController(
             callerId = currentUserGateway.requireCurrentUserId(),
             teamId = currentTeamGateway.requireCurrentTeamId(),
             rawMarkdown = request.body.markdown,
+            pinned = request.body.pinned,
         )
         return CreateBulletinPost.Response201(created.produce())
     }
@@ -51,6 +52,7 @@ class BulletinController(
             teamId = currentTeamGateway.requireCurrentTeamId(),
             id = request.path.id.consumeBulletinPostId(),
             rawMarkdown = request.body.markdown,
+            pinned = request.body.pinned,
         )
         return UpdateBulletinPost.Response200(updated.produce())
     }
@@ -81,6 +83,7 @@ private fun BulletinPost.produce() = BulletinPostDto(
     markdown = markdown.value,
     authorId = authorId.toString(),
     postedAt = DateTimestampWithTimezone(postedAt.toString()),
+    pinned = pinned,
     edits = edits.map { BulletinPostEdit(it.editorId.toString(), DateTimestampWithTimezone(it.editedAt.toString())) },
     deletedAt = deletedAt?.let { DateTimestampWithTimezone(it.toString()) },
     removedAt = removedAt?.let { DateTimestampWithTimezone(it.toString()) },

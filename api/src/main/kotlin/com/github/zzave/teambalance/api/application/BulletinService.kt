@@ -21,15 +21,21 @@ class BulletinService(
         return bulletinPostRepository.list(includeDeleted = authorizationService.isAdmin(callerId, teamId))
     }
 
-    fun createPost(callerId: UserId, teamId: TeamId, rawMarkdown: String): BulletinPost {
+    fun createPost(callerId: UserId, teamId: TeamId, rawMarkdown: String, pinned: Boolean = false): BulletinPost {
         authorizationService.requireAdmin(callerId, teamId)
-        return bulletinPostRepository.create(PostMarkdown.of(rawMarkdown), callerId, clock.instant())
+        return bulletinPostRepository.create(PostMarkdown.of(rawMarkdown), pinned, callerId, clock.instant())
     }
 
     /** Admin-only. Every save is recorded as an edit, with the caller and the time (ADR-0048). */
-    fun updatePost(callerId: UserId, teamId: TeamId, id: BulletinPostId, rawMarkdown: String): BulletinPost {
+    fun updatePost(
+        callerId: UserId,
+        teamId: TeamId,
+        id: BulletinPostId,
+        rawMarkdown: String,
+        pinned: Boolean = false,
+    ): BulletinPost {
         authorizationService.requireAdmin(callerId, teamId)
-        return bulletinPostRepository.update(id, PostMarkdown.of(rawMarkdown), callerId, clock.instant())
+        return bulletinPostRepository.update(id, PostMarkdown.of(rawMarkdown), pinned, callerId, clock.instant())
             ?: throw BulletinPostNotFoundException(id)
     }
 

@@ -8,13 +8,19 @@ import java.time.Instant
 
 /** The current tenant's Bulletin Board (ADR-0048). No method takes a team id: the routed schema is the team. */
 interface BulletinPostRepository {
-    /** Posts newest first, each with its edits; deleted ones only with [includeDeleted]. */
+    /** Pinned Posts first, then newest first, each with its edits; deleted ones only with [includeDeleted]. */
     fun list(includeDeleted: Boolean): List<BulletinPost>
 
-    fun create(markdown: PostMarkdown, authorId: UserId, postedAt: Instant): BulletinPost
+    fun create(markdown: PostMarkdown, pinned: Boolean, authorId: UserId, postedAt: Instant): BulletinPost
 
-    /** Replaces the Markdown and records the edit, together. Null when the Post is gone or deleted. */
-    fun update(id: BulletinPostId, markdown: PostMarkdown, editorId: UserId, editedAt: Instant): BulletinPost?
+    /** Replaces the Markdown and the pin and records the edit, together. Null when the Post is gone or deleted. */
+    fun update(
+        id: BulletinPostId,
+        markdown: PostMarkdown,
+        pinned: Boolean,
+        editorId: UserId,
+        editedAt: Instant,
+    ): BulletinPost?
 
     /** Marks the Post deleted at [at]. False when it is gone or already deleted. */
     fun delete(id: BulletinPostId, at: Instant): Boolean

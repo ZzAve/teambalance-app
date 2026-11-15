@@ -11,6 +11,7 @@ type BulletinPost {
     authorId: String,
     postedAt: DateTimestampWithTimezone,
     edits: BulletinPostEdit[],
+    pinned: Boolean,
     deletedAt: DateTimestampWithTimezone?,
     removedAt: DateTimestampWithTimezone?
 }
@@ -19,14 +20,15 @@ type BulletinPostList {
     posts: BulletinPost[]
 }
 
-// Newest first. Any Member may read the board; Admins also get the deleted Posts that can still be restored.
+// Pinned Posts first, then newest first. Any Member may read the board; Admins also get the deleted Posts that can still be restored.
 endpoint ListBulletinPosts GET /api/bulletin-posts -> {
     200 -> BulletinPostList
 }
 
 // Admin-only. The Markdown is stored as written, trimmed; 400 when it is blank or longer than 5000 characters.
 type CreateBulletinPostRequest {
-    markdown: String
+    markdown: String,
+    pinned: Boolean
 }
 
 endpoint CreateBulletinPost POST CreateBulletinPostRequest /api/bulletin-posts -> {
@@ -35,9 +37,10 @@ endpoint CreateBulletinPost POST CreateBulletinPostRequest /api/bulletin-posts -
     403 -> Unit
 }
 
-// Admin-only. Replaces the Markdown, with the same rules as create, and records the edit. 404 when the Post is gone or deleted.
+// Admin-only. Replaces the Markdown and the pin, with the same rules as create, and records the edit. 404 when the Post is gone or deleted.
 type UpdateBulletinPostRequest {
-    markdown: String
+    markdown: String,
+    pinned: Boolean
 }
 
 endpoint UpdateBulletinPost PUT UpdateBulletinPostRequest /api/bulletin-posts/{id: String} -> {

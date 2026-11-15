@@ -24,14 +24,22 @@ private class FakeBulletinPostRepository : BulletinPostRepository {
     private val store = mutableListOf<BulletinPost>()
 
     override fun list(includeDeleted: Boolean): List<BulletinPost> =
-        store.filter { includeDeleted || it.deletedAt == null }.sortedByDescending { it.postedAt }
+        store.filter { includeDeleted || it.deletedAt == null }
+            .sortedWith(compareByDescending<BulletinPost> { it.pinned }.thenByDescending { it.postedAt })
 
-    override fun create(markdown: PostMarkdown, authorId: UserId, postedAt: Instant): BulletinPost =
-        BulletinPost(BulletinPostId(UUID.randomUUID()), markdown, authorId, postedAt).also { store += it }
+    override fun create(markdown: PostMarkdown, pinned: Boolean, authorId: UserId, postedAt: Instant): BulletinPost =
+        BulletinPost(BulletinPostId(UUID.randomUUID()), markdown, authorId, postedAt, pinned = pinned).also { store += it }
 
-    override fun update(id: BulletinPostId, markdown: PostMarkdown, editorId: UserId, editedAt: Instant): BulletinPost? {
+    override fun update(
+        id: BulletinPostId,
+        markdown: PostMarkdown,
+        pinned: Boolean,
+        editorId: UserId,
+        editedAt: Instant,
+    ): BulletinPost? {
         val index = store.indexOfFirst { it.id == id && it.deletedAt == null }.takeIf { it >= 0 } ?: return null
-        return store[index].let { it.copy(markdown = markdown, edits = it.edits + PostEdit(editorId, editedAt)) }
+        return store[index]
+            .let { it.copy(markdown = markdown, pinned = pinned, edits = it.edits + PostEdit(editorId, editedAt)) }
             .also { store[index] = it }
     }
 
@@ -81,6 +89,18 @@ class BulletinServiceTest : FunSpec() {
             post.markdown.value shouldBe "### Ball bag\n- Lisa"
             post.authorId shouldBe adminId
             post.postedAt shouldBe NOW
+        }
+
+        test("pinned posts come first, then newest first") {
+            val clock = BulletinTestClock(NOW)
+            val service = newService(clock)
+            val pinned = service.createPost(adminId, teamId, "Rotation", pinned = true)
+            clock.now = NOW.plusSeconds(60)
+            val newer = service.createPost(adminId, teamId, "Dinner")
+
+            service.listPosts(memberId, teamId).map { it.id } shouldBe listOf(pinned.id, newer.id)
+            service.updatePost(adminId, teamId, pinned.id, "Rotation", pinned = false)
+            service.listPosts(memberId, teamId).map { it.id } shouldBe listOf(newer.id, pinned.id)
         }
 
         test("a member may not post") {

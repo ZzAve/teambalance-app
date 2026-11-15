@@ -443,6 +443,64 @@ main {
   view-transition-name: main-content;
 }
 
+/* ── Events page: cards and hero enter, leave and move (useViewTransitionValue) ──
+   The hook sets `.list-motion` on <html> for the length of the transition. Names are applied only
+   then: the router runs a view transition on every navigation, and permanent names would make each
+   one capture every card, the hero, the bulk bar, the header and the tab bar as groups of their own.
+   `main` gives up its own name meanwhile, so the page slide above does not run. A card present in
+   both states moves by the default group animation; one in a single state is `:only-child` and fades
+   and scales. The hero has one name, so an old and a new hero cross-fade and resize in place; it
+   enters or leaves only when it appears or goes. The rest of the page is one root image, swapped
+   without a cross-fade so nothing flickers. The sticky header, the fixed tab bar and the bulk bar are
+   named too, so a card passing them is painted below them and the bar moves with the page. Everything
+   is inside the no-preference block, which the hook mirrors by starting no transition under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .list-motion main {
+    view-transition-name: none;
+  }
+  .list-motion [data-event-card] {
+    view-transition-name: var(--transition-name);
+  }
+  .list-motion [data-event-hero] {
+    view-transition-name: event-hero;
+  }
+  .list-motion [data-bulk-bar] {
+    view-transition-name: bulk-bar;
+  }
+  .list-motion [data-app-chrome="header"] {
+    view-transition-name: app-chrome-header;
+  }
+  .list-motion [data-app-chrome="nav"] {
+    view-transition-name: app-chrome-nav;
+  }
+  .list-motion::view-transition-old(root),
+  .list-motion::view-transition-old(app-chrome-header),
+  .list-motion::view-transition-old(app-chrome-nav) {
+    display: none;
+  }
+  .list-motion::view-transition-new(root),
+  .list-motion::view-transition-new(app-chrome-header),
+  .list-motion::view-transition-new(app-chrome-nav) {
+    animation: none;
+  }
+  .list-motion::view-transition-group(*) {
+    animation-duration: var(--duration-normal);
+    animation-timing-function: ease;
+  }
+  .list-motion::view-transition-old(*):only-child {
+    animation: var(--duration-fast) ease-in leave-scale both;
+  }
+  .list-motion::view-transition-new(*):only-child {
+    animation: var(--duration-normal) ease-out enter-scale both;
+  }
+}
+@keyframes leave-scale {
+  to { opacity: 0; transform: scale(0.96); }
+}
+@keyframes enter-scale {
+  from { opacity: 0; transform: scale(0.96); }
+}
+
 /* ── Attendance button bounce ── */
 @keyframes att-bounce {
   0%   { transform: scale(0.92); }
@@ -459,7 +517,8 @@ main {
    stagger, the view-transition route slide, the attendance bounce, and the hover shadow
    transition on [data-slot="card"]. None of them convey information — they're all decoration —
    so vestibular/motion-sensitive users get all four turned off here, in one place, rather than
-   patched per call-site.
+   patched per call-site. The events page's list motion is a fifth, not switched off here but
+   switched on only inside `@media (prefers-reduced-motion: no-preference)` (see above).
      · `.card-enter`/`.att-bounce`: `animation: none` is enough to land on the resting frame.
        `.card-enter` sets no static opacity/transform of its own (those live only inside the
        `@keyframes`), so with the animation off the element renders at its plain, fully-opaque

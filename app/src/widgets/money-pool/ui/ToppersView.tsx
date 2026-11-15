@@ -8,6 +8,7 @@ import { Chip } from '@shared/ui/chip'
 import { formatEuro } from '@entities/payment/lib/format-euro'
 import { formatPaymentDate } from '../lib/format'
 import { playbackFrames, playbackSteps, type PlaybackFrame } from '../lib/ranking-at'
+import { prefersReducedMotion } from '@shared/lib/prefers-reduced-motion'
 import { splitPodium, toppers, type Topper, type TopperPeriod } from '../lib/toppers'
 import { useCountUp } from '../lib/use-count-up'
 import { MemberAvatar } from './MemberAvatar'
@@ -42,8 +43,6 @@ const ENTRANCE_COUNT_DELAYS = [340, 250, 160] as const
 const TICK_MS = 250
 /** List rows past this one rise together in the entrance, so a long roster does not drag it out. */
 const ENTRANCE_ROW_CAP = 8
-
-const prefersReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** Where the time bar stands, as a frame index; no position means now. `frames` ties it to the frames it indexes, so a refetch drops it. */
 interface Position {

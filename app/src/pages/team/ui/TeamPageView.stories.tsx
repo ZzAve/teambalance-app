@@ -70,6 +70,7 @@ const bulletin = (isAdmin: boolean) => (
     onUpdate={noop}
     onDelete={noop}
     onRestore={noop}
+    now={new Date('2026-11-14T12:00:00Z')}
     posts={[
       {
         id: 'b1',

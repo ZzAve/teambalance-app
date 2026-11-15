@@ -3,6 +3,13 @@ import { api } from './wirespec-client'
 
 export type { BulletinPost } from './generated/model/BulletinPost'
 
+/** What an Admin writes: the Markdown, the pin, and when Members stop seeing it (null: never). */
+export interface PostContent {
+  markdown: string
+  pinned: boolean
+  showUntil: string | null
+}
+
 /** The Team's Bulletin Board, pinned Posts first, then newest first (ADR-0048). */
 export function useBulletinPosts(options?: { enabled?: boolean }) {
   return useQuery({
@@ -19,8 +26,8 @@ export function useBulletinPosts(options?: { enabled?: boolean }) {
 export function useCreateBulletinPost() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ markdown, pinned }: { markdown: string; pinned: boolean }) => {
-      const res = await api.createBulletinPost({ body: { markdown, pinned } })
+    mutationFn: async ({ markdown, pinned, showUntil }: PostContent) => {
+      const res = await api.createBulletinPost({ body: { markdown, pinned, showUntil: showUntil ?? undefined } })
       if (res.status !== 201) throw new Error(`Post refused: ${res.status}`)
       return res.body
     },
@@ -34,8 +41,8 @@ export function useCreateBulletinPost() {
 export function useUpdateBulletinPost() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, markdown, pinned }: { id: string; markdown: string; pinned: boolean }) => {
-      const res = await api.updateBulletinPost({ id, body: { markdown, pinned } })
+    mutationFn: async ({ id, markdown, pinned, showUntil }: PostContent & { id: string }) => {
+      const res = await api.updateBulletinPost({ id, body: { markdown, pinned, showUntil: showUntil ?? undefined } })
       if (res.status !== 200) throw new Error(`Edit refused: ${res.status}`)
       return res.body
     },

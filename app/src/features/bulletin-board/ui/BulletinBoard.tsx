@@ -8,6 +8,7 @@ import {
   useUpdateBulletinPost,
 } from '@shared/api/bulletin'
 import { useMembers } from '@shared/api/members'
+import { useNow } from '@shared/lib/use-now'
 import { BulletinBoardView } from './BulletinBoardView'
 
 /**
@@ -23,6 +24,7 @@ export function BulletinBoard({ isAdmin }: { isAdmin: boolean }) {
   const updatePost = useUpdateBulletinPost()
   const deletePost = useDeleteBulletinPost()
   const restorePost = useRestoreBulletinPost()
+  const now = useNow()
 
   const nameOf = (userId: string) =>
     members?.find((member) => member.userId === userId)?.displayName ?? t('bulletin.formerMember')
@@ -37,8 +39,9 @@ export function BulletinBoard({ isAdmin }: { isAdmin: boolean }) {
       isAdmin={isAdmin}
       isLoading={isLoading}
       isError={!!error}
-      onCreate={(markdown, pinned) => createPost.mutateAsync({ markdown, pinned })}
-      onUpdate={(id, markdown, pinned) => updatePost.mutateAsync({ id, markdown, pinned })}
+      onCreate={(content) => createPost.mutateAsync(content)}
+      onUpdate={(id, content) => updatePost.mutateAsync({ id, ...content })}
+      now={now}
       onDelete={(id) => deletePost.mutate(id, { onError: () => toast.error(t('bulletin.deleteFailed')) })}
       onRestore={(id) => restorePost.mutate(id, { onError: () => toast.error(t('bulletin.restoreFailed')) })}
     />

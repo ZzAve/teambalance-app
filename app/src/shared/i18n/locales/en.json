@@ -1295,6 +1295,10 @@
     "pinnedStrip": "Pinned posts",
     "morePinned": "+{{count}} more",
     "closePinned": "Close pinned posts",
-    "openPinned": "Show pinned posts"
+    "openPinned": "Show pinned posts",
+    "until": "until {{date}}",
+    "endedOn": "Ended {{date}}",
+    "showUntilLabel": "Show until",
+    "showUntilHint": "Optional. After this day members no longer see the post."
   }
 }

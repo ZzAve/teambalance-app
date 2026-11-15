@@ -9,6 +9,8 @@ import {
   writePreference,
 } from '@shared/preferences/preferences'
 import { postTitle } from '@shared/lib/post-title'
+import { hasEnded } from '@shared/lib/show-until'
+import { useNow } from '@shared/lib/use-now'
 import { stripSignature } from '../lib/strip-signature'
 import { PinnedPostsStripView } from './PinnedPostsStripView'
 
@@ -24,11 +26,13 @@ export function PinnedPostsStrip() {
   const slug = teamSlugFromPath(pathname)
   const onTeamPage = slug !== null && pathname.replace(/\/$/, '') !== teamRoutes(slug).getStarted
   const { data: posts } = useBulletinPosts({ enabled: onTeamPage })
+  const now = useNow()
   const key = slug ? teamPreferenceKey(slug, 'pinnedStripClosed') : null
   const [closed, setClosed] = useState(() => (key ? readPreference(browserPreferenceStorage(), key, asString) : null))
 
   if (!onTeamPage || !posts || !key) return null
-  const pins = posts.filter((post) => post.pinned && !post.deletedAt)
+  // Admins also get ended and deleted Posts; the strip shows what Members see.
+  const pins = posts.filter((post) => post.pinned && !post.deletedAt && !hasEnded(post.showUntil, now))
   const signature = stripSignature(pins)
   if (pins.length === 0 || closed === signature) return null
 

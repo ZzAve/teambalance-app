@@ -10,6 +10,8 @@ import { Switch } from '@shared/ui/switch'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
 import { postTitle } from '@shared/lib/post-title'
+import { dateFromShowUntil, hasEnded, showUntilFromDate } from '@shared/lib/show-until'
+import type { PostContent } from '@shared/api/bulletin'
 
 export interface BoardPost {
   id: string
@@ -18,12 +20,13 @@ export interface BoardPost {
   postedAt: string
   edits: PostEditEntry[]
   pinned: boolean
+  showUntil?: string
   /** Set on a deleted Post (Admins only), restorable until [removedAt]. */
   deletedAt?: string
   removedAt?: string
 }
 
-type Save = (markdown: string, pinned: boolean) => Promise<unknown> | void
+type Save = (content: PostContent) => Promise<unknown> | void
 
 interface BulletinBoardViewProps {
   posts: BoardPost[]
@@ -33,7 +36,9 @@ interface BulletinBoardViewProps {
   isError?: boolean
   /** Resolves when the Post is saved; the sheet closes then, and stays open with an error on a reject. */
   onCreate: Save
-  onUpdate: (id: string, markdown: string, pinned: boolean) => Promise<unknown> | void
+  onUpdate: (id: string, content: PostContent) => Promise<unknown> | void
+  /** The page's clock: a Post past its show-until shows as ended. */
+  now: Date
   onDelete: (id: string) => void
   onRestore: (id: string) => void
 }
@@ -43,7 +48,7 @@ type Compose = { kind: 'new' } | { kind: 'edit'; post: BoardPost }
 
 /** The Team's Bulletin Board at the top of the Team page (ADR-0048). Prop-only. */
 export function BulletinBoardView({
-  posts, isAdmin, isLoading, isError, onCreate, onUpdate, onDelete, onRestore,
+  posts, isAdmin, isLoading, isError, onCreate, onUpdate, onDelete, onRestore, now,
 }: BulletinBoardViewProps) {
   const { t } = useTranslation()
   const [compose, setCompose] = useState<Compose | null>(null)
@@ -54,7 +59,12 @@ export function BulletinBoardView({
     setOpen(true)
   }
 
-  const live = posts.filter((post) => !post.deletedAt)
+  // Members get neither ended nor deleted Posts from the API; Admins see ended ones last, dimmed.
+  const notDeleted = posts.filter((post) => !post.deletedAt)
+  const live = [
+    ...notDeleted.filter((post) => !hasEnded(post.showUntil, now)),
+    ...notDeleted.filter((post) => hasEnded(post.showUntil, now)),
+  ]
   const deleted = posts.filter((post) => post.deletedAt)
 
   if (!isAdmin && !isLoading && !isError && live.length === 0) return null
@@ -86,6 +96,8 @@ export function BulletinBoardView({
           postedAt={post.postedAt}
           edits={post.edits}
           pinned={post.pinned}
+          showUntil={post.showUntil}
+          ended={hasEnded(post.showUntil, now)}
           actions={isAdmin && (
             <PostMenu onEdit={() => start({ kind: 'edit', post })} onDelete={() => onDelete(post.id)} />
           )}
@@ -102,8 +114,9 @@ export function BulletinBoardView({
           onOpenChange={setOpen}
           initialMarkdown={compose.kind === 'edit' ? compose.post.markdown : ''}
           initialPinned={compose.kind === 'edit' && compose.post.pinned}
+          initialShowUntil={compose.kind === 'edit' ? compose.post.showUntil : undefined}
           isEdit={compose.kind === 'edit'}
-          onSave={compose.kind === 'edit' ? (markdown, pinned) => onUpdate(compose.post.id, markdown, pinned) : onCreate}
+          onSave={compose.kind === 'edit' ? (content) => onUpdate(compose.post.id, content) : onCreate}
         />
       )}
     </section>
@@ -163,14 +176,16 @@ interface ComposeSheetProps {
   onOpenChange: (open: boolean) => void
   initialMarkdown: string
   initialPinned: boolean
+  initialShowUntil?: string
   isEdit: boolean
   onSave: Save
 }
 
-function ComposeSheet({ open, onOpenChange, initialMarkdown, initialPinned, isEdit, onSave }: ComposeSheetProps) {
+function ComposeSheet({ open, onOpenChange, initialMarkdown, initialPinned, initialShowUntil, isEdit, onSave }: ComposeSheetProps) {
   const { t } = useTranslation()
   const [markdown, setMarkdown] = useState(initialMarkdown)
   const [pinned, setPinned] = useState(initialPinned)
+  const [untilDate, setUntilDate] = useState(dateFromShowUntil(initialShowUntil))
   const [preview, setPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -179,10 +194,11 @@ function ComposeSheet({ open, onOpenChange, initialMarkdown, initialPinned, isEd
     setSaving(true)
     setFailed(false)
     try {
-      await onSave(markdown, pinned)
+      await onSave({ markdown, pinned, showUntil: showUntilFromDate(untilDate) })
       if (!isEdit) {
         setMarkdown('')
         setPinned(false)
+        setUntilDate('')
       }
       setPreview(false)
       onOpenChange(false)
@@ -240,6 +256,18 @@ function ComposeSheet({ open, onOpenChange, initialMarkdown, initialPinned, isEd
             aria-describedby="bulletin-pin-hint"
           />
         </div>
+        <label className="mt-4 flex items-center justify-between gap-4 text-small">
+          <span>
+            {t('bulletin.showUntilLabel')}
+            <span className="block text-caption text-muted-foreground">{t('bulletin.showUntilHint')}</span>
+          </span>
+          <input
+            type="date"
+            value={untilDate}
+            onChange={(e) => setUntilDate(e.target.value)}
+            className="min-h-11 rounded-md border border-border/60 bg-card px-2"
+          />
+        </label>
         {failed && <p role="alert" className="mt-2 text-small text-red-ink">{t('bulletin.postFailed')}</p>}
         <Button className="mt-6" disabled={saving || markdown.trim() === ''} onClick={submit}>
           {isEdit ? t('bulletin.save') : t('bulletin.post')}

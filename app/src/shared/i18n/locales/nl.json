@@ -1295,6 +1295,10 @@
     "pinnedStrip": "Vastgezette berichten",
     "morePinned": "+{{count}} meer",
     "closePinned": "Vastgezette berichten sluiten",
-    "openPinned": "Vastgezette berichten tonen"
+    "openPinned": "Vastgezette berichten tonen",
+    "until": "tot {{date}}",
+    "endedOn": "Afgelopen op {{date}}",
+    "showUntilLabel": "Tonen tot",
+    "showUntilHint": "Optioneel. Na deze dag zien leden het bericht niet meer."
   }
 }

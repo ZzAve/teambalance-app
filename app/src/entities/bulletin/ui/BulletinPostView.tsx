@@ -17,6 +17,10 @@ interface BulletinPostViewProps {
   authorName: string
   postedAt: string
   pinned?: boolean
+  /** When Members stop seeing it. */
+  showUntil?: string
+  /** Past its show-until: only Admins still see it, dimmed. */
+  ended?: boolean
   /** Oldest first. A Post with edits shows "edited" and an info button with the full list. */
   edits?: PostEditEntry[]
   /** The Admin's actions (the ⋯ menu), on the header line. */
@@ -24,12 +28,15 @@ interface BulletinPostViewProps {
 }
 
 /** One Post on the Bulletin Board (ADR-0048): who posted it and when, then the Markdown. */
-export function BulletinPostView({ markdown, authorName, postedAt, pinned, edits = [], actions }: BulletinPostViewProps) {
+export function BulletinPostView({
+  markdown, authorName, postedAt, pinned, showUntil, ended, edits = [], actions,
+}: BulletinPostViewProps) {
   const { t, i18n } = useTranslation()
-  const date = new Date(postedAt).toLocaleDateString(formatLocale(i18n.language), { day: 'numeric', month: 'short' })
+  const day = (iso: string) => new Date(iso).toLocaleDateString(formatLocale(i18n.language), { day: 'numeric', month: 'short' })
+  const date = day(postedAt)
 
   return (
-    <article className={cn('rounded-lg border bg-card p-4 shadow-sm', pinned ? 'border-gold/50' : 'border-border/40')}>
+    <article className={cn('rounded-lg border bg-card p-4 shadow-sm', pinned ? 'border-gold/50' : 'border-border/40', ended && 'opacity-60')}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="flex min-h-9 flex-wrap items-center gap-x-1 text-caption text-muted-foreground">
           {pinned && (
@@ -40,6 +47,11 @@ export function BulletinPostView({ markdown, authorName, postedAt, pinned, edits
           )}
           <span className="font-semibold text-foreground/80">{authorName}</span> · <time dateTime={postedAt}>{date}</time>
           {edits.length > 0 && <EditHistory authorName={authorName} postedAt={postedAt} edits={edits} />}
+          {showUntil && (
+            <span className="ml-1 rounded-full bg-muted px-2 py-0.5">
+              {ended ? t('bulletin.endedOn', { date: day(showUntil) }) : t('bulletin.until', { date: day(showUntil) })}
+            </span>
+          )}
         </p>
         {actions}
       </div>

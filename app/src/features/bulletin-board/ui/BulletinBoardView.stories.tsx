@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, waitFor, within } from 'storybook/test'
 import { Stack } from '@shared/testing/stack'
+import { dateFromShowUntil, showUntilFromDate } from '@shared/lib/show-until'
 import { BulletinBoardView, type BoardPost } from './BulletinBoardView'
 
 // The Bulletin Board (ADR-0048). The Team page composite (pages/team/TeamPageView) owns the picture
@@ -12,6 +13,7 @@ const POSTS: BoardPost[] = [
     authorName: 'Grace Hopper',
     postedAt: '2026-11-12T09:00:00Z',
     pinned: true,
+    showUntil: '2026-11-30T22:59:59.000Z',
     edits: [
       { editorName: 'Ada Lovelace', editedAt: '2026-11-12T15:30:00Z' },
       { editorName: 'Grace Hopper', editedAt: '2026-11-13T08:05:00Z' },
@@ -31,6 +33,8 @@ const POSTS: BoardPost[] = [
     authorName: 'Ada Lovelace',
     postedAt: '2026-11-10T09:00:00Z',
     pinned: false,
+    // Past the story's clock: Members no longer see it; Admins see it last, dimmed.
+    showUntil: '2026-11-13T22:59:59.000Z',
     edits: [],
     markdown: 'Raw HTML stays text: <script>alert(1)</script> and [a bad link](javascript:alert(1)).',
   },
@@ -46,10 +50,13 @@ const POSTS: BoardPost[] = [
   },
 ]
 
+// The clock every story reads, so the show-until chips do not change with the day the tests run.
+const NOW = new Date('2026-11-14T12:00:00Z')
+
 const meta = {
   title: 'features/bulletin-board/BulletinBoardView',
   component: BulletinBoardView,
-  args: { posts: POSTS, isAdmin: true, onCreate: fn(), onUpdate: fn(), onDelete: fn(), onRestore: fn() },
+  args: { posts: POSTS, isAdmin: true, now: NOW, onCreate: fn(), onUpdate: fn(), onDelete: fn(), onRestore: fn() },
 } satisfies Meta<typeof BulletinBoardView>
 
 export default meta
@@ -62,6 +69,11 @@ export const Data: Story = {
     await expect(canvas.getByText('Grace Hopper')).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'gemeente notice' })).toHaveAttribute('rel', 'noopener noreferrer')
     await expect(canvas.getAllByText('Pinned')).toHaveLength(1)
+    await expect(canvas.getByText('until 30 Nov')).toBeInTheDocument()
+    await expect(canvas.getByText('Ended 13 Nov')).toBeInTheDocument()
+    // The ended Post comes after the live ones.
+    const articles = canvas.getAllByRole('article')
+    await expect(articles.at(-1)).toHaveTextContent('Ended 13 Nov')
     // Only the edited Post says so, with its history behind the info button.
     await expect(canvas.getAllByText(/edited/)).toHaveLength(1)
     await expect(canvas.getAllByRole('button', { name: 'Edit history' })).toHaveLength(1)
@@ -116,7 +128,7 @@ export const Interactions: Story = {
 
     await userEvent.click(body.getByRole('switch', { name: 'Pin this post' }))
     await userEvent.click(post)
-    await expect(args.onCreate).toHaveBeenCalledWith('**Balls** go home with Tom', true)
+    await expect(args.onCreate).toHaveBeenCalledWith({ markdown: '**Balls** go home with Tom', pinned: true, showUntil: null })
     await waitFor(() => expect(body.queryByRole('button', { name: 'Post' })).not.toBeInTheDocument())
 
     // Edit starts from the Post's own text and saves it under that Post's id.
@@ -129,7 +141,12 @@ export const Interactions: Story = {
     await userEvent.clear(text)
     await userEvent.type(text, 'Closed on Friday')
     await userEvent.click(body.getByRole('button', { name: 'Save' }))
-    await expect(args.onUpdate).toHaveBeenCalledWith('b2', 'Closed on Friday', true)
+    // The pin and the show-until are kept: the edit saves the Post's whole content.
+    await expect(args.onUpdate).toHaveBeenCalledWith('b2', {
+      markdown: 'Closed on Friday',
+      pinned: true,
+      showUntil: showUntilFromDate(dateFromShowUntil(POSTS[0].showUntil)),
+    })
     await waitFor(() => expect(body.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument())
 
     // The history lists every edit, newest first, then who posted it.

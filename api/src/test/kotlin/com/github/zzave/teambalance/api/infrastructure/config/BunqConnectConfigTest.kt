@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -14,6 +15,7 @@ import java.util.Base64
 
 private val KEY = Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
 private val CIPHER = TokenCipher.fromBase64Key(KEY, "test-key")
+private val GRANT_SEAL = BunqGrantSeal(CIPHER)
 private const val API = "https://api.example/"
 private val BUNQ_ENVIRONMENTS = listOf("none", "sandbox", "production")
 
@@ -22,37 +24,38 @@ class BunqConnectConfigTest : FunSpec({
     context("connect settings") {
         test("are absent while connecting is switched off, in prod too, whatever the Bunq environment") {
             BUNQ_ENVIRONMENTS.forEach { bunqEnvironment ->
-                bunqConnectConfig(false, true, bunqEnvironment, CIPHER, API).shouldBeNull()
+                bunqConnectConfig(false, true, bunqEnvironment, GRANT_SEAL, API).shouldBeNull()
             }
         }
 
         test("carry the callback url of this API when connecting is on") {
-            bunqConnectConfig(true, false, "none", CIPHER, API)!!.callbackUrl shouldBe
+            bunqConnectConfig(true, false, "none", GRANT_SEAL, API)!!.callbackUrl shouldBe
                 "https://api.example/api/bunq/oauth/callback"
         }
 
         test("are unchanged outside prod, whatever the Bunq environment") {
             BUNQ_ENVIRONMENTS.forEach { bunqEnvironment ->
-                bunqConnectConfig(true, false, bunqEnvironment, CIPHER, API)!!.callbackUrl shouldBe
+                bunqConnectConfig(true, false, bunqEnvironment, GRANT_SEAL, API)!!.callbackUrl shouldBe
                     "https://api.example/api/bunq/oauth/callback"
             }
         }
 
         test("carry the callback url of this API in prod with the production Bunq environment") {
-            bunqConnectConfig(true, true, "production", CIPHER, API)!!.callbackUrl shouldBe
+            bunqConnectConfig(true, true, "production", GRANT_SEAL, API)!!.callbackUrl shouldBe
                 "https://api.example/api/bunq/oauth/callback"
         }
 
         listOf(" Production ", "PRODUCTION").forEach { bunqEnvironment ->
             test("accept the production Bunq environment in prod spelled \"$bunqEnvironment\"") {
-                bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API)!!.callbackUrl shouldBe
+                bunqConnectConfig(true, true, bunqEnvironment, GRANT_SEAL, API)!!.callbackUrl shouldBe
                     "https://api.example/api/bunq/oauth/callback"
             }
         }
 
         listOf("none", "sandbox", "prod", "", "production-x").forEach { bunqEnvironment ->
             test("refuse to start while connecting is on in prod with Bunq environment \"$bunqEnvironment\"") {
-                val message = shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API) }.message!!
+                val message = shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, bunqEnvironment, GRANT_SEAL, API) }
+                    .message!!
 
                 message shouldContain "TEAMBALANCE_BUNQ_CONNECT_ENABLED"
                 message shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"

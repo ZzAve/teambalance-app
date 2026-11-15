@@ -1,12 +1,9 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
-import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
-import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -27,7 +24,7 @@ class MoneyPoolReader(
     private val connectionRepository: BunqConnectionRepository,
     private val seasonRepository: SeasonRepository,
     private val bunqGateway: BunqGateway,
-    private val grantCipher: TokenCipher,
+    private val grantSeal: BunqGrantSeal,
     private val clock: Clock,
     private val tenantScopeGateway: TenantScopeGateway,
 ) {
@@ -44,7 +41,7 @@ class MoneyPoolReader(
         tenantScopeGateway.within(tenant) {
             val connection = connectionRepository.find()?.takeIf { it.accountId == account }
                 ?: return@within MoneyPool.Unavailable
-            decrypt(connection.grant, tenant.teamId)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
+            grantSeal.open(connection.grant, tenant.teamId)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
         }
 
     @Suppress("TooGenericExceptionCaught")
@@ -62,16 +59,6 @@ class MoneyPoolReader(
             MoneyPool.Unavailable
         }
     }
-
-    /** Null when the stored grant does not decrypt (rotated key, damaged row, made for another team or before teams were bound). */
-    @Suppress("TooGenericExceptionCaught")
-    private fun decrypt(storedGrant: EncryptedToken, teamId: TeamId): BunqGrant? =
-        try {
-            BunqGrant(grantCipher.decrypt(storedGrant, TokenCipher.aadOf(teamId, Purpose.BUNQ_GRANT)))
-        } catch (e: Exception) {
-            log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
-            null
-        }
 
     /** Class name at WARN; the grant is passed into the call, so an exception message could carry it. */
     private fun logFailure(e: Exception) {

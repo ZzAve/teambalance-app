@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 import type { CreateRecurringEventsRequest } from './generated/model/CreateRecurringEventsRequest'
 
@@ -13,9 +14,13 @@ export type { RecurringEventSeries } from './generated/model/RecurringEventSerie
 // body's `code` so the wizard can show the right reason instead of a generic failure.
 type RecurringCreateReason = 'outside-season' | 'over-cap' | 'empty' | 'unknown'
 
-export class RecurringCreateError extends Error {
-  constructor(public readonly reason: RecurringCreateReason) {
-    super(reason)
+export class RecurringCreateError extends ApiError {
+  constructor(
+    readonly reason: RecurringCreateReason,
+    status: number,
+    code?: string,
+  ) {
+    super(status, code, reason)
     this.name = 'RecurringCreateError'
   }
 }
@@ -36,9 +41,9 @@ export function useCreateRecurringEvents() {
         // The 422 body carries a machine-readable `code` (GlobalExceptionHandler); the three
         // recurrence rejections must not be conflated into one message.
         const code = (res.body as unknown as { code?: string } | undefined)?.code
-        throw new RecurringCreateError((code && REASON_BY_CODE[code]) || 'unknown')
+        throw new RecurringCreateError((code && REASON_BY_CODE[code]) || 'unknown', res.status, code)
       }
-      throw new RecurringCreateError('unknown')
+      throw new RecurringCreateError('unknown', res.status)
     },
     // A batch creates many events across upcoming + past buckets — refresh every events reader.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),

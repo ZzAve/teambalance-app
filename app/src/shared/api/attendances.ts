@@ -1,5 +1,6 @@
 import { useMutation, useMutationState, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 import { applyOptimisticAttendanceToCache } from './attendance-cache'
 import { patchCachedEvents, rollBack } from './event-cache'
@@ -36,7 +37,7 @@ export function useSetAttendance() {
     mutationKey: SET_ATTENDANCE,
     mutationFn: async ({ eventId, userId, state }: SetAttendanceVars) => {
       const res = await api.setAttendance({ eventId, userId, body: { state } })
-      if (res.status === 404) throw new Error('Attendance not found')
+      if (res.status === 404) throw apiErrorOf(res, 'Attendance not found')
       return res.body
     },
     // Optimistic update: every cached read of the event — the list cards, the hero and the detail —

@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { applyUserLanguage } from '@shared/i18n/language'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 import { i18n } from '@shared/i18n/i18n'
@@ -29,7 +30,7 @@ export function useRequestMagicLink() {
       // The page's language, for the email when the recipient has stored none (ADR-0043 §4).
       const language = i18n.language === 'nl' ? 'NL' : 'EN'
       const res = await api.requestMagicLink({ body: { email, inviteToken, language } })
-      if (res.status === 404) throw new Error(INVITE_UNAVAILABLE)
+      if (res.status === 404) throw apiErrorOf(res, INVITE_UNAVAILABLE)
     },
   })
 }
@@ -43,7 +44,7 @@ export function useVerifyMagicLink() {
   return useMutation({
     mutationFn: async (token: string) => {
       const res = await api.verifyMagicLink({ body: { token } })
-      if (res.status === 401) throw new Error('Invalid or expired link')
+      if (res.status === 401) throw apiErrorOf(res, 'Invalid or expired link')
       return res.body
     },
   })
@@ -55,7 +56,7 @@ export function useVerifyMagicLink() {
  */
 export async function logOut() {
   const res = await api.logout()
-  if (res.status !== 204) throw new Error(`Logout failed with status ${res.status}`)
+  if (res.status !== 204) throw apiErrorOf(res, `Logout failed with status ${res.status}`)
 }
 
 export function useLogout() {

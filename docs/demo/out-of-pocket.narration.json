@@ -1,0 +1,27 @@
+{
+  "__introCard": {
+    "headline": "Paid for the team yourself?",
+    "accent": "Put it in the pot.",
+    "sub": "Add what you paid with a photo of the receipt. It counts as your contribution, and nobody has to pay you back.",
+    "pill": "New in the money pool"
+  },
+  "__outroCard": {
+    "steps": [{ "label": "Money", "icon": "piggy-bank" }, { "label": "Add an expense", "icon": "plus" }, { "label": "Snap the receipt", "icon": "camera" }],
+    "sub": "Works with or without a Bunq account for the team."
+  },
+  "__intro": "Paid for the team yourself? Put it in the pot.",
+  "Paid with your own money? Open Money.": "Bought the team drinks with your own money? Open Money.",
+  "Tap \"Add an expense you paid\".": "Tap, | Add an expense you paid.",
+  "Start with a photo of the receipt.": "Start with a photo of the receipt.",
+  "The app reads the total for you.": "The app reads the total for you, | right on your phone.",
+  "Say what it was for, and save.": "Say what it was for, | and save.",
+  "One row: what it was, and that you paid.": "There it is. One row: what it was, | and that you paid.",
+  "It counts as spent, and as your contribution.": "It counts as money spent, | and as your contribution.",
+  "So the balance stays the same.": "So the balance stays the same, | and nobody has to pay you back.",
+  "And you climb the Toppers.": "And you climb the Toppers!",
+  "Made a mistake? Open it again.": "Made a mistake? Just open it again.",
+  "Fix the amount, and save.": "Fix the amount, | and save.",
+  "No Bunq account for the team? It still works.": "If your team has no Bunq account, | it still works.",
+  "Everyone sees who paid what.": "Everyone sees who paid what.",
+  "__outro": "Try it today! Open Money, add what you paid, and snap the receipt. See you at TeamBalance dot N L!"
+}

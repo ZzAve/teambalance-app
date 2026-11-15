@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 
 /** The guests a visitor can play on the demo build (ADR-0043). */
@@ -9,7 +10,7 @@ export function useCreateDemoSession() {
   return useMutation({
     mutationFn: async (persona: DemoPersona) => {
       const res = await api.createDemoSession({ body: { persona } })
-      if (res.status !== 204) throw new Error(`Demo session failed with status ${res.status}`)
+      if (res.status !== 204) throw apiErrorOf(res, `Demo session failed with status ${res.status}`)
     },
   })
 }

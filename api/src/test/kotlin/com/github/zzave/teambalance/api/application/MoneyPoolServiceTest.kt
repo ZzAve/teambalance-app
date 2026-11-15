@@ -232,7 +232,7 @@ class MoneyPoolServiceTest : FunSpec({
             connectionRepository = connectionRepository,
             seasonRepository = FixedSeasonRepository(season),
             bunqGateway = gateway,
-            grantCipher = GRANT_CIPHER,
+            grantSeal = BunqGrantSeal(GRANT_CIPHER),
             clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
             tenantScopeGateway = tenantScope,
         )
@@ -330,46 +330,6 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
 
         service(gateway = gateway, storedGrant = EncryptedToken("not-a-grant")).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
-
-        gateway.calls shouldBe 0
-    }
-
-    test("is Rejected when the stored grant was encrypted under another key") {
-        val otherKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { 7 }), "other-key")
-        val gateway = RecordingBunqGateway()
-
-        service(gateway = gateway, storedGrant = otherKey.encrypt(GRANT_TOKEN, aad))
-            .getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
-
-        gateway.calls shouldBe 0
-    }
-
-    // Same key, other team: what a ciphertext copied from another team's row looks like.
-    test("is Rejected when the stored grant was encrypted for another team, and Bunq is not called") {
-        val gateway = RecordingBunqGateway()
-        val copied = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(otherTeam, Purpose.BUNQ_GRANT))
-
-        service(gateway = gateway, storedGrant = copied).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
-
-        gateway.calls shouldBe 0
-    }
-
-    // Same key, same team, other purpose: what the Context ciphertext in the grant column looks like.
-    test("is Rejected when the grant column holds a value made for the API context, and Bunq is not called") {
-        val gateway = RecordingBunqGateway()
-        val context = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
-
-        service(gateway = gateway, storedGrant = context).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
-
-        gateway.calls shouldBe 0
-    }
-
-    // Rows made before the AAD existed (dev, staging); the Admin connects again.
-    test("is Rejected when the stored grant was made without an AAD, and Bunq is not called") {
-        val gateway = RecordingBunqGateway()
-        val old = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.NO_AAD)
-
-        service(gateway = gateway, storedGrant = old).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }

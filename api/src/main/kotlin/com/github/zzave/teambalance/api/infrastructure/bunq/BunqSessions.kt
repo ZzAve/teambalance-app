@@ -8,6 +8,7 @@ import com.bunq.sdk.bunqClient
 import com.bunq.sdk.generated.Client
 import com.bunq.sdk.initContext
 import com.bunq.sdk.refreshSession
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
@@ -60,6 +61,8 @@ internal class BunqSessions(
 ) {
     // A holder per access token that sets the session up on first use, so that a slow setup holds up only the readers of that
     // token and not the map.
+    private val grantSeal = BunqGrantSeal(cipher)
+
     private val sessions = ConcurrentHashMap<String, Lazy<BunqSession>>()
 
     fun sessionFor(grant: BunqGrant): BunqSession =
@@ -82,7 +85,7 @@ internal class BunqSessions(
         try {
             val team = currentTeam.findCurrentTeamId() ?: return
             val row = store.find()
-            if (row != null && cipher.decrypt(row.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)) == current.config.apiKey &&
+            if (row != null && grantSeal.open(row.grant, team)?.accessToken == current.config.apiKey &&
                 store.save(
                     cipher.encrypt(BunqApiContextCodec.encode(current), TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT)),
                     ifGrant = row.grant,

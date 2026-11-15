@@ -8,6 +8,8 @@ import com.github.zzave.teambalance.api.application.MoneyPoolReader
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
+import com.github.zzave.teambalance.api.domain.model.MoneyPoolRetention
+import com.github.zzave.teambalance.api.domain.model.RememberedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
@@ -17,8 +19,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -70,34 +70,34 @@ class CaffeineMoneyPoolCacheAdapter(
 
     private data class Key(val tenant: TenantRouting, val account: BunqAccountId)
 
-    /** [retryNotBefore] is set when a reload found Bunq unavailable; no new attempt before then. */
-    private class Entry(val value: MoneyPool, val readAt: Instant, val retryNotBefore: Instant? = null)
+    private val retention = MoneyPoolRetention(refresh = properties.refresh, expire = properties.expire, retryAfter = properties.retryAfter)
 
-    private val entries: AsyncLoadingCache<Key, Entry> = Caffeine.newBuilder()
+    private val entries: AsyncLoadingCache<Key, RememberedMoneyPool> = Caffeine.newBuilder()
         .maximumSize(MAX_ENTRIES)
         .executor(executor)
         .ticker { TimeUnit.MILLISECONDS.toNanos(clock.millis()) }
-        .refreshAfterWrite(properties.refresh)
+        .refreshAfterWrite(retention.refresh)
         .expireAfter(
-            object : Expiry<Key, Entry> {
-                override fun expireAfterCreate(key: Key, entry: Entry, currentTime: Long) = lifetimeNanos(entry)
+            object : Expiry<Key, RememberedMoneyPool> {
+                override fun expireAfterCreate(key: Key, entry: RememberedMoneyPool, currentTime: Long) = lifetimeNanos(entry)
 
-                override fun expireAfterUpdate(key: Key, entry: Entry, currentTime: Long, currentDuration: Long) =
+                override fun expireAfterUpdate(key: Key, entry: RememberedMoneyPool, currentTime: Long, currentDuration: Long) =
                     lifetimeNanos(entry)
 
-                override fun expireAfterRead(key: Key, entry: Entry, currentTime: Long, currentDuration: Long) = currentDuration
+                override fun expireAfterRead(key: Key, entry: RememberedMoneyPool, currentTime: Long, currentDuration: Long) =
+                    currentDuration
             },
         )
         .buildAsync(
-            object : AsyncCacheLoader<Key, Entry> {
-                override fun asyncLoad(key: Key, executor: Executor): CompletableFuture<Entry> =
-                    CompletableFuture.supplyAsync({ Entry(readFromBunq(key), clock.instant()) }, executor)
+            object : AsyncCacheLoader<Key, RememberedMoneyPool> {
+                override fun asyncLoad(key: Key, executor: Executor): CompletableFuture<RememberedMoneyPool> =
+                    CompletableFuture.supplyAsync({ RememberedMoneyPool.readNow(readFromBunq(key), clock.instant()) }, executor)
 
-                override fun asyncReload(key: Key, old: Entry, executor: Executor): CompletableFuture<Entry> =
-                    if (old.value == MoneyPool.Rejected) {
-                        CompletableFuture.completedFuture(old)
-                    } else {
+                override fun asyncReload(key: Key, old: RememberedMoneyPool, executor: Executor): CompletableFuture<RememberedMoneyPool> =
+                    if (old.mayBeReloaded()) {
                         CompletableFuture.supplyAsync({ reloaded(key, old) }, executor)
+                    } else {
+                        CompletableFuture.completedFuture(old)
                     }
             },
         )
@@ -106,44 +106,29 @@ class CaffeineMoneyPoolCacheAdapter(
         val key = Key(TenantRouting(teamId, tenantSchema()), account)
         val entry = entries.synchronous().get(key)
         val now = clock.instant()
-        val retryIsDue = entry.retryNotBefore?.let { !now.isBefore(it) }
-        if (retryIsDue == true) entries.synchronous().refresh(key)
-        val refreshing = entry.value is MoneyPool.Connected && retryIsDue != false && now.isAfter(entry.readAt.plus(properties.refresh))
-        return CachedMoneyPool(entry.value, refreshing)
+        if (entry.retryIsDue(now)) entries.synchronous().refresh(key)
+        return CachedMoneyPool(entry.value, entry.isRefreshing(now, retention))
     }
 
     override fun evict(teamId: TeamId) {
         entries.asMap().keys.removeIf { it.tenant.teamId == teamId }
     }
 
-    // A reload that throws counts as Unavailable, so the retry interval applies to it too.
-    private fun reloaded(key: Key, old: Entry): Entry {
-        val answer = runCatching { readFromBunq(key) }
-            .onFailure { log.warn("Refreshing the money pool failed: {}", it.javaClass.simpleName) }
-            .getOrDefault(MoneyPool.Unavailable)
-        return if (answer == MoneyPool.Unavailable && old.value is MoneyPool.Connected) {
-            Entry(old.value, old.readAt, retryNotBefore = clock.instant().plus(properties.retryAfter))
-        } else {
-            Entry(answer, clock.instant())
-        }
-    }
+    private fun reloaded(key: Key, old: RememberedMoneyPool): RememberedMoneyPool =
+        runCatching { readFromBunq(key) }
+            .map { old.reloaded(it, clock.instant(), retention) }
+            .getOrElse {
+                log.warn("Refreshing the money pool failed: {}", it.javaClass.simpleName)
+                old.reloadFailed(clock.instant(), retention)
+            }
 
     private fun readFromBunq(key: Key): MoneyPool {
         log.debug("Reading the money pool from Bunq for team {}", key.tenant.teamId)
         return load(key.tenant, key.account)
     }
 
-    /**
-     * A value is remembered until [BunqReadCacheProperties.expire] after it was read, an Unavailable for the
-     * retry interval, a Rejected for good.
-     */
-    private fun lifetimeNanos(entry: Entry): Long =
-        when (entry.value) {
-            is MoneyPool.Connected ->
-                Duration.between(clock.instant(), entry.readAt.plus(properties.expire)).toNanos().coerceAtLeast(0)
-            MoneyPool.Unavailable -> properties.retryAfter.toNanos()
-            else -> Long.MAX_VALUE
-        }
+    private fun lifetimeNanos(entry: RememberedMoneyPool): Long =
+        entry.keptFor(clock.instant(), retention)?.toNanos() ?: Long.MAX_VALUE
 
     private companion object {
         const val MAX_ENTRIES = 1_000L

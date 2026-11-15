@@ -1,4 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
+import { isAttributedTopUp } from '@entities/payment/lib/payment-attribution'
 
 export type TopperPeriod = 'season' | 'last30'
 
@@ -37,7 +38,7 @@ export function periodPayments(payments: Payment[], period: TopperPeriod, today:
 
 /** Everything attributed to a member that came in, in euro cents. */
 export function toppedUpTotal(payments: Payment[]): number {
-  return payments.reduce((sum, p) => (p.direction === 'In' && p.memberId ? sum + p.amount : sum), 0)
+  return payments.reduce((sum, p) => (isAttributedTopUp(p) ? sum + p.amount : sum), 0)
 }
 
 /** Who topped up most in the period, the attributed total, and the incoming money without a member. */

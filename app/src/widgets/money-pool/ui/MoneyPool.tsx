@@ -7,7 +7,6 @@ import { ClaimPayment } from '@features/claim-payment/ui/ClaimPayment'
 import { claimVariant } from '@features/claim-payment/lib/claim-variant'
 import { ReceiptButton } from '@features/attach-receipt/ui/ReceiptButton'
 import { TopUp } from '@features/top-up/ui/TopUp'
-import { formatEuro } from '../lib/format'
 import { paymentsFollowSeason } from '../lib/season-period'
 import { MoneyPoolView } from './MoneyPoolView'
 
@@ -49,12 +48,12 @@ export function MoneyPool() {
           // The server writes no receipt as null, which the generated type calls undefined.
           receiptVersion={expense.receiptVersion ?? undefined}
           name={expense.name}
-          amount={formatEuro(expense.amount)}
+          amount={expense.amount}
         />
       )}
       claim={(payment) => {
         const variant = claimVariant(user, payment)
-        return variant && <ClaimPayment payment={payment} variant={variant} amount={formatEuro(payment.amount)} />
+        return variant && <ClaimPayment payment={payment} variant={variant} />
       }}
     />
   )

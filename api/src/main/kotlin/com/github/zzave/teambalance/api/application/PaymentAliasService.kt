@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.PaymentAliasNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Iban
 import com.github.zzave.teambalance.api.domain.model.PaymentAlias
@@ -9,7 +8,6 @@ import com.github.zzave.teambalance.api.domain.model.PaymentAliasName
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 
 /**
  * A member's payment aliases (ADR-0046). Only the member who owns them and a team Admin may read or
@@ -19,7 +17,6 @@ import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
  */
 class PaymentAliasService(
     private val paymentAliasRepository: PaymentAliasRepository,
-    private val teamMemberRepository: TeamMemberRepository,
     private val authorizationService: AuthorizationService,
 ) {
     fun list(callerId: UserId, teamId: TeamId, ownerId: UserId): List<PaymentAlias> {
@@ -89,6 +86,6 @@ class PaymentAliasService(
         } else {
             authorizationService.requireAdmin(callerId, teamId)
         }
-        teamMemberRepository.findRole(teamId, ownerId) ?: throw MemberNotFoundException(ownerId)
+        authorizationService.requireRealMember(ownerId, teamId)
     }
 }

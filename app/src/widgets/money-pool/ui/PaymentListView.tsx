@@ -88,7 +88,7 @@ function PaymentRow({
       )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-small font-semibold">{payment.name}</span>
-        <span className="block truncate text-caption text-muted-foreground">{[who, formatPaymentWeekday(payment.date)].filter(Boolean).join(' · ')}</span>
+        <span className="block break-words text-caption text-muted-foreground">{[who, formatPaymentWeekday(payment.date)].filter(Boolean).join(' · ')}</span>
       </span>
       <span className={`text-small font-semibold tabular-nums ${payment.outOfPocket ? '' : isIncoming ? 'text-green-ink' : 'text-orange-ink'}`}>
         <span className="sr-only">{`${amountLabel} `}</span>

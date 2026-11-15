@@ -1,11 +1,18 @@
 import { useTranslation } from 'react-i18next'
-import { useBulletinPosts, useCreateBulletinPost, useUpdateBulletinPost } from '@shared/api/bulletin'
+import { toast } from 'sonner'
+import {
+  useBulletinPosts,
+  useCreateBulletinPost,
+  useDeleteBulletinPost,
+  useRestoreBulletinPost,
+  useUpdateBulletinPost,
+} from '@shared/api/bulletin'
 import { useMembers } from '@shared/api/members'
 import { BulletinBoardView } from './BulletinBoardView'
 
 /**
- * Container for the Bulletin Board (ADR-0048): wires the posts query, the create and edit mutations
- * and the Roster (for author and editor names) to BulletinBoardView. Pure wiring; the View's stories cover its states.
+ * Container for the Bulletin Board (ADR-0048): wires the posts query, the create, edit, delete and
+ * restore mutations * and the Roster (for author and editor names) to BulletinBoardView. Pure wiring; the View's stories cover its states.
  * No e2e: an Admin write inside the tenant, like managing Positions, adds no seam the existing flows miss.
  */
 export function BulletinBoard({ isAdmin }: { isAdmin: boolean }) {
@@ -14,6 +21,8 @@ export function BulletinBoard({ isAdmin }: { isAdmin: boolean }) {
   const { data: members } = useMembers()
   const createPost = useCreateBulletinPost()
   const updatePost = useUpdateBulletinPost()
+  const deletePost = useDeleteBulletinPost()
+  const restorePost = useRestoreBulletinPost()
 
   const nameOf = (userId: string) =>
     members?.find((member) => member.userId === userId)?.displayName ?? t('bulletin.formerMember')
@@ -30,6 +39,8 @@ export function BulletinBoard({ isAdmin }: { isAdmin: boolean }) {
       isError={!!error}
       onCreate={(markdown) => createPost.mutateAsync(markdown)}
       onUpdate={(id, markdown) => updatePost.mutateAsync({ id, markdown })}
+      onDelete={(id) => deletePost.mutate(id, { onError: () => toast.error(t('bulletin.deleteFailed')) })}
+      onRestore={(id) => restorePost.mutate(id, { onError: () => toast.error(t('bulletin.restoreFailed')) })}
     />
   )
 }

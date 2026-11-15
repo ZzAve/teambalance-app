@@ -43,3 +43,32 @@ export function useUpdateBulletinPost() {
     },
   })
 }
+
+/** Admin-only: hides a Post from Members; it can be restored for 14 days. */
+export function useDeleteBulletinPost() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.deleteBulletinPost({ id })
+      if (res.status !== 204) throw new Error(`Delete refused: ${res.status}`)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bulletin-posts'] })
+    },
+  })
+}
+
+/** Admin-only: shows a deleted Post again. */
+export function useRestoreBulletinPost() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.restoreBulletinPost({ id })
+      if (res.status !== 200) throw new Error(`Restore refused: ${res.status}`)
+      return res.body
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bulletin-posts'] })
+    },
+  })
+}

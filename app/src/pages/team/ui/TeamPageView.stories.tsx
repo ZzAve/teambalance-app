@@ -68,6 +68,8 @@ const bulletin = (isAdmin: boolean) => (
     isAdmin={isAdmin}
     onCreate={noop}
     onUpdate={noop}
+    onDelete={noop}
+    onRestore={noop}
     posts={[
       {
         id: 'b1',

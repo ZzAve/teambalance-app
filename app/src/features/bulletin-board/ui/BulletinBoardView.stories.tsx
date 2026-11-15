@@ -32,12 +32,21 @@ const POSTS: BoardPost[] = [
     edits: [],
     markdown: 'Raw HTML stays text: <script>alert(1)</script> and [a bad link](javascript:alert(1)).',
   },
+  {
+    id: 'b1',
+    authorName: 'Ada Lovelace',
+    postedAt: '2026-11-01T09:00:00Z',
+    edits: [],
+    deletedAt: '2026-11-11T09:00:00Z',
+    removedAt: '2026-11-25T09:00:00Z',
+    markdown: '### Old training times\nTraining moves to 19:00.',
+  },
 ]
 
 const meta = {
   title: 'features/bulletin-board/BulletinBoardView',
   component: BulletinBoardView,
-  args: { posts: POSTS, isAdmin: true, onCreate: fn(), onUpdate: fn() },
+  args: { posts: POSTS, isAdmin: true, onCreate: fn(), onUpdate: fn(), onDelete: fn(), onRestore: fn() },
 } satisfies Meta<typeof BulletinBoardView>
 
 export default meta
@@ -53,6 +62,9 @@ export const Data: Story = {
     await expect(canvas.getAllByText(/edited/)).toHaveLength(1)
     await expect(canvas.getAllByRole('button', { name: 'Edit history' })).toHaveLength(1)
     await expect(canvas.getAllByRole('button', { name: 'Post actions' })).toHaveLength(2)
+    // A deleted Post is not on the board; Admins find it under the closed deleted list.
+    await expect(canvas.getByText('1 deleted post')).toBeInTheDocument()
+    await expect(canvas.getByText('Old training times')).not.toBeVisible()
     // ADR-0048: no HTML from a Post reaches the page, and only http(s) links become links.
     await expect(canvasElement.querySelector('script')).toBeNull()
     await expect(canvas.getByText(/<script>alert\(1\)<\/script>/)).toBeInTheDocument()
@@ -82,6 +94,7 @@ export const Shells: Story = {
     // A Member reads the edit history too, but gets no actions.
     await expect(region('Member').getByRole('button', { name: 'Edit history' })).toBeInTheDocument()
     await expect(region('Member').queryByRole('button', { name: 'Post actions' })).not.toBeInTheDocument()
+    await expect(region('Member').queryByText(/deleted post/)).not.toBeInTheDocument()
   },
 }
 
@@ -118,5 +131,16 @@ export const Interactions: Story = {
     await expect(rows[0]).toMatch(/^Edited by Grace Hopper/)
     await expect(rows[1]).toMatch(/^Edited by Ada Lovelace/)
     await expect(rows[2]).toMatch(/^Posted by Grace Hopper/)
+    await userEvent.keyboard('{Escape}')
+
+    // Delete needs no confirm: it can be restored, from the deleted list, for 14 days.
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Post actions' })[1])
+    await userEvent.click(await body.findByRole('menuitem', { name: 'Delete' }))
+    await expect(args.onDelete).toHaveBeenCalledWith('b3')
+
+    await userEvent.click(canvas.getByText('1 deleted post'))
+    await expect(canvas.getByText('Removed for good on 25 Nov')).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: 'Restore' }))
+    await expect(args.onRestore).toHaveBeenCalledWith('b1')
   },
 }

@@ -1281,6 +1281,13 @@
     "postActions": "Post actions",
     "edit": "Edit",
     "editPost": "Edit post",
-    "save": "Save"
+    "save": "Save",
+    "delete": "Delete",
+    "deletedPosts_one": "{{count}} deleted post",
+    "deletedPosts_other": "{{count}} deleted posts",
+    "removedOn": "Removed for good on {{date}}",
+    "restore": "Restore",
+    "deleteFailed": "Couldn't delete the post. Please try again.",
+    "restoreFailed": "Couldn't restore the post. Please try again."
   }
 }

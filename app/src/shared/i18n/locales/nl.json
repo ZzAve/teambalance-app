@@ -1281,6 +1281,13 @@
     "postActions": "Acties voor bericht",
     "edit": "Bewerken",
     "editPost": "Bericht bewerken",
-    "save": "Opslaan"
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "deletedPosts_one": "{{count}} verwijderd bericht",
+    "deletedPosts_other": "{{count}} verwijderde berichten",
+    "removedOn": "Definitief weg op {{date}}",
+    "restore": "Terugzetten",
+    "deleteFailed": "Het bericht kon niet worden verwijderd. Probeer het opnieuw.",
+    "restoreFailed": "Het bericht kon niet worden teruggezet. Probeer het opnieuw."
   }
 }

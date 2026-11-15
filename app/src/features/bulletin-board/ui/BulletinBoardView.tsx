@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
+import { formatLocale } from '@shared/i18n/i18n'
 import { BulletinPostView, type PostEditEntry } from '@entities/bulletin/ui/BulletinPostView'
 import { Button } from '@shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@shared/ui/dropdown-menu'
 import { Markdown } from '@shared/ui/Markdown'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
+import { postTitle } from '../lib/post-title'
 
 export interface BoardPost {
   id: string
@@ -14,6 +16,9 @@ export interface BoardPost {
   authorName: string
   postedAt: string
   edits: PostEditEntry[]
+  /** Set on a deleted Post (Admins only), restorable until [removedAt]. */
+  deletedAt?: string
+  removedAt?: string
 }
 
 type Save = (markdown: string) => Promise<unknown> | void
@@ -27,13 +32,17 @@ interface BulletinBoardViewProps {
   /** Resolves when the Post is saved; the sheet closes then, and stays open with an error on a reject. */
   onCreate: Save
   onUpdate: (id: string, markdown: string) => Promise<unknown> | void
+  onDelete: (id: string) => void
+  onRestore: (id: string) => void
 }
 
 // The sheet's target: a new Post, or the one being edited.
 type Compose = { kind: 'new' } | { kind: 'edit'; post: BoardPost }
 
 /** The Team's Bulletin Board at the top of the Team page (ADR-0048). Prop-only. */
-export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate, onUpdate }: BulletinBoardViewProps) {
+export function BulletinBoardView({
+  posts, isAdmin, isLoading, isError, onCreate, onUpdate, onDelete, onRestore,
+}: BulletinBoardViewProps) {
   const { t } = useTranslation()
   const [compose, setCompose] = useState<Compose | null>(null)
   // Kept apart from `compose` so the sheet keeps its content while it animates out.
@@ -43,7 +52,10 @@ export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate
     setOpen(true)
   }
 
-  if (!isAdmin && !isLoading && !isError && posts.length === 0) return null
+  const live = posts.filter((post) => !post.deletedAt)
+  const deleted = posts.filter((post) => post.deletedAt)
+
+  if (!isAdmin && !isLoading && !isError && live.length === 0) return null
 
   return (
     <section aria-labelledby="bulletin-board-heading" className="flex flex-col gap-3">
@@ -59,21 +71,25 @@ export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate
 
       {isLoading && <p className="text-small text-muted-foreground">{t('account.loading')}</p>}
       {isError && <p className="text-small text-red-ink">{t('bulletin.loadFailed')}</p>}
-      {!isLoading && !isError && posts.length === 0 && (
+      {!isLoading && !isError && live.length === 0 && (
         <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-small text-muted-foreground">
           {t('bulletin.emptyAdmin')}
         </p>
       )}
-      {!isLoading && !isError && posts.map((post) => (
+      {!isLoading && !isError && live.map((post) => (
         <BulletinPostView
           key={post.id}
           markdown={post.markdown}
           authorName={post.authorName}
           postedAt={post.postedAt}
           edits={post.edits}
-          actions={isAdmin && <PostMenu onEdit={() => start({ kind: 'edit', post })} />}
+          actions={isAdmin && (
+            <PostMenu onEdit={() => start({ kind: 'edit', post })} onDelete={() => onDelete(post.id)} />
+          )}
         />
       ))}
+
+      {isAdmin && deleted.length > 0 && <DeletedPosts posts={deleted} onRestore={onRestore} />}
 
       {isAdmin && compose && (
         <ComposeSheet
@@ -90,7 +106,7 @@ export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate
   )
 }
 
-function PostMenu({ onEdit }: { onEdit: () => void }) {
+function PostMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   const { t } = useTranslation()
   return (
     <DropdownMenu>
@@ -105,8 +121,36 @@ function PostMenu({ onEdit }: { onEdit: () => void }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={onEdit}>{t('bulletin.edit')}</DropdownMenuItem>
+        {/* No confirm dialog: a delete can be restored for 14 days. */}
+        <DropdownMenuItem tone="destructive" onSelect={onDelete}>{t('bulletin.delete')}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+function DeletedPosts({ posts, onRestore }: { posts: BoardPost[]; onRestore: (id: string) => void }) {
+  const { t, i18n } = useTranslation()
+  const date = (iso: string) => new Date(iso).toLocaleDateString(formatLocale(i18n.language), { day: 'numeric', month: 'short' })
+
+  return (
+    <details className="rounded-lg border border-dashed border-border px-3 py-1 text-small">
+      <summary className="flex min-h-11 cursor-pointer items-center text-muted-foreground">
+        {t('bulletin.deletedPosts', { count: posts.length })}
+      </summary>
+      <ul className="flex flex-col divide-y divide-border/40 pb-2">
+        {posts.map((post) => (
+          <li key={post.id} className="flex items-center justify-between gap-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{postTitle(post.markdown)}</p>
+              {post.removedAt && (
+                <p className="text-caption text-muted-foreground">{t('bulletin.removedOn', { date: date(post.removedAt) })}</p>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onRestore(post.id)}>{t('bulletin.restore')}</Button>
+          </li>
+        ))}
+      </ul>
+    </details>
   )
 }
 

@@ -431,10 +431,11 @@ const countViewTransitions = () => {
   const started = fn()
   const original = document.startViewTransition.bind(document)
   document.startViewTransition = ((update?: ViewTransitionUpdateCallback) => {
-    started()
+    // The page as it stands when the browser takes the old snapshot.
+    started(document.body.innerText)
     return original(update)
   }) as typeof document.startViewTransition
-  return { started, stop: () => void (document.startViewTransition = original) }
+  return { started, stop: () => void delete (document as { startViewTransition?: unknown }).startViewTransition }
 }
 
 const forceReducedMotion = () => {
@@ -533,6 +534,7 @@ async function interactions(
     await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
     await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
     await expect(canvas.getByRole('heading', { level: 2, name: 'All events' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('heading', { name: 'Upcoming' })).not.toBeInTheDocument()
     await waitFor(() => expect(canvas.queryByRole('region', { name: 'Next up' })).not.toBeInTheDocument())
     await expect(transitions).toHaveBeenCalledTimes(3)
 
@@ -545,4 +547,36 @@ async function interactions(
     } finally {
       restoreMotion()
     }
+
+    // The product case: with the "Not responded" filter on, answering a list card takes it off the
+    // page, inside one transition. (The filter panel is still open from the steps above.)
+    const card = (title: string) => within(canvas.getByText(title).closest<HTMLElement>('[data-event-card]')!)
+    const answerGoing = async (title: string) => {
+      await userEvent.click(card(title).getByRole('button', { name: /Change your answer/ }))
+      const controls = card(title).getByRole('button', { name: /^Respond/ }).getAttribute('aria-controls')!
+      await userEvent.click(within(document.getElementById(controls)!).getByRole('button', { name: 'Going' }))
+    }
+    const filters = () => within(canvas.getByRole('region', { name: 'Filters' }))
+    const transitionsBefore = transitions.mock.calls.length
+    await userEvent.click(filters().getByRole('button', { name: 'Not responded' }))
+    await waitFor(() => expect(canvas.queryByText('Beach tournament Scheveningen')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(transitionsBefore + 1)
+    await answerGoing('Training — Court 1')
+    await expect(args.onRespond).toHaveBeenCalledWith('evt-training-2', 'ATTENDING')
+    await waitFor(() => expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(transitionsBefore + 2)
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
+    await expect(await canvas.findByText('Beach tournament Scheveningen')).toBeInTheDocument()
+
+    // An answer on a card that stays is not held back by a transition that starts right after it:
+    // the old snapshot is taken with the card reading Going, and it still does once the transition is over.
+    await answerGoing('Season kick-off drinks')
+    await expect(card('Season kick-off drinks').getByText("You're in")).toBeInTheDocument()
+    const beforeToggle = transitions.mock.calls.length
+    await userEvent.click(filters().getByRole('button', { name: 'Social' }))
+    await expect(card('Season kick-off drinks').getByText("You're in")).toBeInTheDocument()
+    await waitFor(() => expect(canvas.queryByText('Beach tournament Scheveningen')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(beforeToggle + 1)
+    await expect(transitions.mock.lastCall![0]).toMatch(/Season kick-off drinks[\s\S]{0,300}You're in/)
+    await expect(card('Season kick-off drinks').getByText("You're in")).toBeInTheDocument()
 }

@@ -7,7 +7,6 @@ import { Card } from '@shared/ui/card'
 import { InfoRow } from '@shared/ui/InfoRow'
 import type { Event } from '@shared/api/events'
 import { relativeEventLabel } from '../lib/relative-event-label'
-import { eventTransitionName } from '../lib/transition-name'
 import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
@@ -69,7 +68,7 @@ export function EventCard({
     // sit above it as siblings rather than nested inside an <a>.
     <Card
       data-event-card=""
-      style={{ animationDelay: `${index * 60}ms`, '--transition-name': eventTransitionName(event.id) } as CSSProperties}
+      style={{ animationDelay: `${index * 60}ms`, '--transition-name': `event-${event.id}` } as CSSProperties}
       className="card-enter card-shadow relative p-4 transition-[box-shadow] hover:card-shadow-hover motion-reduce:transition-none"
     >
       <div className="flex gap-3.5">

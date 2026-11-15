@@ -18,7 +18,7 @@ interface EventsPageViewProps {
   panelMenu: ComponentProps<typeof KeepPanelsOpenRow>
   /** The Next Up hero, when (and only when) one is due — no placeholder in its place. */
   hero?: ReactNode
-  /** Which event the hero shows, so a change of hero is animated like a card entering or leaving. */
+  /** Which event the hero shows: a change of it is animated, an old and a new hero cross-fading in place. */
   heroEventId?: string
   /** One button per event type with blanks left; renders nothing when there are none. */
   bulkBar?: ReactNode

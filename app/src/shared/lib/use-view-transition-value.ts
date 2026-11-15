@@ -1,36 +1,39 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
+import { prefersReducedMotion } from './prefers-reduced-motion'
 
 /** Set on <html> while a transition runs; global.css names the cards and hero only under it. */
 const ACTIVE_CLASS = 'list-motion'
 
-function canAnimate(): boolean {
-  return (
-    typeof document.startViewTransition === 'function' &&
-    !(typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  )
-}
+const canAnimate = () => typeof document.startViewTransition === 'function' && !prefersReducedMotion()
 
 /**
  * The value to render, committed inside a view transition when its signature changes.
  * A value whose signature is the one on screen passes through at once. A null signature (nothing
  * stable to animate from or to, such as a skeleton) and an unavailable API or reduced motion commit
- * the value directly. The committed value is always the latest one, also when changes follow each
- * other faster than a transition runs.
+ * the value directly. Until the transition commits, the value last rendered stays on screen, so the
+ * old snapshot shows the page as the viewer last saw it. The committed value is always the latest
+ * one, also when changes follow each other faster than a transition runs.
  */
 export function useViewTransitionValue<T>(value: T, signature: string | null): T {
-  const [shown, setShown] = useState({ value, signature })
-  const latest = useRef({ value, signature })
+  const [shownSignature, setShownSignature] = useState(signature)
+  const latestSignature = useRef(signature)
+  const lastRendered = useRef(value)
   const running = useRef(0)
 
+  const changed = signature !== shownSignature
+  const animated = changed && signature !== null && shownSignature !== null && canAnimate()
+
+  if (changed && !animated) setShownSignature(signature)
+
+  // The previous render's value has to come from a ref: state would re-render on every new object.
+  // eslint-disable-next-line react-hooks/refs
+  const rendered = animated ? lastRendered.current : value
+
   useLayoutEffect(() => {
-    latest.current = { value, signature }
+    latestSignature.current = signature
+    lastRendered.current = rendered
   })
-
-  const changed = signature !== shown.signature
-  const animated = changed && signature !== null && shown.signature !== null && canAnimate()
-
-  if (changed && !animated) setShown({ value, signature })
 
   useLayoutEffect(() => {
     if (!animated) return
@@ -42,15 +45,15 @@ export function useViewTransitionValue<T>(value: T, signature: string | null): T
     }
     document
       .startViewTransition(() => {
-        flushSync(() => setShown(latest.current))
+        flushSync(() => setShownSignature(latestSignature.current))
       })
       .finished.then(end, end)
   }, [animated, signature])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = document.documentElement
     return () => root.classList.remove(ACTIVE_CLASS)
   }, [])
 
-  return changed ? shown.value : value
+  return rendered
 }

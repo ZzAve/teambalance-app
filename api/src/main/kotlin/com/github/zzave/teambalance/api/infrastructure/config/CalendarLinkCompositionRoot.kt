@@ -5,7 +5,6 @@ import com.github.zzave.teambalance.api.application.CalendarFeedService
 import com.github.zzave.teambalance.api.application.CalendarLinkService
 import com.github.zzave.teambalance.api.application.CalendarLinkTokens
 import com.github.zzave.teambalance.api.application.TokenCipher
-import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.CalendarLinkRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
@@ -45,7 +44,6 @@ class CalendarLinkCompositionRoot {
         teamRepository: TeamRepository,
         eventTypeRepository: EventTypeRepository,
         authorizationService: AuthorizationService,
-        actAsGateway: ActAsGateway,
         calendarLinkTokens: CalendarLinkTokens,
         clock: Clock,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
@@ -54,7 +52,6 @@ class CalendarLinkCompositionRoot {
         teamRepository = teamRepository,
         eventTypeRepository = eventTypeRepository,
         authorizationService = authorizationService,
-        actAsGateway = actAsGateway,
         tokens = calendarLinkTokens,
         clock = clock,
         apiBaseUrl = apiBaseUrl.trimEnd('/'),

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
+import { resetCacheForNewTenant } from './session-cache'
 
 export type { Invitation } from './generated/model/Invitation'
 export type { AcceptedInvitation } from './generated/model/AcceptedInvitation'
@@ -124,13 +125,17 @@ export function useExpireInvitations() {
   })
 }
 
+export const acceptInvitationMutationOptions = {
+  // Accepting makes the joined Team Active (ADR-0023 §4).
+  onSuccess: resetCacheForNewTenant,
+  mutationFn: async (token: string) => {
+    const res = await api.acceptInvitation({ token })
+    if (res.status === 404 || res.status === 401) throw apiErrorOf(res, 'invite link invalid or expired')
+    if (res.status === 403) throw apiErrorOf(res, 'You cannot accept this invitation.')
+    return res.body
+  },
+}
+
 export function useAcceptInvitation() {
-  return useMutation({
-    mutationFn: async (token: string) => {
-      const res = await api.acceptInvitation({ token })
-      if (res.status === 404 || res.status === 401) throw apiErrorOf(res, 'invite link invalid or expired')
-      if (res.status === 403) throw apiErrorOf(res, 'You cannot accept this invitation.')
-      return res.body
-    },
-  })
+  return useMutation(acceptInvitationMutationOptions)
 }

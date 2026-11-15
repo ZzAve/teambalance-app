@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { BalancePoint } from '../lib/balance-timeline'
-import { formatEuro, formatPaymentDate } from '../lib/format'
+import { formatEuro } from '@entities/payment/lib/format-euro'
+import { formatPaymentDate } from '../lib/format'
 
 interface BalanceGraphProps {
   /** Oldest first, at least one. */

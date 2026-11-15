@@ -28,6 +28,13 @@ value class PostMarkdown private constructor(val value: String) {
     }
 }
 
+/** What an Admin writes in a [BulletinPost], on create and on each edit. */
+data class NewPostContent(
+    val markdown: PostMarkdown,
+    val pinned: Boolean = false,
+    val showUntil: Instant? = null,
+)
+
 /** One save of an existing [BulletinPost]: who and when, not the old text (ADR-0048). */
 data class PostEdit(
     val editorId: UserId,
@@ -44,6 +51,8 @@ data class BulletinPost(
     val edits: List<PostEdit> = emptyList(),
     /** Comes first on the board and shows in the strip on every page. */
     val pinned: Boolean = false,
+    /** When Members stop seeing it; null shows it until it is deleted. */
+    val showUntil: Instant? = null,
     /** Set when an Admin deleted it: hidden from Members, restorable until [removedAt]. */
     val deletedAt: Instant? = null,
 ) {

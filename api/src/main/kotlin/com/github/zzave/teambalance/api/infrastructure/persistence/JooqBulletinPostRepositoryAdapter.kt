@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.BulletinPost
 import com.github.zzave.teambalance.api.domain.model.BulletinPostId
+import com.github.zzave.teambalance.api.domain.model.NewPostContent
 import com.github.zzave.teambalance.api.domain.model.PostEdit
 import com.github.zzave.teambalance.api.domain.model.PostMarkdown
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -23,19 +24,22 @@ class JooqBulletinPostRepositoryAdapter(
     private val dsl: DSLContext,
 ) : BulletinPostRepository {
 
-    override fun list(includeDeleted: Boolean): List<BulletinPost> {
+    override fun list(includeHidden: Boolean, now: Instant): List<BulletinPost> {
         val edits = editsByPost(postIds = null)
+        val shownToMembers = BULLETIN_POSTS.DEACTIVATED_AT.isNull
+            .and(BULLETIN_POSTS.SHOW_UNTIL.isNull.or(BULLETIN_POSTS.SHOW_UNTIL.gt(now.atOffset(ZoneOffset.UTC))))
         return dsl.selectFrom(BULLETIN_POSTS)
-            .where(if (includeDeleted) DSL.noCondition() else BULLETIN_POSTS.DEACTIVATED_AT.isNull)
+            .where(if (includeHidden) DSL.noCondition() else shownToMembers)
             .orderBy(BULLETIN_POSTS.PINNED.desc(), BULLETIN_POSTS.POSTED_AT.desc(), BULLETIN_POSTS.ID)
             .fetch { it.toBulletinPost(edits[it.id].orEmpty()) }
     }
 
-    override fun create(markdown: PostMarkdown, pinned: Boolean, authorId: UserId, postedAt: Instant): BulletinPost =
+    override fun create(post: NewPostContent, authorId: UserId, postedAt: Instant): BulletinPost =
         dsl.insertInto(BULLETIN_POSTS)
             .set(BULLETIN_POSTS.ID, UUID.randomUUID())
-            .set(BULLETIN_POSTS.MARKDOWN, markdown.value)
-            .set(BULLETIN_POSTS.PINNED, pinned)
+            .set(BULLETIN_POSTS.MARKDOWN, post.markdown.value)
+            .set(BULLETIN_POSTS.PINNED, post.pinned)
+            .set(BULLETIN_POSTS.SHOW_UNTIL, post.showUntil?.atOffset(ZoneOffset.UTC))
             .set(BULLETIN_POSTS.AUTHOR_ID, authorId.value)
             .set(BULLETIN_POSTS.POSTED_AT, postedAt.atOffset(ZoneOffset.UTC))
             .returning()
@@ -43,16 +47,11 @@ class JooqBulletinPostRepositoryAdapter(
             .toBulletinPost(edits = emptyList())
 
     @Transactional
-    override fun update(
-        id: BulletinPostId,
-        markdown: PostMarkdown,
-        pinned: Boolean,
-        editorId: UserId,
-        editedAt: Instant,
-    ): BulletinPost? {
+    override fun update(id: BulletinPostId, content: NewPostContent, editorId: UserId, editedAt: Instant): BulletinPost? {
         val updated = dsl.update(BULLETIN_POSTS)
-            .set(BULLETIN_POSTS.MARKDOWN, markdown.value)
-            .set(BULLETIN_POSTS.PINNED, pinned)
+            .set(BULLETIN_POSTS.MARKDOWN, content.markdown.value)
+            .set(BULLETIN_POSTS.PINNED, content.pinned)
+            .set(BULLETIN_POSTS.SHOW_UNTIL, content.showUntil?.atOffset(ZoneOffset.UTC))
             .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNull))
             .returning()
             .fetchOne() ?: return null
@@ -99,6 +98,7 @@ class JooqBulletinPostRepositoryAdapter(
         postedAt = postedAt.toInstant(),
         edits = edits,
         pinned = pinned,
+        showUntil = showUntil?.toInstant(),
         deletedAt = deactivatedAt?.toInstant(),
     )
 }

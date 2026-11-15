@@ -14,6 +14,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.BulletinPostE
 import com.github.zzave.teambalance.api.interfaces.generated.model.BulletinPostList
 import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 import java.util.UUID
 import com.github.zzave.teambalance.api.interfaces.generated.model.BulletinPost as BulletinPostDto
 
@@ -42,6 +43,7 @@ class BulletinController(
             teamId = currentTeamGateway.requireCurrentTeamId(),
             rawMarkdown = request.body.markdown,
             pinned = request.body.pinned,
+            showUntil = request.body.showUntil?.value?.let(Instant::parse),
         )
         return CreateBulletinPost.Response201(created.produce())
     }
@@ -53,6 +55,7 @@ class BulletinController(
             id = request.path.id.consumeBulletinPostId(),
             rawMarkdown = request.body.markdown,
             pinned = request.body.pinned,
+            showUntil = request.body.showUntil?.value?.let(Instant::parse),
         )
         return UpdateBulletinPost.Response200(updated.produce())
     }
@@ -84,6 +87,7 @@ private fun BulletinPost.produce() = BulletinPostDto(
     authorId = authorId.toString(),
     postedAt = DateTimestampWithTimezone(postedAt.toString()),
     pinned = pinned,
+    showUntil = showUntil?.let { DateTimestampWithTimezone(it.toString()) },
     edits = edits.map { BulletinPostEdit(it.editorId.toString(), DateTimestampWithTimezone(it.editedAt.toString())) },
     deletedAt = deletedAt?.let { DateTimestampWithTimezone(it.toString()) },
     removedAt = removedAt?.let { DateTimestampWithTimezone(it.toString()) },

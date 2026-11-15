@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.BulletinPostNotFoundExc
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BulletinPost
 import com.github.zzave.teambalance.api.domain.model.BulletinPostId
+import com.github.zzave.teambalance.api.domain.model.NewPostContent
 import com.github.zzave.teambalance.api.domain.model.PostEdit
 import com.github.zzave.teambalance.api.domain.model.PostMarkdown
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -23,23 +24,31 @@ private val NOW = Instant.parse("2026-11-14T10:00:00Z")
 private class FakeBulletinPostRepository : BulletinPostRepository {
     private val store = mutableListOf<BulletinPost>()
 
-    override fun list(includeDeleted: Boolean): List<BulletinPost> =
-        store.filter { includeDeleted || it.deletedAt == null }
+    override fun list(includeHidden: Boolean, now: Instant): List<BulletinPost> =
+        store.filter { includeHidden || (it.deletedAt == null && it.showUntil?.isAfter(now) != false) }
             .sortedWith(compareByDescending<BulletinPost> { it.pinned }.thenByDescending { it.postedAt })
 
-    override fun create(markdown: PostMarkdown, pinned: Boolean, authorId: UserId, postedAt: Instant): BulletinPost =
-        BulletinPost(BulletinPostId(UUID.randomUUID()), markdown, authorId, postedAt, pinned = pinned).also { store += it }
+    override fun create(post: NewPostContent, authorId: UserId, postedAt: Instant): BulletinPost =
+        BulletinPost(
+            BulletinPostId(UUID.randomUUID()),
+            post.markdown,
+            authorId,
+            postedAt,
+            pinned = post.pinned,
+            showUntil = post.showUntil,
+        ).also { store += it }
 
-    override fun update(
-        id: BulletinPostId,
-        markdown: PostMarkdown,
-        pinned: Boolean,
-        editorId: UserId,
-        editedAt: Instant,
-    ): BulletinPost? {
+    override fun update(id: BulletinPostId, content: NewPostContent, editorId: UserId, editedAt: Instant): BulletinPost? {
         val index = store.indexOfFirst { it.id == id && it.deletedAt == null }.takeIf { it >= 0 } ?: return null
         return store[index]
-            .let { it.copy(markdown = markdown, pinned = pinned, edits = it.edits + PostEdit(editorId, editedAt)) }
+            .let {
+                it.copy(
+                    markdown = content.markdown,
+                    pinned = content.pinned,
+                    showUntil = content.showUntil,
+                    edits = it.edits + PostEdit(editorId, editedAt),
+                )
+            }
             .also { store[index] = it }
     }
 
@@ -101,6 +110,22 @@ class BulletinServiceTest : FunSpec() {
             service.listPosts(memberId, teamId).map { it.id } shouldBe listOf(pinned.id, newer.id)
             service.updatePost(adminId, teamId, pinned.id, "Rotation", pinned = false)
             service.listPosts(memberId, teamId).map { it.id } shouldBe listOf(newer.id, pinned.id)
+        }
+
+        test("a member stops seeing a post after its show-until; an admin still sees it, and can extend it") {
+            val clock = BulletinTestClock(NOW)
+            val service = newService(clock)
+            val until = NOW.plus(Duration.ofDays(3))
+            val post = service.createPost(adminId, teamId, "Clubhouse closed", showUntil = until)
+
+            clock.now = until.minusSeconds(1)
+            service.listPosts(memberId, teamId).map { it.id } shouldBe listOf(post.id)
+            clock.now = until
+            service.listPosts(memberId, teamId) shouldBe emptyList()
+            service.listPosts(adminId, teamId).single().showUntil shouldBe until
+
+            service.updatePost(adminId, teamId, post.id, "Clubhouse closed", showUntil = until.plus(Duration.ofDays(7)))
+            service.listPosts(memberId, teamId).map { it.id } shouldBe listOf(post.id)
         }
 
         test("a member may not post") {

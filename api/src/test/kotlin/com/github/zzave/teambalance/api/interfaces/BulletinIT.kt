@@ -16,6 +16,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 // Namespaced after ADR-0048, for the reason RosterFillIT gives: every IT shares one `public` schema.
 private const val ADMIN_USER_ID = "00480000-0000-0000-0000-000000000001"
@@ -162,16 +165,31 @@ class BulletinIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.posts[1].id").value(pinned))
         }
 
+        test("a post past its show-until is hidden from members and listed for admins") {
+            val until = Instant.now().plus(Duration.ofDays(2)).truncatedTo(ChronoUnit.SECONDS)
+            post("Clubhouse closed this week", ADMIN_USER_ID, showUntil = until)
+                .andExpect(jsonPath("$.showUntil").value(until.toString()))
+            post("Ended already", ADMIN_USER_ID, showUntil = Instant.now().minusSeconds(60))
+
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts.length()").value(1))
+                .andExpect(jsonPath("$.posts[0].markdown").value("Clubhouse closed this week"))
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), ADMIN_USER_ID)
+                .andExpect(jsonPath("$.posts.length()").value(2))
+        }
+
         test("a blank post is refused") {
             post("   ", ADMIN_USER_ID).andExpect(status().isBadRequest)
         }
     }
 
-    private fun post(markdown: String, asUser: String, pinned: Boolean = false) =
+    private fun post(markdown: String, asUser: String, pinned: Boolean = false, showUntil: Instant? = null) =
         perform(
             MockMvcRequestBuilders.post("/api/bulletin-posts")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"markdown": ${jsonString(markdown)}, "pinned": $pinned}"""),
+                .content(
+                    """{"markdown": ${jsonString(markdown)}, "pinned": $pinned, "showUntil": ${showUntil?.let { "\"$it\"" }}}""",
+                ),
             asUser,
         )
 

@@ -1,3 +1,4 @@
+import { patchCachedEvent, type CachedEvents as CachedEventShapes } from './event-cache'
 import type { AttendanceEntry, AttendanceSummary, EventDetail } from './events'
 
 type AttendanceState = AttendanceEntry['state']
@@ -24,6 +25,9 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * mutation carries no `displayName`/`role` to synthesise a complete one, so an unknown user is a
  * no-op (the server reconciliation on `onSettled` fills that case in). The update is immutable —
  * the original event and its entries are never touched, so a rollback can restore the snapshot.
+ *
+ * `myState` moves too when [userId] is the actor, i.e. the viewer answering for themselves: the list
+ * cards read the viewer's own answer from it.
  *
  * `changedBy` moves with the state: [actorId] is whoever is doing the writing, which under
  * ADR-0003 trust-based editing need not be [userId]. Without the stamp the row keeps its previous
@@ -69,8 +73,26 @@ export function applyOptimisticAttendance(
   return {
     ...event,
     attendanceSummary: summary,
+    myState: userId === actorId ? state : event.myState,
     attendances: event.attendances.map((a) =>
       a.userId === userId ? { ...a, state, changedBy: actorId ?? undefined } : a,
     ),
   }
+}
+
+type CachedEvents = CachedEventShapes<EventDetail>
+
+/** Applies [applyOptimisticAttendance] to the event with [eventId], whichever cached shape holds it. */
+export function applyOptimisticAttendanceToCache<T extends CachedEvents>(
+  cached: T,
+  eventId: string,
+  userId: string,
+  state: AttendanceState,
+  actorId: string | null,
+): T {
+  return patchCachedEvent<EventDetail, T>(
+    cached,
+    eventId,
+    (e) => applyOptimisticAttendance(e, userId, state, actorId) ?? e,
+  )
 }

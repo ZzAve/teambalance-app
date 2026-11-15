@@ -1,5 +1,4 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { queryClient } from '@shared/api/query-client'
@@ -20,7 +19,6 @@ export const Route = createFileRoute('/create-team/')({
 
 function CreateTeamPage() {
   const navigate = useNavigate()
-  const client = useQueryClient()
   const createTeam = useCreateTeam()
   const { t } = useTranslation()
   const error = createTeam.error instanceof CreateTeamError ? createTeam.error : null
@@ -54,11 +52,8 @@ function CreateTeamPage() {
           error={error}
           onSubmit={(values) =>
             createTeam.mutate(values, {
-              onSuccess: async (team) => {
+              onSuccess: (team) => {
                 if (!team) return
-                // The server made the new Team Active (ADR-0023 §4), so a founder who came from
-                // another Team is now in a different tenant.
-                await client.resetQueries()
                 // A brand-new team is empty: the roster is where the owner starts (invite people,
                 // then curate positions under team settings), not the events home.
                 navigate({ to: teamRoutes(team.slug).team })

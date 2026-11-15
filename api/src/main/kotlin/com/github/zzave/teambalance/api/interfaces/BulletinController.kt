@@ -6,7 +6,9 @@ import com.github.zzave.teambalance.api.domain.model.BulletinPostId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateBulletinPost
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteBulletinPost
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListBulletinPosts
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RestoreBulletinPost
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateBulletinPost
 import com.github.zzave.teambalance.api.interfaces.generated.model.BulletinPostEdit
 import com.github.zzave.teambalance.api.interfaces.generated.model.BulletinPostList
@@ -22,7 +24,9 @@ class BulletinController(
     private val currentTeamGateway: CurrentTeamGateway,
 ) : ListBulletinPosts.Handler,
     CreateBulletinPost.Handler,
-    UpdateBulletinPost.Handler {
+    UpdateBulletinPost.Handler,
+    DeleteBulletinPost.Handler,
+    RestoreBulletinPost.Handler {
 
     override suspend fun listBulletinPosts(request: ListBulletinPosts.Request): ListBulletinPosts.Response<*> {
         val posts = bulletinService.listPosts(
@@ -50,6 +54,24 @@ class BulletinController(
         )
         return UpdateBulletinPost.Response200(updated.produce())
     }
+
+    override suspend fun deleteBulletinPost(request: DeleteBulletinPost.Request): DeleteBulletinPost.Response<*> {
+        bulletinService.deletePost(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumeBulletinPostId(),
+        )
+        return DeleteBulletinPost.Response204
+    }
+
+    override suspend fun restoreBulletinPost(request: RestoreBulletinPost.Request): RestoreBulletinPost.Response<*> {
+        val restored = bulletinService.restorePost(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumeBulletinPostId(),
+        )
+        return RestoreBulletinPost.Response200(restored.produce())
+    }
 }
 
 private fun String.consumeBulletinPostId() = BulletinPostId(UUID.fromString(this))
@@ -60,4 +82,6 @@ private fun BulletinPost.produce() = BulletinPostDto(
     authorId = authorId.toString(),
     postedAt = DateTimestampWithTimezone(postedAt.toString()),
     edits = edits.map { BulletinPostEdit(it.editorId.toString(), DateTimestampWithTimezone(it.editedAt.toString())) },
+    deletedAt = deletedAt?.let { DateTimestampWithTimezone(it.toString()) },
+    removedAt = removedAt?.let { DateTimestampWithTimezone(it.toString()) },
 )

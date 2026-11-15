@@ -9,15 +9,16 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BulletinPostRepository
 import java.time.Clock
 
-/** The Team's Bulletin Board (ADR-0048): Admins post, every Member reads. */
+/** The Team's Bulletin Board (ADR-0048): Admins post, edit, delete and restore; every Member reads. */
 class BulletinService(
     private val bulletinPostRepository: BulletinPostRepository,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
+    /** Admins also get the deleted Posts they can still restore. */
     fun listPosts(callerId: UserId, teamId: TeamId): List<BulletinPost> {
         authorizationService.requireMember(callerId, teamId)
-        return bulletinPostRepository.list()
+        return bulletinPostRepository.list(includeDeleted = authorizationService.isAdmin(callerId, teamId))
     }
 
     fun createPost(callerId: UserId, teamId: TeamId, rawMarkdown: String): BulletinPost {
@@ -31,4 +32,19 @@ class BulletinService(
         return bulletinPostRepository.update(id, PostMarkdown.of(rawMarkdown), callerId, clock.instant())
             ?: throw BulletinPostNotFoundException(id)
     }
+
+    /** Admin-only. Hides the Post from Members; it can be restored for [BulletinPost.RETENTION]. */
+    fun deletePost(callerId: UserId, teamId: TeamId, id: BulletinPostId) {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (!bulletinPostRepository.delete(id, clock.instant())) throw BulletinPostNotFoundException(id)
+    }
+
+    /** Admin-only. Shows a deleted Post again. */
+    fun restorePost(callerId: UserId, teamId: TeamId, id: BulletinPostId): BulletinPost {
+        authorizationService.requireAdmin(callerId, teamId)
+        return bulletinPostRepository.restore(id) ?: throw BulletinPostNotFoundException(id)
+    }
+
+    /** For the scheduler, inside one tenant: removes the Posts deleted longer ago than [BulletinPost.RETENTION]. */
+    fun removeExpiredPosts(): Int = bulletinPostRepository.removeDeletedBefore(clock.instant().minus(BulletinPost.RETENTION))
 }

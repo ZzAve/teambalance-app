@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.model
 
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -41,4 +42,14 @@ data class BulletinPost(
     val postedAt: Instant,
     /** Oldest first. */
     val edits: List<PostEdit> = emptyList(),
-)
+    /** Set when an Admin deleted it: hidden from Members, restorable until [removedAt]. */
+    val deletedAt: Instant? = null,
+) {
+    /** When a deleted Post is removed for good; null while it is not deleted. */
+    val removedAt: Instant? get() = deletedAt?.plus(RETENTION)
+
+    companion object {
+        /** How long a deleted Post can still be restored (ADR-0048). */
+        val RETENTION: Duration = Duration.ofDays(14)
+    }
+}

@@ -23,9 +23,10 @@ class JooqBulletinPostRepositoryAdapter(
     private val dsl: DSLContext,
 ) : BulletinPostRepository {
 
-    override fun list(): List<BulletinPost> {
+    override fun list(includeDeleted: Boolean): List<BulletinPost> {
         val edits = editsByPost(postIds = null)
         return dsl.selectFrom(BULLETIN_POSTS)
+            .where(if (includeDeleted) DSL.noCondition() else BULLETIN_POSTS.DEACTIVATED_AT.isNull)
             .orderBy(BULLETIN_POSTS.POSTED_AT.desc(), BULLETIN_POSTS.ID)
             .fetch { it.toBulletinPost(edits[it.id].orEmpty()) }
     }
@@ -44,7 +45,7 @@ class JooqBulletinPostRepositoryAdapter(
     override fun update(id: BulletinPostId, markdown: PostMarkdown, editorId: UserId, editedAt: Instant): BulletinPost? {
         val updated = dsl.update(BULLETIN_POSTS)
             .set(BULLETIN_POSTS.MARKDOWN, markdown.value)
-            .where(BULLETIN_POSTS.ID.eq(id.value))
+            .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNull))
             .returning()
             .fetchOne() ?: return null
         dsl.insertInto(BULLETIN_POST_EDITS)
@@ -54,6 +55,26 @@ class JooqBulletinPostRepositoryAdapter(
             .execute()
         return updated.toBulletinPost(editsByPost(postIds = listOf(id.value))[id.value].orEmpty())
     }
+
+    override fun delete(id: BulletinPostId, at: Instant): Boolean =
+        dsl.update(BULLETIN_POSTS)
+            .set(BULLETIN_POSTS.DEACTIVATED_AT, at.atOffset(ZoneOffset.UTC))
+            .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNull))
+            .execute() == 1
+
+    override fun restore(id: BulletinPostId): BulletinPost? =
+        dsl.update(BULLETIN_POSTS)
+            .setNull(BULLETIN_POSTS.DEACTIVATED_AT)
+            .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNotNull))
+            .returning()
+            .fetchOne()
+            ?.let { it.toBulletinPost(editsByPost(postIds = listOf(id.value))[id.value].orEmpty()) }
+
+    // ON DELETE CASCADE on bulletin_post_edits takes the edits with the Post.
+    override fun removeDeletedBefore(cutoff: Instant): Int =
+        dsl.deleteFrom(BULLETIN_POSTS)
+            .where(BULLETIN_POSTS.DEACTIVATED_AT.lt(cutoff.atOffset(ZoneOffset.UTC)))
+            .execute()
 
     /** Every Post's edits, oldest first, in one query; [postIds] null reads them all. */
     private fun editsByPost(postIds: List<UUID>?): Map<UUID, List<PostEdit>> =
@@ -69,5 +90,6 @@ class JooqBulletinPostRepositoryAdapter(
         authorId = UserId(authorId),
         postedAt = postedAt.toInstant(),
         edits = edits,
+        deletedAt = deactivatedAt?.toInstant(),
     )
 }

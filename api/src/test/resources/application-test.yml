@@ -56,6 +56,9 @@ teambalance:
       capacity: 1000
     calendar-feed-per-client:
       capacity: 100000
+  bulletin:
+    # BulletinIT calls BulletinService.removeExpiredPosts itself; a scheduled run would touch every test team.
+    removal-scheduler-enabled: false
   match-feed:
     # The ITs call MatchFeedService.checkIfDue themselves; a scheduled run would touch every test team.
     scheduler-enabled: false

@@ -8,11 +8,20 @@ import java.time.Instant
 
 /** The current tenant's Bulletin Board (ADR-0048). No method takes a team id: the routed schema is the team. */
 interface BulletinPostRepository {
-    /** Every Post, newest first, each with its edits. */
-    fun list(): List<BulletinPost>
+    /** Posts newest first, each with its edits; deleted ones only with [includeDeleted]. */
+    fun list(includeDeleted: Boolean): List<BulletinPost>
 
     fun create(markdown: PostMarkdown, authorId: UserId, postedAt: Instant): BulletinPost
 
-    /** Replaces the Markdown and records the edit, together. Null when the Post is gone. */
+    /** Replaces the Markdown and records the edit, together. Null when the Post is gone or deleted. */
     fun update(id: BulletinPostId, markdown: PostMarkdown, editorId: UserId, editedAt: Instant): BulletinPost?
+
+    /** Marks the Post deleted at [at]. False when it is gone or already deleted. */
+    fun delete(id: BulletinPostId, at: Instant): Boolean
+
+    /** Clears the delete. Null when the Post is not deleted or already removed. */
+    fun restore(id: BulletinPostId): BulletinPost?
+
+    /** Removes for good every Post deleted before [cutoff], with its edits. Returns how many. */
+    fun removeDeletedBefore(cutoff: Instant): Int
 }

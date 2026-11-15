@@ -1,8 +1,11 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.BulletinService
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantContext
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -31,6 +34,9 @@ class BulletinIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var bulletinService: BulletinService
 
     init {
         beforeEach {
@@ -82,6 +88,62 @@ class BulletinIT : TeamBalanceIT() {
             perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
                 .andExpect(jsonPath("$.posts[0].markdown").value("Original"))
                 .andExpect(jsonPath("$.posts[0].edits.length()").value(0))
+        }
+
+        test("a deleted post is hidden from members, kept for admins with its removal date, and restored") {
+            val id = createdId("Closed on Friday")
+
+            perform(MockMvcRequestBuilders.delete("/api/bulletin-posts/$id"), ADMIN_USER_ID).andExpect(status().isNoContent)
+
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts.length()").value(0))
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), ADMIN_USER_ID)
+                .andExpect(jsonPath("$.posts.length()").value(1))
+                .andExpect(jsonPath("$.posts[0].deletedAt").isNotEmpty)
+                .andExpect(jsonPath("$.posts[0].removedAt").isNotEmpty)
+
+            perform(MockMvcRequestBuilders.post("/api/bulletin-posts/$id/restore"), ADMIN_USER_ID)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.markdown").value("Closed on Friday"))
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.posts.length()").value(1))
+        }
+
+        test("a member may not delete or restore") {
+            val id = createdId("Stays")
+            perform(MockMvcRequestBuilders.delete("/api/bulletin-posts/$id"), MEMBER_USER_ID).andExpect(status().isForbidden)
+            perform(MockMvcRequestBuilders.delete("/api/bulletin-posts/$id"), ADMIN_USER_ID).andExpect(status().isNoContent)
+            perform(MockMvcRequestBuilders.post("/api/bulletin-posts/$id/restore"), MEMBER_USER_ID)
+                .andExpect(status().isForbidden)
+        }
+
+        test("the removal takes posts deleted more than 14 days ago, with their edits, and keeps newer ones") {
+            val old = createdId("Old notice")
+            put(old, "Old notice, edited", ADMIN_USER_ID).andExpect(status().isOk)
+            val recent = createdId("Recent notice")
+            perform(MockMvcRequestBuilders.delete("/api/bulletin-posts/$old"), ADMIN_USER_ID).andExpect(status().isNoContent)
+            perform(MockMvcRequestBuilders.delete("/api/bulletin-posts/$recent"), ADMIN_USER_ID).andExpect(status().isNoContent)
+            jdbcTemplate.update(
+                "UPDATE public.bulletin_posts SET deactivated_at = now() - interval '15 days' WHERE id = ?::uuid",
+                old,
+            )
+
+            TenantContext.set("public")
+            try {
+                bulletinService.removeExpiredPosts()
+            } finally {
+                TenantContext.clear()
+            }
+
+            perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), ADMIN_USER_ID)
+                .andExpect(jsonPath("$.posts.length()").value(1))
+                .andExpect(jsonPath("$.posts[0].id").value(recent))
+            val edits = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.bulletin_post_edits WHERE post_id = ?::uuid",
+                Int::class.java,
+                old,
+            )
+            edits shouldBe 0
         }
 
         test("a blank post is refused") {

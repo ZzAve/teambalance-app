@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Payment } from '@shared/api/money-pool'
-import { isAttributedTopUp, isTopUpBy, isUnattributedIncoming } from './payment-attribution'
+import { countsAsIncoming, isAttributedTopUp, isTopUpBy, isUnattributedIncoming } from './payment-attribution'
 
 const payment = (overrides: Partial<Payment>): Payment => ({
   id: 'p1',
@@ -11,6 +11,7 @@ const payment = (overrides: Partial<Payment>): Payment => ({
   receiptVersion: undefined,
   memberId: undefined,
   counterpartyName: undefined,
+  outOfPocket: false,
   ...overrides,
 })
 
@@ -49,5 +50,20 @@ describe('isTopUpBy', () => {
     expect(isTopUpBy(payment({ memberId: 'm1' }), 'm1')).toBe(true)
     expect(isTopUpBy(payment({ memberId: 'm2' }), 'm1')).toBe(false)
     expect(isTopUpBy(payment({ memberId: 'm1', direction: 'Out' }), 'm1')).toBe(false)
+  })
+})
+
+describe('an Out-of-pocket Expense', () => {
+  const expense = payment({ direction: 'Out', memberId: 'm1', outOfPocket: true })
+
+  it('counts as money in and as a contribution of the Member who paid', () => {
+    expect(countsAsIncoming(expense)).toBe(true)
+    expect(isAttributedTopUp(expense)).toBe(true)
+    expect(countsAsIncoming(payment({ direction: 'Out' }))).toBe(false)
+  })
+
+  it('is not a bank payment that an alias can match or a Member can claim', () => {
+    expect(isTopUpBy(expense, 'm1')).toBe(false)
+    expect(isUnattributedIncoming(expense)).toBe(false)
   })
 })

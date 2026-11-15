@@ -38,6 +38,7 @@ const pay = (id: string, date: string, amount: number, memberId?: string, direct
   memberId,
   counterpartyName: undefined,
   receiptVersion: undefined,
+  outOfPocket: false,
 })
 
 // Newest first. Season: Cleo 50, Anna 40, Bram 25, Dirk 20, a former member 15, Eva 10; 8 came in without a name.

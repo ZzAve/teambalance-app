@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.application.DemoPersona
 import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolReader
 import com.github.zzave.teambalance.api.application.MoneyPoolService
+import com.github.zzave.teambalance.api.application.OutOfPocketExpenseService
 import com.github.zzave.teambalance.api.application.ReceiptService
 import com.github.zzave.teambalance.api.application.PaymentAliasService
 import com.github.zzave.teambalance.api.application.PaymentClaimService
@@ -17,6 +18,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
+import com.github.zzave.teambalance.api.domain.port.OutOfPocketExpenseRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -59,8 +61,11 @@ class MoneyPoolCompositionRoot {
         authorizationService: AuthorizationService,
         moneyPoolCache: MoneyPoolCacheGateway,
         receiptRepository: ReceiptRepository,
+        outOfPocketExpenseRepository: OutOfPocketExpenseRepository,
         paymentAliasRepository: PaymentAliasRepository,
         teamMemberRepository: TeamMemberRepository,
+        seasonRepository: SeasonRepository,
+        clock: Clock,
         @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
@@ -68,8 +73,11 @@ class MoneyPoolCompositionRoot {
         authorizationService = authorizationService,
         cache = moneyPoolCache,
         receiptRepository = receiptRepository,
+        outOfPocketExpenseRepository = outOfPocketExpenseRepository,
         paymentAliasRepository = paymentAliasRepository,
         teamMemberRepository = teamMemberRepository,
+        seasonRepository = seasonRepository,
+        clock = clock,
         demoTeam = DemoPersona.TEAM_ID.takeIf { demoEnabled },
     )
 
@@ -82,6 +90,21 @@ class MoneyPoolCompositionRoot {
         receiptRepository = receiptRepository,
         moneyPoolService = moneyPoolService,
         authorizationService = authorizationService,
+    )
+
+    @Bean
+    fun outOfPocketExpenseService(
+        outOfPocketExpenseRepository: OutOfPocketExpenseRepository,
+        receiptRepository: ReceiptRepository,
+        moneyPoolService: MoneyPoolService,
+        authorizationService: AuthorizationService,
+        clock: Clock,
+    ) = OutOfPocketExpenseService(
+        expenseRepository = outOfPocketExpenseRepository,
+        receiptRepository = receiptRepository,
+        moneyPoolService = moneyPoolService,
+        authorizationService = authorizationService,
+        clock = clock,
     )
 
     @Bean

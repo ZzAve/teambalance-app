@@ -1,5 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
-import { isAttributedTopUp } from '@entities/payment/lib/payment-attribution'
+import { countsAsIncoming, isAttributedTopUp } from '@entities/payment/lib/payment-attribution'
 
 export type TopperPeriod = 'season' | 'last30'
 
@@ -46,7 +46,7 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
   const totals = new Map<string, number>()
   let incoming = 0
   for (const p of periodPayments(payments, period, today)) {
-    if (p.direction !== 'In') continue
+    if (!countsAsIncoming(p)) continue
     incoming += p.amount
     if (p.memberId) totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
   }

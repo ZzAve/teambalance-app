@@ -4,12 +4,13 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 
 private val RETENTION =
     MoneyPoolRetention(refresh = Duration.ofSeconds(30), expire = Duration.ofMinutes(5), retryAfter = Duration.ofSeconds(60))
 private val READ_AT = Instant.parse("2026-01-01T12:00:00Z")
-private val CONNECTED: MoneyPool = MoneyPool.Connected(Money(1_000), emptyList())
-private val OTHER_CONNECTED: MoneyPool = MoneyPool.Connected(Money(2_000), emptyList())
+private val CONNECTED: MoneyPool = MoneyPool.Connected(Money(1_000), emptyList(), LocalDate.EPOCH)
+private val OTHER_CONNECTED: MoneyPool = MoneyPool.Connected(Money(2_000), emptyList(), LocalDate.EPOCH)
 
 class RememberedMoneyPoolTest : FunSpec({
 

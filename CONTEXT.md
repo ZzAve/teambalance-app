@@ -185,11 +185,21 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Bunq Connection** — The access an Admin grants the Team to one of their Bunq accounts,
   by signing in to Bunq and approving it. The Money Pool shows that one account. Bunq
   remains the record of every payment; the app keeps none of them, only a **Receipt** per expense.
+  An **Out-of-pocket Expense** is not a Bunq payment and is the one thing the app records itself.
   _Avoid_: Bunq integration, Bunq config, API key.
 - **Receipt** — A picture of what an expense (an outgoing payment) was spent on. Any Member adds,
   replaces or removes it; every Member can see it. One per expense, stored under Bunq's payment id
   ([ADR-0044](docs/adr/0044-receipts-on-expenses-stored-by-bunq-payment-id.md)).
   _Avoid_: Attachment, invoice, proof.
+- **Out-of-pocket Expense** — Something a Member paid for the Team with their own money. The Member
+  (or an Admin for them) records the amount, the date and what it was for, and is asked for a
+  **Receipt**. It counts as an expense of the pool and as that Member's contribution of the same
+  amount, so the balance does not change and nobody has to be paid back. Stored by the app, not by Bunq,
+  and usable without a **Bunq Connection**: the Money Pool then shows these expenses alone, without a
+  balance. The amount is read from the photo of the Receipt as a suggestion
+  ([ADR-0048](docs/adr/0048-out-of-pocket-expenses-stored-by-the-app.md),
+  [ADR-0049](docs/adr/0049-receipt-total-read-in-the-browser.md)).
+  _Avoid_: Reimbursement, declaration, manual payment, cash payment.
 - **Payment Alias** — How a Member appears on Bunq payments: a name, an IBAN or both, several
   per Member. It lets the Money Pool say which Member a payment came from. Seen and edited only by
   the Member and Team Admins; unique within the Team; deleted when the Member leaves. The app keeps

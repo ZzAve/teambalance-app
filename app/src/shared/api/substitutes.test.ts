@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import type { SubstituteEntry } from './generated/model/SubstituteEntry'
 import { applyOptimisticSubstitute } from './substitute-cache'
-import { patchCachedEvents, rollBack } from './substitutes'
+import { patchCachedEvents, rollBack } from './event-cache'
 
 const femke: SubstituteEntry = {
   substituteId: 'sub-1',
@@ -26,7 +26,7 @@ const seeded = () => {
 }
 
 const setAttending = (queryClient: QueryClient) =>
-  patchCachedEvents(queryClient, (cached) =>
+  patchCachedEvents<Parameters<typeof applyOptimisticSubstitute>[0]>(queryClient, (cached) =>
     applyOptimisticSubstitute(cached, 'evt-1', 'sub-1', 'ATTENDING', 'user-9', undefined),
   )
 

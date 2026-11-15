@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { Stack } from '@shared/testing/stack'
-import { makeAttendee, makeEvent } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent, makeRoster } from '@shared/testing/event-fixtures'
 import { EventListView } from './EventListView'
 
 // EventListView is the presentational list region of the events page: it renders one of four
@@ -106,24 +106,14 @@ export const Shells: Story = {
             ]}
           />
         ),
-        // The pick in flight is the viewer's own, so the attribution it replaces is dropped the
-        // moment they tap — not one round-trip later, when the refetched list finally agrees.
-        'Attribution clears while settling': (
+        // Only the event with a write in flight dims its readiness verdict (⑤); the other keeps it.
+        'Write in flight': (
           <EventListView
             {...args}
-            currentUserId="u-me"
-            optimistic={{ eventId: 'evt-1', userId: 'u-me', state: 'ATTENDING' }}
+            pendingEventIds={['evt-1']}
             events={[
-              makeEvent({
-                id: 'evt-1',
-                title: 'League Match',
-                startTime: on(11),
-                myState: 'ABSENT',
-                attendances: [
-                  makeAttendee('u-me', 'Me', 'Unassigned', { state: 'ABSENT', changedBy: 'u-tim' }),
-                  makeAttendee('u-tim', 'Tim de Vries', 'Unassigned', { changedBy: 'u-tim' }),
-                ],
-              }),
+              makeEvent({ id: 'evt-1', title: 'League Match', startTime: on(11), roster: makeRoster() }),
+              makeEvent({ id: 'evt-2', title: 'Training', startTime: on(13), roster: makeRoster() }),
             ]}
           />
         ),
@@ -150,10 +140,8 @@ export const Shells: Story = {
     // The self-set card stays in the first person.
     await expect(region('Attribution').getByText("You're in")).toBeInTheDocument()
 
-    await expect(region('Attribution clears while settling').getByText("You're in")).toBeInTheDocument()
-    await expect(
-      region('Attribution clears while settling').queryByText(/ said /),
-    ).not.toBeInTheDocument()
+    const busy = (name: string) => within(canvas.getByRole('region', { name })).getAllByText(/./, { selector: '[aria-busy]' })
+    await expect(busy('Write in flight').map((el) => el.getAttribute('aria-busy'))).toEqual(['true', 'false'])
   },
 }
 

@@ -1288,6 +1288,13 @@
     "removedOn": "Definitief weg op {{date}}",
     "restore": "Terugzetten",
     "deleteFailed": "Het bericht kon niet worden verwijderd. Probeer het opnieuw.",
-    "restoreFailed": "Het bericht kon niet worden teruggezet. Probeer het opnieuw."
+    "restoreFailed": "Het bericht kon niet worden teruggezet. Probeer het opnieuw.",
+    "pinned": "Vastgezet",
+    "pinLabel": "Bericht vastzetten",
+    "pinHint": "Vastgezette berichten staan bovenaan en verschijnen boven elke pagina.",
+    "pinnedStrip": "Vastgezette berichten",
+    "morePinned": "+{{count}} meer",
+    "closePinned": "Vastgezette berichten sluiten",
+    "openPinned": "Vastgezette berichten tonen"
   }
 }

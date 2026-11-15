@@ -37,8 +37,8 @@ export function BulletinBoard({ isAdmin }: { isAdmin: boolean }) {
       isAdmin={isAdmin}
       isLoading={isLoading}
       isError={!!error}
-      onCreate={(markdown) => createPost.mutateAsync(markdown)}
-      onUpdate={(id, markdown) => updatePost.mutateAsync({ id, markdown })}
+      onCreate={(markdown, pinned) => createPost.mutateAsync({ markdown, pinned })}
+      onUpdate={(id, markdown, pinned) => updatePost.mutateAsync({ id, markdown, pinned })}
       onDelete={(id) => deletePost.mutate(id, { onError: () => toast.error(t('bulletin.deleteFailed')) })}
       onRestore={(id) => restorePost.mutate(id, { onError: () => toast.error(t('bulletin.restoreFailed')) })}
     />

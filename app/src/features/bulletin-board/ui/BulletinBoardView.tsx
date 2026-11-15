@@ -6,9 +6,10 @@ import { BulletinPostView, type PostEditEntry } from '@entities/bulletin/ui/Bull
 import { Button } from '@shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@shared/ui/dropdown-menu'
 import { Markdown } from '@shared/ui/Markdown'
+import { Switch } from '@shared/ui/switch'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
-import { postTitle } from '../lib/post-title'
+import { postTitle } from '@shared/lib/post-title'
 
 export interface BoardPost {
   id: string
@@ -16,12 +17,13 @@ export interface BoardPost {
   authorName: string
   postedAt: string
   edits: PostEditEntry[]
+  pinned: boolean
   /** Set on a deleted Post (Admins only), restorable until [removedAt]. */
   deletedAt?: string
   removedAt?: string
 }
 
-type Save = (markdown: string) => Promise<unknown> | void
+type Save = (markdown: string, pinned: boolean) => Promise<unknown> | void
 
 interface BulletinBoardViewProps {
   posts: BoardPost[]
@@ -31,7 +33,7 @@ interface BulletinBoardViewProps {
   isError?: boolean
   /** Resolves when the Post is saved; the sheet closes then, and stays open with an error on a reject. */
   onCreate: Save
-  onUpdate: (id: string, markdown: string) => Promise<unknown> | void
+  onUpdate: (id: string, markdown: string, pinned: boolean) => Promise<unknown> | void
   onDelete: (id: string) => void
   onRestore: (id: string) => void
 }
@@ -83,6 +85,7 @@ export function BulletinBoardView({
           authorName={post.authorName}
           postedAt={post.postedAt}
           edits={post.edits}
+          pinned={post.pinned}
           actions={isAdmin && (
             <PostMenu onEdit={() => start({ kind: 'edit', post })} onDelete={() => onDelete(post.id)} />
           )}
@@ -98,8 +101,9 @@ export function BulletinBoardView({
           open={open}
           onOpenChange={setOpen}
           initialMarkdown={compose.kind === 'edit' ? compose.post.markdown : ''}
+          initialPinned={compose.kind === 'edit' && compose.post.pinned}
           isEdit={compose.kind === 'edit'}
-          onSave={compose.kind === 'edit' ? (markdown) => onUpdate(compose.post.id, markdown) : onCreate}
+          onSave={compose.kind === 'edit' ? (markdown, pinned) => onUpdate(compose.post.id, markdown, pinned) : onCreate}
         />
       )}
     </section>
@@ -158,13 +162,15 @@ interface ComposeSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialMarkdown: string
+  initialPinned: boolean
   isEdit: boolean
   onSave: Save
 }
 
-function ComposeSheet({ open, onOpenChange, initialMarkdown, isEdit, onSave }: ComposeSheetProps) {
+function ComposeSheet({ open, onOpenChange, initialMarkdown, initialPinned, isEdit, onSave }: ComposeSheetProps) {
   const { t } = useTranslation()
   const [markdown, setMarkdown] = useState(initialMarkdown)
+  const [pinned, setPinned] = useState(initialPinned)
   const [preview, setPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -173,8 +179,11 @@ function ComposeSheet({ open, onOpenChange, initialMarkdown, isEdit, onSave }: C
     setSaving(true)
     setFailed(false)
     try {
-      await onSave(markdown)
-      if (!isEdit) setMarkdown('')
+      await onSave(markdown, pinned)
+      if (!isEdit) {
+        setMarkdown('')
+        setPinned(false)
+      }
       setPreview(false)
       onOpenChange(false)
     } catch {
@@ -219,6 +228,18 @@ function ComposeSheet({ open, onOpenChange, initialMarkdown, isEdit, onSave }: C
             className="min-h-40 w-full rounded-md border border-border/60 bg-card p-3 font-mono text-small"
           />
         )}
+        <div className="mt-4 flex items-center justify-between gap-4 text-small">
+          <div>
+            <p id="bulletin-pin-label">{t('bulletin.pinLabel')}</p>
+            <p id="bulletin-pin-hint" className="text-caption text-muted-foreground">{t('bulletin.pinHint')}</p>
+          </div>
+          <Switch
+            checked={pinned}
+            onCheckedChange={setPinned}
+            aria-label={t('bulletin.pinLabel')}
+            aria-describedby="bulletin-pin-hint"
+          />
+        </div>
         {failed && <p role="alert" className="mt-2 text-small text-red-ink">{t('bulletin.postFailed')}</p>}
         <Button className="mt-6" disabled={saving || markdown.trim() === ''} onClick={submit}>
           {isEdit ? t('bulletin.save') : t('bulletin.post')}

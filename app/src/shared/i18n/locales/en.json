@@ -1288,6 +1288,13 @@
     "removedOn": "Removed for good on {{date}}",
     "restore": "Restore",
     "deleteFailed": "Couldn't delete the post. Please try again.",
-    "restoreFailed": "Couldn't restore the post. Please try again."
+    "restoreFailed": "Couldn't restore the post. Please try again.",
+    "pinned": "Pinned",
+    "pinLabel": "Pin this post",
+    "pinHint": "Pinned posts come first and show at the top of every page.",
+    "pinnedStrip": "Pinned posts",
+    "morePinned": "+{{count}} more",
+    "closePinned": "Close pinned posts",
+    "openPinned": "Show pinned posts"
   }
 }

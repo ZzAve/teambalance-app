@@ -3,9 +3,10 @@ import { api } from './wirespec-client'
 
 export type { BulletinPost } from './generated/model/BulletinPost'
 
-/** The Team's Bulletin Board, newest first (ADR-0048). */
-export function useBulletinPosts() {
+/** The Team's Bulletin Board, pinned Posts first, then newest first (ADR-0048). */
+export function useBulletinPosts(options?: { enabled?: boolean }) {
   return useQuery({
+    enabled: options?.enabled,
     queryKey: ['bulletin-posts'],
     queryFn: async () => {
       const res = await api.listBulletinPosts()
@@ -18,8 +19,8 @@ export function useBulletinPosts() {
 export function useCreateBulletinPost() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (markdown: string) => {
-      const res = await api.createBulletinPost({ body: { markdown } })
+    mutationFn: async ({ markdown, pinned }: { markdown: string; pinned: boolean }) => {
+      const res = await api.createBulletinPost({ body: { markdown, pinned } })
       if (res.status !== 201) throw new Error(`Post refused: ${res.status}`)
       return res.body
     },
@@ -33,8 +34,8 @@ export function useCreateBulletinPost() {
 export function useUpdateBulletinPost() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, markdown }: { id: string; markdown: string }) => {
-      const res = await api.updateBulletinPost({ id, body: { markdown } })
+    mutationFn: async ({ id, markdown, pinned }: { id: string; markdown: string; pinned: boolean }) => {
+      const res = await api.updateBulletinPost({ id, body: { markdown, pinned } })
       if (res.status !== 200) throw new Error(`Edit refused: ${res.status}`)
       return res.body
     },

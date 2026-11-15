@@ -75,6 +75,7 @@ const bulletin = (isAdmin: boolean) => (
         id: 'b1',
         authorName: 'Ada Lovelace',
         postedAt: '2026-11-10T18:00:00Z',
+        pinned: true,
         edits: [{ editorName: 'Grace Hopper', editedAt: '2026-11-11T09:00:00Z' }],
         markdown: '### Ball bag rotation\nWho takes the **balls** home after training:\n\n- Week 46 — Alan\n- Week 47 — Katherine',
       },

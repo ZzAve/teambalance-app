@@ -11,6 +11,7 @@ const POSTS: BoardPost[] = [
     id: 'b2',
     authorName: 'Grace Hopper',
     postedAt: '2026-11-12T09:00:00Z',
+    pinned: true,
     edits: [
       { editorName: 'Ada Lovelace', editedAt: '2026-11-12T15:30:00Z' },
       { editorName: 'Grace Hopper', editedAt: '2026-11-13T08:05:00Z' },
@@ -29,6 +30,7 @@ const POSTS: BoardPost[] = [
     id: 'b3',
     authorName: 'Ada Lovelace',
     postedAt: '2026-11-10T09:00:00Z',
+    pinned: false,
     edits: [],
     markdown: 'Raw HTML stays text: <script>alert(1)</script> and [a bad link](javascript:alert(1)).',
   },
@@ -36,6 +38,7 @@ const POSTS: BoardPost[] = [
     id: 'b1',
     authorName: 'Ada Lovelace',
     postedAt: '2026-11-01T09:00:00Z',
+    pinned: false,
     edits: [],
     deletedAt: '2026-11-11T09:00:00Z',
     removedAt: '2026-11-25T09:00:00Z',
@@ -58,6 +61,7 @@ export const Data: Story = {
     await expect(canvas.getByText('Clubhouse closes at 22:30')).toBeInTheDocument()
     await expect(canvas.getByText('Grace Hopper')).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'gemeente notice' })).toHaveAttribute('rel', 'noopener noreferrer')
+    await expect(canvas.getAllByText('Pinned')).toHaveLength(1)
     // Only the edited Post says so, with its history behind the info button.
     await expect(canvas.getAllByText(/edited/)).toHaveLength(1)
     await expect(canvas.getAllByRole('button', { name: 'Edit history' })).toHaveLength(1)
@@ -110,8 +114,9 @@ export const Interactions: Story = {
     await userEvent.click(body.getByRole('tab', { name: 'Preview' }))
     await expect(body.getByText('Balls').tagName).toBe('STRONG')
 
+    await userEvent.click(body.getByRole('switch', { name: 'Pin this post' }))
     await userEvent.click(post)
-    await expect(args.onCreate).toHaveBeenCalledWith('**Balls** go home with Tom')
+    await expect(args.onCreate).toHaveBeenCalledWith('**Balls** go home with Tom', true)
     await waitFor(() => expect(body.queryByRole('button', { name: 'Post' })).not.toBeInTheDocument())
 
     // Edit starts from the Post's own text and saves it under that Post's id.
@@ -119,10 +124,12 @@ export const Interactions: Story = {
     await userEvent.click(await body.findByRole('menuitem', { name: 'Edit' }))
     const text = await body.findByLabelText('Post text (Markdown)')
     await expect(text).toHaveValue(POSTS[0].markdown)
+    // The pin starts from the Post's own state, and is saved with the text.
+    await expect(body.getByRole('switch', { name: 'Pin this post' })).toBeChecked()
     await userEvent.clear(text)
     await userEvent.type(text, 'Closed on Friday')
     await userEvent.click(body.getByRole('button', { name: 'Save' }))
-    await expect(args.onUpdate).toHaveBeenCalledWith('b2', 'Closed on Friday')
+    await expect(args.onUpdate).toHaveBeenCalledWith('b2', 'Closed on Friday', true)
     await waitFor(() => expect(body.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument())
 
     // The history lists every edit, newest first, then who posted it.

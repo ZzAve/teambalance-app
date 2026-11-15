@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info } from 'lucide-react'
+import { Info, Pin } from 'lucide-react'
 import { formatLocale } from '@shared/i18n/i18n'
 import { Markdown } from '@shared/ui/Markdown'
+import { cn } from '@shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@shared/ui/popover'
 
 export interface PostEditEntry {
@@ -15,6 +16,7 @@ interface BulletinPostViewProps {
   /** The author's display name; the container resolves it from the Roster. */
   authorName: string
   postedAt: string
+  pinned?: boolean
   /** Oldest first. A Post with edits shows "edited" and an info button with the full list. */
   edits?: PostEditEntry[]
   /** The Admin's actions (the ⋯ menu), on the header line. */
@@ -22,14 +24,20 @@ interface BulletinPostViewProps {
 }
 
 /** One Post on the Bulletin Board (ADR-0048): who posted it and when, then the Markdown. */
-export function BulletinPostView({ markdown, authorName, postedAt, edits = [], actions }: BulletinPostViewProps) {
-  const { i18n } = useTranslation()
+export function BulletinPostView({ markdown, authorName, postedAt, pinned, edits = [], actions }: BulletinPostViewProps) {
+  const { t, i18n } = useTranslation()
   const date = new Date(postedAt).toLocaleDateString(formatLocale(i18n.language), { day: 'numeric', month: 'short' })
 
   return (
-    <article className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+    <article className={cn('rounded-lg border bg-card p-4 shadow-sm', pinned ? 'border-gold/50' : 'border-border/40')}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="flex min-h-9 flex-wrap items-center gap-x-1 text-caption text-muted-foreground">
+          {pinned && (
+            <span className="mr-1 inline-flex items-center gap-1 font-semibold text-gold-ink">
+              <Pin size={12} aria-hidden />
+              {t('bulletin.pinned')}
+            </span>
+          )}
           <span className="font-semibold text-foreground/80">{authorName}</span> · <time dateTime={postedAt}>{date}</time>
           {edits.length > 0 && <EditHistory authorName={authorName} postedAt={postedAt} edits={edits} />}
         </p>

@@ -17,7 +17,7 @@ import { PinnedPostsStripView } from './PinnedPostsStripView'
 const asString = (raw: unknown) => (typeof raw === 'string' ? raw : null)
 
 /**
- * The pinned-posts strip in the app shell (ADR-0048): on every team page except get-started, for the
+ * The pinned-posts strip in the app shell (ADR-0050): on every team page except get-started, for the
  * pinned Posts that are not deleted. Closing it stores the pins' signature per team, so it stays
  * closed across pages and reloads and opens again when the pins change.
  */

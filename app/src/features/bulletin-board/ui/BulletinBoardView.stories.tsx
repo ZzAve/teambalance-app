@@ -4,7 +4,7 @@ import { Stack } from '@shared/testing/stack'
 import { dateFromShowUntil, showUntilFromDate } from '@shared/lib/show-until'
 import { BulletinBoardView, type BoardPost } from './BulletinBoardView'
 
-// The Bulletin Board (ADR-0048). The Team page composite (pages/team/TeamPageView) owns the picture
+// The Bulletin Board (ADR-0050). The Team page composite (pages/team/TeamPageView) owns the picture
 // of a populated board; this file keeps the states that page does not show, the Markdown safety
 // rules, and the compose wiring.
 const POSTS: BoardPost[] = [
@@ -81,7 +81,7 @@ export const Data: Story = {
     // A deleted Post is not on the board; Admins find it under the closed deleted list.
     await expect(canvas.getByText('1 deleted post')).toBeInTheDocument()
     await expect(canvas.getByText('Old training times')).not.toBeVisible()
-    // ADR-0048: no HTML from a Post reaches the page, and only http(s) links become links.
+    // ADR-0050: no HTML from a Post reaches the page, and only http(s) links become links.
     await expect(canvasElement.querySelector('script')).toBeNull()
     await expect(canvas.getByText(/<script>alert\(1\)<\/script>/)).toBeInTheDocument()
     await expect(canvas.queryByRole('link', { name: 'a bad link' })).not.toBeInTheDocument()

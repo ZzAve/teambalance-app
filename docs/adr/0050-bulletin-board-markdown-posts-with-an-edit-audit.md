@@ -1,4 +1,4 @@
-# ADR-0048: Bulletin board: Markdown posts with an edit audit
+# ADR-0050: Bulletin board: Markdown posts with an edit audit
 
 - Status: Accepted
 - Date: 2026-11-14

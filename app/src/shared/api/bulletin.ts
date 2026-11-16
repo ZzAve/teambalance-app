@@ -10,7 +10,7 @@ export interface PostContent {
   showUntil: string | null
 }
 
-/** The Team's Bulletin Board, pinned Posts first, then newest first (ADR-0048). */
+/** The Team's Bulletin Board, pinned Posts first, then newest first (ADR-0050). */
 export function useBulletinPosts(options?: { enabled?: boolean }) {
   return useQuery({
     enabled: options?.enabled,

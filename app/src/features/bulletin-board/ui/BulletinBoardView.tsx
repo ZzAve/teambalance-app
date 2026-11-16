@@ -46,7 +46,7 @@ interface BulletinBoardViewProps {
 // The sheet's target: a new Post, or the one being edited.
 type Compose = { kind: 'new' } | { kind: 'edit'; post: BoardPost }
 
-/** The Team's Bulletin Board at the top of the Team page (ADR-0048). Prop-only. */
+/** The Team's Bulletin Board at the top of the Team page (ADR-0050). Prop-only. */
 export function BulletinBoardView({
   posts, isAdmin, isLoading, isError, onCreate, onUpdate, onDelete, onRestore, now,
 }: BulletinBoardViewProps) {

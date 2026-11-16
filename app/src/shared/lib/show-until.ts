@@ -1,5 +1,5 @@
 /**
- * A Post's show-until as the date field shows it and as the API stores it (ADR-0048): the admin picks
+ * A Post's show-until as the date field shows it and as the API stores it (ADR-0050): the admin picks
  * a day, and the Post is shown to the end of that day in the admin's own time zone.
  */
 export function showUntilFromDate(date: string): string | null {

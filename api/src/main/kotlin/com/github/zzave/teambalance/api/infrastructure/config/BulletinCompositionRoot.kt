@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Clock
 
-/** Composition root for the **bulletin board** area (ADR-0018, ADR-0048). */
+/** Composition root for the **bulletin board** area (ADR-0018, ADR-0050). */
 @Configuration
 class BulletinCompositionRoot {
 

@@ -1,7 +1,7 @@
 import Markdown_, { type Components } from 'react-markdown'
 import { cn } from '@shared/lib/utils'
 
-// ADR-0048: Markdown becomes React elements, never HTML (no rehype-raw), so raw HTML shows as text.
+// ADR-0050: Markdown becomes React elements, never HTML (no rehype-raw), so raw HTML shows as text.
 // Images are left out; any other element is replaced by its children.
 const ALLOWED_ELEMENTS = [
   'p', 'br', 'strong', 'em', 'del', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre', 'hr',
@@ -42,7 +42,7 @@ interface MarkdownProps {
   className?: string
 }
 
-/** Renders user-written Markdown safely (ADR-0048): a short list of elements, http(s) links only. */
+/** Renders user-written Markdown safely (ADR-0050): a short list of elements, http(s) links only. */
 export function Markdown({ source, className }: MarkdownProps) {
   return (
     <div className={cn('flex flex-col gap-2 break-words text-small text-foreground/90', className)}>

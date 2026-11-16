@@ -18,7 +18,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 
-/** Bulletin Board Posts and their edit audit, tenant-schema rows (ADR-0048). */
+/** Bulletin Board Posts and their edit audit, tenant-schema rows (ADR-0050). */
 @Repository
 class JooqBulletinPostRepositoryAdapter(
     private val dsl: DSLContext,

@@ -121,7 +121,7 @@ export const Data: Story = {
       return
     }
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
-    // The Bulletin Board comes first, above the roster (ADR-0048).
+    // The Bulletin Board comes first, above the roster (ADR-0050).
     const headings = canvas.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
     await expect(headings).toEqual(['Bulletin board', 'Members', 'Substitutes'])
     await expect(canvas.getByText('Ball bag rotation')).toBeInTheDocument()

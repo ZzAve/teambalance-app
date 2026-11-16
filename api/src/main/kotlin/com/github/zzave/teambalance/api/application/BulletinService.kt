@@ -11,7 +11,7 @@ import com.github.zzave.teambalance.api.domain.port.BulletinPostRepository
 import java.time.Clock
 import java.time.Instant
 
-/** The Team's Bulletin Board (ADR-0048): Admins post, edit, delete and restore; every Member reads. */
+/** The Team's Bulletin Board (ADR-0050): Admins post, edit, delete and restore; every Member reads. */
 class BulletinService(
     private val bulletinPostRepository: BulletinPostRepository,
     private val authorizationService: AuthorizationService,
@@ -35,7 +35,7 @@ class BulletinService(
         return bulletinPostRepository.create(content, callerId, clock.instant())
     }
 
-    /** Admin-only. Every save is recorded as an edit, with the caller and the time (ADR-0048). */
+    /** Admin-only. Every save is recorded as an edit, with the caller and the time (ADR-0050). */
     fun updatePost(
         callerId: UserId,
         teamId: TeamId,

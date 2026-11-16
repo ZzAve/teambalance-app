@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Removes for good, in every team, the Bulletin Board Posts deleted more than 14 days ago (ADR-0048).
+ * Removes for good, in every team, the Bulletin Board Posts deleted more than 14 days ago (ADR-0050).
  * It runs only while the backend runs; a backend scaled to zero removes them on its next run, so a
  * deleted Post can stay a little longer than 14 days, never shorter.
  */

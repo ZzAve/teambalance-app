@@ -6,7 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.NewPostContent
 import com.github.zzave.teambalance.api.domain.model.UserId
 import java.time.Instant
 
-/** The current tenant's Bulletin Board (ADR-0048). No method takes a team id: the routed schema is the team. */
+/** The current tenant's Bulletin Board (ADR-0050). No method takes a team id: the routed schema is the team. */
 interface BulletinPostRepository {
     /**
      * Pinned Posts first, then newest first, each with its edits. Without [includeHidden], only the

@@ -12,7 +12,7 @@ import { useNow } from '@shared/lib/use-now'
 import { BulletinBoardView } from './BulletinBoardView'
 
 /**
- * Container for the Bulletin Board (ADR-0048): wires the posts query, the create, edit, delete and
+ * Container for the Bulletin Board (ADR-0050): wires the posts query, the create, edit, delete and
  * restore mutations * and the Roster (for author and editor names) to BulletinBoardView. Pure wiring; the View's stories cover its states.
  * No e2e: an Admin write inside the tenant, like managing Positions, adds no seam the existing flows miss.
  */

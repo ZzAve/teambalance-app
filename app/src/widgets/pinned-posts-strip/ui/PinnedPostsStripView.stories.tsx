@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { PinnedPostsStripView, type StripPost } from './PinnedPostsStripView'
 
-// The pinned-posts strip under the app header (ADR-0048). One picture of the closed line; the
+// The pinned-posts strip under the app header (ADR-0050). One picture of the closed line; the
 // Interactions story opens it and proves the close wiring.
 const POSTS: StripPost[] = [
   {

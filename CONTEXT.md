@@ -175,7 +175,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   disappear when nothing is left to fill. Contrast with the per-event **Attendance Toggle**.
   _Avoid_: Accept All, Attend All (overclaims — it's all *shown, unanswered, future*), Bulk RSVP.
 
-### Bulletin board ([ADR-0048](docs/adr/0048-bulletin-board-markdown-posts-with-an-edit-audit.md))
+### Bulletin board ([ADR-0050](docs/adr/0050-bulletin-board-markdown-posts-with-an-edit-audit.md))
 
 - **Bulletin Board** — The Team's notices: messages an **Admin** posts for all **Members**, such as a
   rotation for taking the balls home or a clubhouse closing time. Shown at the top of the Team page.

@@ -21,7 +21,7 @@ interface PinnedPostsStripViewProps {
 }
 
 /**
- * The pinned Bulletin Board Posts under the header on every team page (ADR-0048): one line with the
+ * The pinned Bulletin Board Posts under the header on every team page (ADR-0050): one line with the
  * newest pin's title, opening to all of them. Prop-only; the container decides when it shows.
  */
 export function PinnedPostsStripView({ posts, onClose }: PinnedPostsStripViewProps) {

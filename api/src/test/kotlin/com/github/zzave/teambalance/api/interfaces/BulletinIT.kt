@@ -20,12 +20,12 @@ import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-// Namespaced after ADR-0048, for the reason RosterFillIT gives: every IT shares one `public` schema.
-private const val ADMIN_USER_ID = "00480000-0000-0000-0000-000000000001"
-private const val MEMBER_USER_ID = "00480000-0000-0000-0000-000000000002"
+// Namespaced after ADR-0050, for the reason RosterFillIT gives: every IT shares one `public` schema.
+private const val ADMIN_USER_ID = "00500000-0000-0000-0000-000000000001"
+private const val MEMBER_USER_ID = "00500000-0000-0000-0000-000000000002"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
-/** The Bulletin Board end to end (ADR-0048): real rows in the tenant, and who may write them. */
+/** The Bulletin Board end to end (ADR-0050): real rows in the tenant, and who may write them. */
 @AutoConfigureMockMvc
 class BulletinIT : TeamBalanceIT() {
 
@@ -87,7 +87,7 @@ class BulletinIT : TeamBalanceIT() {
             val id = createdId("Original")
 
             put(id, "Changed", MEMBER_USER_ID).andExpect(status().isForbidden)
-            put("00480000-0000-0000-0000-0000000000ff", "Changed", ADMIN_USER_ID).andExpect(status().isNotFound)
+            put("00500000-0000-0000-0000-0000000000ff", "Changed", ADMIN_USER_ID).andExpect(status().isNotFound)
             perform(MockMvcRequestBuilders.get("/api/bulletin-posts"), MEMBER_USER_ID)
                 .andExpect(jsonPath("$.posts[0].markdown").value("Original"))
                 .andExpect(jsonPath("$.posts[0].edits.length()").value(0))

@@ -17,7 +17,7 @@ interface TeamPageViewProps {
   roster: (headerActions?: ReactNode) => ReactNode
   /** The Team's Substitutes (ADR-0033), read-only, under the roster: they are not Members. */
   substitutes: ReactNode
-  /** The Bulletin Board (ADR-0048), above the roster. */
+  /** The Bulletin Board (ADR-0050), above the roster. */
   bulletin?: ReactNode
 }
 

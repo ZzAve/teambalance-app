@@ -27,7 +27,7 @@ interface BulletinPostViewProps {
   actions?: ReactNode
 }
 
-/** One Post on the Bulletin Board (ADR-0048): who posted it and when, then the Markdown. */
+/** One Post on the Bulletin Board (ADR-0050): who posted it and when, then the Markdown. */
 export function BulletinPostView({
   markdown, authorName, postedAt, pinned, showUntil, ended, edits = [], actions,
 }: BulletinPostViewProps) {

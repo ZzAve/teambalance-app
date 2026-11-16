@@ -1,10 +1,10 @@
-// One save of an existing Post: who and when, not the old text (ADR-0048).
+// One save of an existing Post: who and when, not the old text (ADR-0050).
 type BulletinPostEdit {
     editorId: String,
     editedAt: DateTimestampWithTimezone
 }
 
-// A Post on the Team's Bulletin Board (ADR-0048): Markdown written by an Admin, read by every Member. `authorId` and `editorId` are user ids; the client resolves the names from the Roster, as it does for an attendance's `changedBy`. `edits` is oldest first, empty for a Post never edited. `showUntil` is when Members stop seeing the Post; Admins still get it after that. `deletedAt` is set on a deleted Post, which only Admins see, until it is removed for good at `removedAt` (14 days later).
+// A Post on the Team's Bulletin Board (ADR-0050): Markdown written by an Admin, read by every Member. `authorId` and `editorId` are user ids; the client resolves the names from the Roster, as it does for an attendance's `changedBy`. `edits` is oldest first, empty for a Post never edited. `showUntil` is when Members stop seeing the Post; Admins still get it after that. `deletedAt` is set on a deleted Post, which only Admins see, until it is removed for good at `removedAt` (14 days later).
 type BulletinPost {
     id: String,
     markdown: String,

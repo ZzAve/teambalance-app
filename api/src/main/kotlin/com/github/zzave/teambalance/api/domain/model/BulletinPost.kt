@@ -10,7 +10,7 @@ value class BulletinPostId(val value: UUID) {
     override fun toString(): String = value.toString()
 }
 
-/** The Markdown of a [BulletinPost], trimmed, never blank, at most [MAX_LENGTH] characters (ADR-0048). */
+/** The Markdown of a [BulletinPost], trimmed, never blank, at most [MAX_LENGTH] characters (ADR-0050). */
 @JvmInline
 value class PostMarkdown private constructor(val value: String) {
     companion object {
@@ -35,13 +35,13 @@ data class NewPostContent(
     val showUntil: Instant? = null,
 )
 
-/** One save of an existing [BulletinPost]: who and when, not the old text (ADR-0048). */
+/** One save of an existing [BulletinPost]: who and when, not the old text (ADR-0050). */
 data class PostEdit(
     val editorId: UserId,
     val editedAt: Instant,
 )
 
-/** A message an Admin posts on the Team's Bulletin Board for every Member (ADR-0048). */
+/** A message an Admin posts on the Team's Bulletin Board for every Member (ADR-0050). */
 data class BulletinPost(
     val id: BulletinPostId,
     val markdown: PostMarkdown,
@@ -60,7 +60,7 @@ data class BulletinPost(
     val removedAt: Instant? get() = deletedAt?.plus(RETENTION)
 
     companion object {
-        /** How long a deleted Post can still be restored (ADR-0048). */
+        /** How long a deleted Post can still be restored (ADR-0050). */
         val RETENTION: Duration = Duration.ofDays(14)
     }
 }

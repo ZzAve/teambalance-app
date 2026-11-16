@@ -1,5 +1,6 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { ApiError } from './api-error'
 import type { Role } from './generated/model/Role'
 import { i18n } from '@shared/i18n/i18n'
 
@@ -10,12 +11,10 @@ export type { Role } from './generated/model/Role'
 // A member update can fail in ways the form needs to distinguish (a taken name is recoverable and
 // shown inline; a 403/404 is not). Carry the backend's discriminator code so the UI can branch.
 // LAST_ADMIN is a 409 too — refusing a demote/remove that would leave the team without an admin.
-export class MemberUpdateError extends Error {
-  constructor(
-    public readonly code: 'NAME_TAKEN' | 'NUMBER_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND' | 'LAST_ADMIN',
-    message: string,
-  ) {
-    super(message)
+export class MemberUpdateError extends ApiError {
+  declare readonly code: 'NAME_TAKEN' | 'NUMBER_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND' | 'LAST_ADMIN'
+  constructor(code: MemberUpdateError['code'], message: string, status: number) {
+    super(status, code, message)
     this.name = 'MemberUpdateError'
   }
 }
@@ -45,7 +44,7 @@ export function useMembers() {
     queryKey: ['members'],
     queryFn: async () => {
       const res = await api.listMembers()
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.')
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.', res.status)
       return res.body.members
     },
   })
@@ -75,12 +74,12 @@ export function useUpdateMember() {
       // read at runtime to tell them apart.
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', i18n.t('errors.member.lastAdmin'))
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('profileForm.numberTaken'))
-        throw new MemberUpdateError('NAME_TAKEN', i18n.t('profileForm.nameTaken'))
+        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', i18n.t('errors.member.lastAdmin'), res.status)
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('profileForm.numberTaken'), res.status)
+        throw new MemberUpdateError('NAME_TAKEN', i18n.t('profileForm.nameTaken'), res.status)
       }
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('errors.notAllowed'))
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('errors.member.notFound'))
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('errors.notAllowed'), res.status)
+      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('errors.member.notFound'), res.status)
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
@@ -111,8 +110,8 @@ export function useCompleteOnboarding() {
       })
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('profileForm.numberTaken'))
-        throw new MemberUpdateError('NAME_TAKEN', i18n.t('profileForm.nameTaken'))
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('profileForm.numberTaken'), res.status)
+        throw new MemberUpdateError('NAME_TAKEN', i18n.t('profileForm.nameTaken'), res.status)
       }
       return res.body ?? undefined
     },
@@ -132,9 +131,9 @@ export function useRemoveMember() {
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const res = await api.removeMember({ userId })
-      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', i18n.t('errors.member.lastAdmin'))
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('errors.member.removeNotAllowed'))
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('errors.member.notFound'))
+      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', i18n.t('errors.member.lastAdmin'), res.status)
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('errors.member.removeNotAllowed'), res.status)
+      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('errors.member.notFound'), res.status)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
   })

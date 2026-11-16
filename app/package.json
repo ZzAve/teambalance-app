@@ -15,7 +15,7 @@
     "typecheck": "tsc -b",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "chromatic": "chromatic --only-changed --externals \"design-tokens/*.css\" --externals app/package-lock.json --untraced \"app/src/shared/i18n/locales/**\" --exit-zero-on-changes",
+    "chromatic": "chromatic --only-changed --externals \"design-tokens/*.css\" --untraced \"app/src/shared/i18n/locales/**\" --exit-zero-on-changes",
     "generate-pwa-assets": "pwa-assets-generator",
     "generate-pwa-screenshots": "node scripts/capture-pwa-screenshots.mjs"
   },
@@ -31,6 +31,8 @@
     "@simplewebauthn/browser": "14.0.0",
     "@tanstack/react-query": "5.101.4",
     "@tanstack/react-router": "1.170.46",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/nld": "^1.0.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "i18next": "26.5.11",
@@ -42,6 +44,7 @@
     "react-markdown": "10.1.0",
     "sonner": "2.0.8",
     "tailwind-merge": "3.6.0",
+    "tesseract.js": "^7.0.0",
     "zustand": "5.0.14"
   },
   "overrides": {
@@ -78,6 +81,7 @@
     "typescript-eslint": "8.65.0",
     "vite": "8.2.4",
     "vite-plugin-pwa": "1.3.0",
+    "vite-plugin-static-copy": "^4.1.1",
     "vitest": "4.1.12"
   },
   "allowScripts": {

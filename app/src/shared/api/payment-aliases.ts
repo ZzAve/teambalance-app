@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { PaymentAlias } from './generated/model/PaymentAlias'
 import { nullsToUndefined } from './money-pool'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -20,23 +21,24 @@ export type PaymentAliasErrorCode =
   | 'NOT_CLAIMABLE'
   | 'POOL_UNAVAILABLE'
 
-export class PaymentAliasError extends Error {
-  constructor(public readonly code: PaymentAliasErrorCode, message: string) {
-    super(message)
+export class PaymentAliasError extends ApiError {
+  declare readonly code: PaymentAliasErrorCode
+  constructor(code: PaymentAliasErrorCode, message: string, status: number) {
+    super(status, code, message)
     this.name = 'PaymentAliasError'
   }
 }
 
 export function failure(res: { status: number; body?: unknown }): PaymentAliasError {
   const code = (res.body as { code?: string } | undefined)?.code
-  if (res.status === 409 && code === 'PAYMENT_NOT_CLAIMABLE') return new PaymentAliasError('NOT_CLAIMABLE', code)
-  if (res.status === 409 && code === 'MONEY_POOL_NOT_READABLE') return new PaymentAliasError('POOL_UNAVAILABLE', code)
-  if (res.status === 503) return new PaymentAliasError('POOL_UNAVAILABLE', 'POOL_UNAVAILABLE')
-  if (res.status === 409) return new PaymentAliasError('ALIAS_TAKEN', code ?? 'PAYMENT_ALIAS_TAKEN')
-  if (res.status === 400) return new PaymentAliasError(code === 'INVALID_IBAN' ? 'INVALID_IBAN' : 'INVALID', code ?? 'INVALID')
-  if (res.status === 403) return new PaymentAliasError('FORBIDDEN', 'FORBIDDEN')
-  if (res.status === 404) return new PaymentAliasError('NOT_FOUND', 'NOT_FOUND')
-  return new PaymentAliasError('FAILED', `Unexpected status ${res.status}`)
+  if (res.status === 409 && code === 'PAYMENT_NOT_CLAIMABLE') return new PaymentAliasError('NOT_CLAIMABLE', code, res.status)
+  if (res.status === 409 && code === 'MONEY_POOL_NOT_READABLE') return new PaymentAliasError('POOL_UNAVAILABLE', code, res.status)
+  if (res.status === 503) return new PaymentAliasError('POOL_UNAVAILABLE', 'POOL_UNAVAILABLE', res.status)
+  if (res.status === 409) return new PaymentAliasError('ALIAS_TAKEN', code ?? 'PAYMENT_ALIAS_TAKEN', res.status)
+  if (res.status === 400) return new PaymentAliasError(code === 'INVALID_IBAN' ? 'INVALID_IBAN' : 'INVALID', code ?? 'INVALID', res.status)
+  if (res.status === 403) return new PaymentAliasError('FORBIDDEN', 'FORBIDDEN', res.status)
+  if (res.status === 404) return new PaymentAliasError('NOT_FOUND', 'NOT_FOUND', res.status)
+  return new PaymentAliasError('FAILED', `Unexpected status ${res.status}`, res.status)
 }
 
 const aliasesKey = (userId: string) => ['payment-aliases', userId] as const

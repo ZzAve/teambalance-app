@@ -55,6 +55,7 @@ export function BottomNav() {
 
   return (
     <nav
+      data-app-chrome="nav"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/88 backdrop-blur-lg"
       // Fixed to the viewport bottom, so pad past the home-indicator inset (viewport-fit=cover) to
       // keep the tabs tappable above it. Zero on devices without an inset.

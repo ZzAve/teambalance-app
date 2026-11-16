@@ -9,6 +9,7 @@ const pay = (over: Partial<Payment>): Payment => ({
   amount: 10,
   direction: 'In',
   receiptVersion: undefined,
+  outOfPocket: false,
   memberId: undefined,
   counterpartyName: undefined,
   ...over,

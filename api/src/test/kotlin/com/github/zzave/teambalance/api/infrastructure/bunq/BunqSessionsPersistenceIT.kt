@@ -83,7 +83,14 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
         )
 
         fun sessions(fake: FakeBunqServer) =
-            BunqSessions(fake.server, "TeamBalance IT", contexts, cipher, currentTeam, BunqCalls(properties(), Clock.systemUTC()))
+            BunqSessions(
+                fake.server,
+                "TeamBalance IT",
+                contexts,
+                cipher,
+                currentTeam,
+                BunqCalls(properties(), Clock.systemUTC()),
+            )
 
         fun grantOf(team: TeamId, token: String = ACCESS_TOKEN) = cipher.encrypt(token, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
 

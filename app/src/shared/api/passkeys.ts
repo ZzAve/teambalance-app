@@ -5,6 +5,7 @@ import {
   startRegistration,
 } from '@simplewebauthn/browser'
 import { authMeQueryOptions } from './auth'
+import { apiErrorOf } from './api-error'
 import { csrfHeaders } from './csrf'
 import { api } from './wirespec-client'
 import { i18n } from '@shared/i18n/i18n'
@@ -37,7 +38,7 @@ async function postJson(path: string, body?: unknown): Promise<Response> {
     headers: { 'Content-Type': 'application/json', ...csrfHeaders('POST') },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!res.ok) throw Object.assign(new Error(`POST ${path} failed with status ${res.status}`), { response: res })
+  if (!res.ok) throw Object.assign(apiErrorOf(res, `POST ${path} failed with status ${res.status}`), { response: res })
   return res
 }
 
@@ -60,7 +61,7 @@ export function usePasskeys() {
     queryKey: PASSKEYS_KEY,
     queryFn: async () => {
       const res = await api.listPasskeys()
-      if (res.status !== 200) throw new Error(`Listing passkeys failed with status ${res.status}`)
+      if (res.status !== 200) throw apiErrorOf(res, `Listing passkeys failed with status ${res.status}`)
       return res.body
     },
   })
@@ -94,7 +95,7 @@ export function useDeletePasskey() {
         credentials: 'include',
         headers: csrfHeaders('DELETE'),
       })
-      if (!res.ok) throw new Error(`Removing the passkey failed with status ${res.status}`)
+      if (!res.ok) throw apiErrorOf(res, `Removing the passkey failed with status ${res.status}`)
     },
     onSuccess: () =>
       Promise.all([

@@ -2,7 +2,6 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.ExpenseNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.ReceiptNotFoundException
-import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.Receipt
@@ -28,8 +27,8 @@ class ReceiptService(
     fun uploadReceipt(callerId: UserId, teamId: TeamId, paymentId: PaymentId, bytes: ByteArray) {
         authorizationService.requireMember(callerId, teamId)
         val receipt = Receipt(bytes)
-        val pool = moneyPoolService.getMoneyPool(teamId, callerId).pool
-        val isExpense = pool is MoneyPool.Connected && pool.payments.any { it.id == paymentId && it.direction == PaymentDirection.OUT }
+        val isExpense = moneyPoolService.getMoneyPool(teamId, callerId).payments
+            .any { it.id == paymentId && it.direction == PaymentDirection.OUT }
         if (!isExpense) throw ExpenseNotFoundException(paymentId)
         receiptRepository.save(paymentId, receipt)
     }

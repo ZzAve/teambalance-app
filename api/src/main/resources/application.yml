@@ -213,13 +213,14 @@ teambalance:
     rate-limit-pause-min: 1s
     rate-limit-pause-max: 60s
     # The money pool is kept in memory per team and instance, so another instance keeps its own copy.
-    # A read within `refresh` of the last successful one makes no Bunq call; a later read asks Bunq
-    # again. If Bunq does not answer, the last known balance is shown until it is `expire` old, and
-    # Bunq is asked again at most once per `retry-after`. A rejected connection stays rejected on an
+    # A read within `refresh` of the last successful one makes no Bunq call. A later read gets the
+    # same value at once and Bunq is asked again in the background; only a read with nothing kept
+    # waits for Bunq. If Bunq does not answer, the last known balance is shown until it is `expire` old,
+    # and Bunq is asked again at most once per `retry-after`. A rejected connection stays rejected on an
     # instance until a connect, pick, disconnect or rejected list or pick evicts it there, or it restarts.
     read-cache:
-      refresh: 30s
-      expire: 5m
+      refresh: 120s
+      expire: 10m
       retry-after: 10s
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it

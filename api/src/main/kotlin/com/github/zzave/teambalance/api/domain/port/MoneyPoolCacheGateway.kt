@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
-import com.github.zzave.teambalance.api.domain.model.MoneyPool
+import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.TeamId
 
 /**
@@ -13,11 +13,12 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
  */
 interface MoneyPoolCacheGateway {
     /**
-     * The pool for [teamId] and [account], from [load] when nothing usable is remembered. [load] answers
-     * [MoneyPool.Connected] (a fresh value), [MoneyPool.Rejected] (remembered until [evict]) or
-     * [MoneyPool.Unavailable] (Bunq did not answer: the last known value is served while there is one).
+     * The pool for [teamId] and [account]. Only a read with nothing remembered waits for Bunq. A read of a
+     * value older than the refresh interval gets that value and has Bunq asked again in the background.
+     * [com.github.zzave.teambalance.api.domain.model.MoneyPool.Rejected] is remembered until [evict];
+     * when Bunq does not answer, the last known value is served while there is one.
      */
-    fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool
+    fun read(teamId: TeamId, account: BunqAccountId): CachedMoneyPool
 
     /** Forgets everything remembered for [teamId], for every account. */
     fun evict(teamId: TeamId)

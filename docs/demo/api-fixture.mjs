@@ -261,8 +261,9 @@ const ME = ROSTER[0]
 // lands the top-up the take started, so the pool shows it after the return from bunq.me.
 const day = (daysAgo) => iso(-daysAgo, 12).slice(0, 10)
 const paid = (id, daysAgo, name, euros, direction, memberId, receiptVersion) =>
-  ({ id, date: day(daysAgo), name, amount: Math.round(euros * 100), direction, memberId, counterpartyName: undefined, receiptVersion })
+  ({ id, date: day(daysAgo), name, amount: Math.round(euros * 100), direction, memberId, counterpartyName: undefined, receiptVersion, outOfPocket: false })
 const POOL = {
+  state: 'Connected',
   balance: 24310,
   beerPrice: 250,
   pendingTopUp: undefined,
@@ -285,14 +286,24 @@ const POOL = {
   ],
 }
 const RECEIPTS = {}
-const moneyPool = () => ({
-  state: 'Connected',
-  balance: POOL.balance,
-  payments: POOL.payments,
-  beerPrice: POOL.beerPrice,
-  beerCount: Math.floor(POOL.balance / POOL.beerPrice),
-  canTopUp: true,
-})
+// Without a Bunq connection the server lists the out-of-pocket expenses alone, and no figures (ADR-0048).
+const moneyPool = () =>
+  POOL.state === 'Connected'
+    ? {
+        state: 'Connected',
+        balance: POOL.balance,
+        payments: POOL.payments,
+        beerPrice: POOL.beerPrice,
+        beerCount: Math.floor(POOL.balance / POOL.beerPrice),
+        canTopUp: true,
+      }
+    : { state: POOL.state, payments: POOL.payments.filter((p) => p.outOfPocket), canTopUp: true }
+/** The team has no Bunq connection from here on. */
+export const disconnectBunq = () => { POOL.state = 'NotConnected' }
+// An out-of-pocket expense is one payment: an expense that counts for the member who paid (ADR-0048).
+const outOfPocket = (id, { userId, amount, date, description }) =>
+  ({ id, date, name: description, amount, direction: 'Out', memberId: userId, counterpartyName: undefined, receiptVersion: RECEIPTS[id]?.version, outOfPocket: true })
+const newestFirst = () => POOL.payments.sort((a, b) => b.date.localeCompare(a.date))
 export const paidTopUp = () => {
   if (!POOL.pendingTopUp) return
   POOL.payments.unshift(paid(`pay-top-${POOL.payments.length}`, 0, ME.displayName, POOL.pendingTopUp, 'In', ME.userId))
@@ -486,6 +497,25 @@ export async function installFixtureApi(page, { passkeyPrompt = false, role = 'A
         POOL.pendingTopUp = Number(url.searchParams.get('amount'))
         const description = encodeURIComponent(`TeamBalance · ${TEAM.name} · ${ME.displayName} · ${ME.userId}`)
         return json({ url: `https://bunq.me/heren3/${POOL.pendingTopUp}/${description}` })
+      }
+      if (path === '/api/team/money-pool/out-of-pocket-expenses' && method === 'POST') {
+        const expense = outOfPocket(`oop-${POOL.payments.length}`, route.request().postDataJSON())
+        POOL.payments.unshift(expense)
+        newestFirst()
+        return json(expense, 201)
+      }
+      const expense = path.match(/^\/api\/team\/money-pool\/out-of-pocket-expenses\/([^/]+)$/)
+      if (expense) {
+        const at = POOL.payments.findIndex((p) => p.id === expense[1] && p.outOfPocket)
+        if (at < 0) return json({}, 404)
+        if (method === 'DELETE') {
+          POOL.payments.splice(at, 1)
+          delete RECEIPTS[expense[1]]
+          return route.fulfill({ status: 204 })
+        }
+        POOL.payments[at] = outOfPocket(expense[1], route.request().postDataJSON())
+        newestFirst()
+        return json(POOL.payments[at])
       }
       const receipt = path.match(/^\/api\/team\/money-pool\/payments\/([^/]+)\/receipt$/)
       if (receipt) {

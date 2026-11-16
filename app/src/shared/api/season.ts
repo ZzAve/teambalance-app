@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract type so the app has a single source of truth.
@@ -27,7 +28,7 @@ export function useSetSeason() {
   return useMutation({
     mutationFn: async ({ start, end }: SeasonInput) => {
       const res = await api.setSeason({ body: { start: start || undefined, end: end || undefined } })
-      if (res.status === 403) throw new Error('You are not allowed to change the season.')
+      if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to change the season.')
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['season'] }),

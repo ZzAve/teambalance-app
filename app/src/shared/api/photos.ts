@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
+import { ApiError } from './api-error'
 import { csrfHeaders } from './csrf'
 import { i18n } from '@shared/i18n/i18n'
 
@@ -13,12 +14,10 @@ export const teamPhotoUrl = (userId: string, version: string) =>
 
 export const personalPhotoUrl = (version: string) => `${baseUrl()}/api/account/photo?v=${encodeURIComponent(version)}`
 
-export class PhotoError extends Error {
-  constructor(
-    public readonly code: 'PHOTO_TOO_LARGE' | 'INVALID_PHOTO' | 'NO_PERSONAL_PHOTO' | 'FORBIDDEN' | 'FAILED',
-    message: string,
-  ) {
-    super(message)
+export class PhotoError extends ApiError {
+  declare readonly code: 'PHOTO_TOO_LARGE' | 'INVALID_PHOTO' | 'NO_PERSONAL_PHOTO' | 'FORBIDDEN' | 'FAILED'
+  constructor(code: PhotoError['code'], message: string, status: number) {
+    super(status, code, message)
     this.name = 'PhotoError'
   }
 }
@@ -35,13 +34,13 @@ export async function sendPhoto(method: 'PUT' | 'POST' | 'DELETE', path: string,
     .json()
     .then((json: { code?: string }) => json.code)
     .catch(() => undefined)
-  if (code === 'PHOTO_TOO_LARGE') throw new PhotoError(code, i18n.t('photo.error.PHOTO_TOO_LARGE'))
-  if (code === 'INVALID_PHOTO') throw new PhotoError(code, i18n.t('photo.error.INVALID_PHOTO'))
+  if (code === 'PHOTO_TOO_LARGE') throw new PhotoError(code, i18n.t('photo.error.PHOTO_TOO_LARGE'), res.status)
+  if (code === 'INVALID_PHOTO') throw new PhotoError(code, i18n.t('photo.error.INVALID_PHOTO'), res.status)
   if (res.status === 404 && path.endsWith('/from-personal')) {
-    throw new PhotoError('NO_PERSONAL_PHOTO', i18n.t('photo.error.NO_PERSONAL_PHOTO'))
+    throw new PhotoError('NO_PERSONAL_PHOTO', i18n.t('photo.error.NO_PERSONAL_PHOTO'), res.status)
   }
-  if (res.status === 403) throw new PhotoError('FORBIDDEN', i18n.t('photo.error.FORBIDDEN'))
-  throw new PhotoError('FAILED', i18n.t('photo.error.FAILED'))
+  if (res.status === 403) throw new PhotoError('FORBIDDEN', i18n.t('photo.error.FORBIDDEN'), res.status)
+  throw new PhotoError('FAILED', i18n.t('photo.error.FAILED'), res.status)
 }
 
 // Team Photo changes show up through the member list's `photoVersion`.

@@ -1,4 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
+import { isTopUpBy, isUnattributedIncoming } from '@entities/payment/lib/payment-attribution'
 import { normaliseName } from './normalise-name'
 
 /**
@@ -10,7 +11,7 @@ export function attributedMatchCount(name: string, userId: string, payments: Pay
   const wanted = normaliseName(name)
   if (wanted === '') return 0
   return payments.filter(
-    (p) => p.direction === 'In' && p.memberId === userId && typeof p.counterpartyName === 'string' && normaliseName(p.counterpartyName) === wanted,
+    (p) => isTopUpBy(p, userId) && typeof p.counterpartyName === 'string' && normaliseName(p.counterpartyName) === wanted,
   ).length
 }
 
@@ -23,6 +24,6 @@ export function matchingPayments(name: string, payments: Payment[]): number {
   const wanted = normaliseName(name)
   if (wanted === '') return 0
   return payments.filter(
-    (p) => p.direction === 'In' && !p.memberId && normaliseName(p.counterpartyName ?? p.name) === wanted,
+    (p) => isUnattributedIncoming(p) && normaliseName(p.counterpartyName ?? p.name) === wanted,
   ).length
 }

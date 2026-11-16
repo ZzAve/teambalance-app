@@ -67,6 +67,28 @@ jobs:
 
       - uses: ./.github/actions/setup-toolchain
 
+      # TurboSnap traces a lockfile change to the stories that import the changed packages, but
+      # Tailwind, lightningcss and the @fontsource fonts load through CSS @import, so their bumps map
+      # to no story. Only when one of those versions changed is the lockfile passed as an external,
+      # which forces a full build. Any other lockfile change costs only the stories it reaches.
+      - name: Detect CSS-imported dependency changes
+        id: css-deps
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          versions() {
+            git show "$1:app/package-lock.json" | jq -cS '.packages
+              | with_entries(select(.key | test("^node_modules/(tailwindcss|@tailwindcss/[^/]+|@fontsource(-variable)?/[^/]+|lightningcss[^/]*)$")))
+              | map_values(.version)'
+          }
+          # An unreadable base (e.g. a force-push dropped it) counts as changed: a full build, never a missed one.
+          if base="$(git merge-base "$BASE" HEAD)" && [ "$(versions "$base")" = "$(versions HEAD)" ]; then
+            echo "externals=" >> "$GITHUB_OUTPUT"
+          else
+            echo "CSS-imported dependency versions changed; forcing a full Chromatic build."
+            echo "externals=app/package-lock.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run Chromatic
         uses: chromaui/action@14cfaef73576e69f95f47f60058063f46ca38719 # v18.1.0
         with:
@@ -76,13 +98,12 @@ jobs:
           # forces a full build. Paths are relative to the repo root, not to workingDir.
           #   - tokens.css reaches the bundle through a CSS @import in global.css, so it is not in the
           #     graph and a tokens-only change would snapshot nothing.
-          #   - Tailwind and the @fontsource fonts are also loaded through CSS @import, so a lockfile
-          #     bump to them maps to no stories. Every lockfile change becomes a full build instead
-          #     (~115 snapshots at the time of writing), the price of catching a visual regression
-          #     in a dependency bump (ADR-0017).
+          #   - app/package-lock.json is added only when a CSS-imported dependency changed (see the
+          #     step above). Making every lockfile change a full build (~140 snapshots) spent most of
+          #     the monthly budget on Renovate bumps and their main merges.
           externals: |
             design-tokens/*.css
-            app/package-lock.json
+            ${{ steps.css-deps.outputs.externals }}
           # preview.ts imports i18n.ts, which imports the locale JSON files. Chromatic cannot link a
           # file in preview.ts's import tree to stories, so every translation change was a full build.
           # Untraced, a copy-only change snapshots nothing; a copy change that ships with a component

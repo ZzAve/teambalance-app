@@ -1,26 +1,24 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, waitFor, within } from 'storybook/test'
 import type { Event } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
 import { makeAttendee, makeEvent, makeEventType, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
-import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '@features/filter-event-types/model/turnout'
-import { filterEvents } from '@features/filter-event-types/model/filter-events'
-import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
+import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
 import { BulkAttendBarView } from '@features/bulk-attend/ui/BulkAttendBarView'
 import { groupByType } from '@features/bulk-attend/lib/group-by-type'
-import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 import { NextEventHeroView } from '@widgets/next-event-hero/ui/NextEventHeroView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { dutchMode, pageModes } from '../../../../.storybook/modes'
+import { eventsPageContent } from '../lib/events-page-content'
 import { EventsPageView } from './EventsPageView'
 
 // The events page as a phone shows it (ADR-0032 §3): header, filter trigger, the Next Up hero, the
@@ -140,14 +138,7 @@ interface HarnessArgs {
   onAttend: (typeId: string) => void
 }
 
-function toggled<T>(set: Set<T>, value: T): Set<T> {
-  const next = new Set(set)
-  if (next.has(value)) next.delete(value)
-  else next.add(value)
-  return next
-}
-
-/** The route's deciding, in miniature: filters, hero pick, bulk eligibility and an optimistic RSVP. */
+/** The route in miniature: the filter state and a local RSVP, around the same `eventsPageContent` the route calls. */
 function EventsPageHarness(args: HarnessArgs) {
   const [activeTypeIds, setActiveTypeIds] = useState(new Set(ALL_TYPE_IDS))
   const [activeStates, setActiveStates] = useState(new Set(ALL_ATTENDANCE_STATES))
@@ -155,7 +146,7 @@ function EventsPageHarness(args: HarnessArgs) {
   const [showPast, setShowPast] = useState(false)
   const [defaultExpanded, setDefaultExpanded] = useState(false)
   // eventId → userId → the answer picked in this session, applied to the member's row and, for the
-  // viewer, to the card's own pill — the optimistic hold the route keeps, in miniature.
+  // viewer, to the card's own pill, standing in for the cache patch the route's write makes.
   const [answers, setAnswers] = useState<Record<string, Record<string, AttendanceState>>>({})
   const answer = (eventId: string, userId: string, state: AttendanceState) =>
     setAnswers((a) => ({ ...a, [eventId]: { ...a[eventId], [userId]: state } }))
@@ -169,12 +160,18 @@ function EventsPageHarness(args: HarnessArgs) {
       attendances: e.attendances.map((m) => (picked[m.userId] ? { ...m, state: picked[m.userId] } : m)),
     }
   })
-  const sorted = [...filterEvents(events, activeTypeIds, activeStates, activeTurnouts)].sort((a, b) =>
-    a.startTime.localeCompare(b.startTime),
-  )
-  const hero = selectHeroEvent(sorted, NOW)
-  const listEvents = hero ? sorted.filter((e) => e.id !== hero.id) : sorted
-  const groups = groupByType(eligibleEvents(listEvents, activeTypeIds, NOW))
+  const { heroEvent: hero, listEvents, bulkAttendEvents, resultCount, emptyMessage } = eventsPageContent({
+    events,
+    allTypeIds: ALL_TYPE_IDS,
+    activeTypeIds,
+    activeStates,
+    activeTurnouts,
+    showPast,
+    now: NOW,
+    isLoading: false,
+    error: undefined,
+  })
+  const groups = groupByType(bulkAttendEvents)
 
   return (
     <EventsPageView
@@ -194,16 +191,16 @@ function EventsPageHarness(args: HarnessArgs) {
         activeTurnouts,
         showTurnout: true,
         showPast,
-        resultCount: sorted.length,
+        resultCount,
         onToggleType: (id) => {
           args.onToggleType(id)
-          setActiveTypeIds((s) => toggled(s, id))
+          setActiveTypeIds((s) => toggleTypeSelection(s, ALL_TYPE_IDS, id))
         },
         onToggleState: (state) => {
           args.onToggleState(state)
-          setActiveStates((s) => toggled(s, state))
+          setActiveStates((s) => toggleTypeSelection(s, ALL_ATTENDANCE_STATES, state))
         },
-        onToggleTurnout: (bucket) => setActiveTurnouts((s) => toggled(s, bucket)),
+        onToggleTurnout: (bucket) => setActiveTurnouts((s) => toggleTypeSelection(s, ALL_TURNOUT_BUCKETS, bucket)),
         onToggleShowPast: (next) => {
           args.onToggleShowPast(next)
           setShowPast(next)
@@ -216,6 +213,7 @@ function EventsPageHarness(args: HarnessArgs) {
         },
       }}
       panelMenu={{ defaultExpanded, onDefaultExpandedChange: setDefaultExpanded }}
+      heroEventId={hero?.id}
       hero={
         hero && (
           <NextEventHeroView
@@ -271,14 +269,7 @@ function EventsPageHarness(args: HarnessArgs) {
             }}
           />
         ),
-        emptyMessage: emptyEventsMessage({
-          hasHero: hero !== null,
-          showPast,
-          activeTypeIds,
-          allTypeIds: ALL_TYPE_IDS,
-          activeStates,
-          activeTurnouts,
-        }),
+        emptyMessage,
       }}
     />
   )
@@ -431,10 +422,54 @@ export const Shells: Story = {
 }
 
 // Picture owned by Data — behavioural only (ADR-0032 §1). Every slot's wiring, in one walk.
+//
+// The cards and the hero change inside a view transition (useViewTransitionValue), so what a filter
+// leaves on the page shows after a frame or two: those assertions wait. The play counts the page's
+// transitions to prove one runs when the set of events changes, none when only an answer does, and
+// none under reduced motion.
+const countViewTransitions = () => {
+  const started = fn()
+  const original = document.startViewTransition.bind(document)
+  document.startViewTransition = ((update?: ViewTransitionUpdateCallback) => {
+    // The page as it stands when the browser takes the old snapshot.
+    started(document.body.innerText)
+    return original(update)
+  }) as typeof document.startViewTransition
+  return { started, stop: () => void delete (document as { startViewTransition?: unknown }).startViewTransition }
+}
+
+const forceReducedMotion = () => {
+  const original = window.matchMedia
+  window.matchMedia = ((query: string) => ({
+    matches: query.includes('prefers-reduced-motion: reduce'),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia
+  return () => void (window.matchMedia = original)
+}
+
 export const Interactions: Story = {
   decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
+    const transitions = countViewTransitions()
+    try {
+      await interactions({ canvas, userEvent, args }, transitions.started)
+    } finally {
+      transitions.stop()
+    }
+  },
+}
+
+async function interactions(
+  { canvas, userEvent, args }: Pick<Parameters<NonNullable<Story['play']>>[0], 'canvas' | 'userEvent' | 'args'>,
+  transitions: ReturnType<typeof fn>,
+) {
     // RSVP from the hero: the callback fires and the harness flips the hero's own state. Bulk
     // Attend never counted the hero's training (#386), so the bar reads the same before and after.
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
@@ -442,18 +477,24 @@ export const Interactions: Story = {
     await expect(args.onHeroRespond).toHaveBeenCalledWith('ATTENDING')
     await expect(hero(canvas).getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
+    // An answer changes no card's place, so it commits at once, with no transition.
+    await expect(transitions).not.toHaveBeenCalled()
 
-    // Hide trainings: the callback fires, the hero re-picks the next event in the window.
+    // Isolate matches (the first tap from all-on isolates, ADR-0029 §3): the callback fires, the
+    // trainings leave the page and the hero re-picks the next event in the window.
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Training' }))
-    await expect(args.onToggleType).toHaveBeenCalledWith(TRAINING.id)
+    await userEvent.click(canvas.getByRole('button', { name: 'Match' }))
+    await expect(args.onToggleType).toHaveBeenCalledWith(MATCH.id)
     await userEvent.keyboard('{Escape}')
-    await expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument()
+    // The set of events changed: the page commits it inside one view transition.
+    await waitFor(() => expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(1)
     await expect(canvas.getAllByText('League Match vs Smash United')).toHaveLength(1)
     await expect(hero(canvas).getByRole('button', { name: "Can't" })).toBeInTheDocument()
     // Undo it so the list below is whole again.
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
-    await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
+    await expect(await canvas.findByText('Training — Court 1')).toBeInTheDocument()
+    await expect(transitions).toHaveBeenCalledTimes(2)
 
     // Filters hold the one view preference as their last row: every panel starts open — the hero's
     // included (#386), which is why nothing below needs a tap to reach a chip.
@@ -487,11 +528,55 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Attend 1 social' }))
     await expect(args.onAttend).toHaveBeenCalledWith(SOCIAL.id)
 
-    // Showing past events adds them to the same list, so its heading stops saying "Upcoming".
+    // Showing past events adds them to the same list, so its heading stops saying "Upcoming", and
+    // the hero goes: the first event of a list with history in it is not the next one.
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
     await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
     await expect(canvas.getByRole('heading', { level: 2, name: 'All events' })).toBeInTheDocument()
     await expect(canvas.queryByRole('heading', { name: 'Upcoming' })).not.toBeInTheDocument()
-  },
+    await waitFor(() => expect(canvas.queryByRole('region', { name: 'Next up' })).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(3)
+
+    // Under reduced motion no transition starts: the change is instant.
+    const restoreMotion = forceReducedMotion()
+    try {
+      await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
+      await expect(canvas.getByRole('region', { name: 'Next up' })).toBeInTheDocument()
+      await expect(transitions).toHaveBeenCalledTimes(3)
+    } finally {
+      restoreMotion()
+    }
+
+    // The product case: with the "Not responded" filter on, answering a list card takes it off the
+    // page, inside one transition. (The filter panel is still open from the steps above.)
+    const card = (title: string) => within(canvas.getByText(title).closest<HTMLElement>('[data-event-card]')!)
+    const answerGoing = async (title: string) => {
+      await userEvent.click(card(title).getByRole('button', { name: /Change your answer/ }))
+      const controls = card(title).getByRole('button', { name: /^Respond/ }).getAttribute('aria-controls')!
+      await userEvent.click(within(document.getElementById(controls)!).getByRole('button', { name: 'Going' }))
+    }
+    const filters = () => within(canvas.getByRole('region', { name: 'Filters' }))
+    const transitionsBefore = transitions.mock.calls.length
+    await userEvent.click(filters().getByRole('button', { name: 'Not responded' }))
+    await waitFor(() => expect(canvas.queryByText('Beach tournament Scheveningen')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(transitionsBefore + 1)
+    await answerGoing('Training — Court 1')
+    await expect(args.onRespond).toHaveBeenCalledWith('evt-training-2', 'ATTENDING')
+    await waitFor(() => expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(transitionsBefore + 2)
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
+    await expect(await canvas.findByText('Beach tournament Scheveningen')).toBeInTheDocument()
+
+    // An answer on a card that stays is not held back by a transition that starts right after it:
+    // the old snapshot is taken with the card reading Going, and it still does once the transition is over.
+    await answerGoing('Season kick-off drinks')
+    await expect(card('Season kick-off drinks').getByText("You're in")).toBeInTheDocument()
+    const beforeToggle = transitions.mock.calls.length
+    await userEvent.click(filters().getByRole('button', { name: 'Social' }))
+    await expect(card('Season kick-off drinks').getByText("You're in")).toBeInTheDocument()
+    await waitFor(() => expect(canvas.queryByText('Beach tournament Scheveningen')).not.toBeInTheDocument())
+    await expect(transitions).toHaveBeenCalledTimes(beforeToggle + 1)
+    await expect(transitions.mock.lastCall![0]).toMatch(/Season kick-off drinks[\s\S]{0,300}You're in/)
+    await expect(card('Season kick-off drinks').getByText("You're in")).toBeInTheDocument()
 }

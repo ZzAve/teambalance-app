@@ -14,7 +14,8 @@
  *   PROBE=1 $SK/scripts/record.sh docs/demo/out-of-pocket.steps.mjs $OUT $PORT
  *   $SK/scripts/record.sh docs/demo/out-of-pocket.steps.mjs $OUT $PORT
  *   uv run $SK/scripts/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards out-of-pocket-promo-ios.mp4 \
- *     --song $SK/music/teambalance-theme.json --phone ios        # --phone android; add --cut once the user picked one
+ *     --song $SK/music/teambalance-theme.json --cut 18.02 --phone ios        # --phone android
+ * The user picked the music cut at 18.02 s (2026-11-16).
  */
 import { fileURLToPath } from 'node:url'
 import { disconnectBunq, installFixtureApi } from './api-fixture.mjs'

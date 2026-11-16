@@ -28,20 +28,23 @@ export function PinnedPostsStrip() {
   const { data: posts } = useBulletinPosts({ enabled: onTeamPage })
   const now = useNow()
   const key = slug ? teamPreferenceKey(slug, 'pinnedStripClosed') : null
-  const [closed, setClosed] = useState(() => (key ? readPreference(browserPreferenceStorage(), key, asString) : null))
+  // Read on every render, not once: the strip stays mounted across a team switch, so a value read at
+  // mount would belong to the team the member started in.
+  const stored = key ? readPreference(browserPreferenceStorage(), key, asString) : null
+  const [closedNow, setClosedNow] = useState<string | null>(null)
 
   if (!onTeamPage || !posts || !key) return null
   // Admins also get ended and deleted Posts; the strip shows what Members see.
   const pins = posts.filter((post) => post.pinned && !post.deletedAt && !hasEnded(post.showUntil, now))
   const signature = stripSignature(pins)
-  if (pins.length === 0 || closed === signature) return null
+  if (pins.length === 0 || stored === signature || closedNow === signature) return null
 
   return (
     <PinnedPostsStripView
       posts={pins.map((post) => ({ id: post.id, title: postTitle(post.markdown), markdown: post.markdown }))}
       onClose={() => {
         writePreference(browserPreferenceStorage(), key, signature)
-        setClosed(signature)
+        setClosedNow(signature)
       }}
     />
   )

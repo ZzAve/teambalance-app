@@ -29,7 +29,7 @@ export const Data: Story = {
     const line = canvas.getByRole('button', { name: 'Show pinned posts' })
     await expect(line).toHaveTextContent('Clubhouse closes at 22:30+1 more')
     await expect(line).toHaveAttribute('aria-expanded', 'false')
-    await expect(canvas.queryByText('Week 46 — Lisa')).not.toBeVisible()
+    await expect(canvas.queryByText('Week 46 — Lisa')).not.toBeInTheDocument()
   },
 }
 
@@ -37,7 +37,8 @@ export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ args, canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Show pinned posts' }))
-    await expect(canvas.getByText('Week 46 — Lisa')).toBeVisible()
+    // The Markdown renderer loads when the strip opens.
+    await expect(await canvas.findByText('Week 46 — Lisa')).toBeVisible()
     await expect(canvas.getByText('Last drinks at 22:15')).toBeVisible()
 
     await userEvent.click(canvas.getByRole('button', { name: 'Close pinned posts' }))

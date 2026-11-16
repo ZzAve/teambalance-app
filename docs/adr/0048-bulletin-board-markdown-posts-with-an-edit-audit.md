@@ -47,7 +47,9 @@ page.** Members cannot reply or react.
 ## Consequences
 
 - One more admin-only tenant write path, with the same authorisation as Positions.
-- The SPA gets `react-markdown` (about 40 KB gzipped), loaded only with the Team page code.
+- The SPA gets `react-markdown` (about 36 KB gzipped), loaded only with the Team page code and when a
+  Member opens the pinned strip. The strip is in the app shell, so it loads the renderer lazily; a static
+  import would put the parser in the entry bundle of every page.
 - The strip is a new element in the app shell; the PWA screenshots change only when the seed data has a
   pinned Post.
 - An admin can see who changed a Post but not what changed. If teams need the old text, that is a new

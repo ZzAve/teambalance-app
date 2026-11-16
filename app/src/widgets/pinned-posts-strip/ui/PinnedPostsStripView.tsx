@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronUp, Pin, X } from 'lucide-react'
 import { APP_COLUMN } from '@shared/ui/AppShellFrame'
-import { Markdown } from '@shared/ui/Markdown'
-import { cn } from '@shared/lib/utils'
+
+// The strip is in the app shell, so a static import would put the Markdown parser in the entry bundle
+// of every page. The closed strip shows only a title; the parser loads when a member opens it.
+const Markdown = lazy(() => import('@shared/ui/Markdown').then((module) => ({ default: module.Markdown })))
 
 export interface StripPost {
   id: string
@@ -56,13 +58,17 @@ export function PinnedPostsStripView({ posts, onClose }: PinnedPostsStripViewPro
             <X size={16} />
           </button>
         </div>
-        <div className={cn('flex flex-col gap-3 pb-4', !expanded && 'hidden')}>
-          {posts.map((post) => (
-            <div key={post.id} className="rounded-md bg-card p-3">
-              <Markdown source={post.markdown} />
-            </div>
-          ))}
-        </div>
+        {expanded && (
+          <div className="flex flex-col gap-3 pb-4">
+            <Suspense>
+              {posts.map((post) => (
+                <div key={post.id} className="rounded-md bg-card p-3">
+                  <Markdown source={post.markdown} />
+                </div>
+              ))}
+            </Suspense>
+          </div>
+        )}
       </div>
     </section>
   )

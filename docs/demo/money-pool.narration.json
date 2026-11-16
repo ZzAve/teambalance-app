@@ -6,7 +6,7 @@
     "pill": "Money pool is live"
   },
   "__outroCard": {
-    "steps": [{ "label": "Money", "icon": "piggy-bank" }, "Top up", { "label": "That's mine", "icon": "link" }],
+    "steps": [{ "label": "Money", "icon": "piggy-bank" }, "Top up", { "label": "Add an expense", "icon": "plus" }],
     "sub": "Admins connect the team's Bunq account under Team settings."
   },
   "__intro": "Who paid for the beers? Ask the team pot.",
@@ -18,10 +18,14 @@
   "Back in the app, your twenty is in.": "Back in the app, | your twenty euros are in.",
   "Spent from the pot? Add the receipt.": "Spent money from the pot? Add the receipt.",
   "Now the whole team sees what it was for.": "Now the whole team can see what it was for.",
+  "Paid with your own money? Add it.": "Paid for the team with your own money? Add it to the pot.",
+  "Snap the receipt; the app reads the total.": "Snap the receipt, | and the app reads the total for you.",
+  "Save it, and it counts as your contribution.": "Say what it was for, and save. | It counts as your contribution.",
   "Paid by bank transfer? Say it's yours.": "Paid by bank transfer? Tell the pot it's yours.",
   "Link the name and IBAN, so the next one links itself.": "Link the name and the I-ban, | so the next transfer links itself.",
   "So who keeps the pot full?": "So, | who keeps the pot full?",
   "Press play and watch the ranking grow.": "Press play, and watch the ranking grow.",
   "Two linked transfers later, you're on top.": "Two linked transfers later, | you're on top!",
+  "No Bunq account for the team? It still works.": "And if your team has no Bunq account, | it still works: everyone sees who paid what.",
   "__outro": "Try it today! Open Money, top up, and keep the pot full. See you at TeamBalance dot N L!"
 }

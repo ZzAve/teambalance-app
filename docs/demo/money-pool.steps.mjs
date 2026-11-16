@@ -2,9 +2,11 @@
  * Steps for the money pool promo (ADR-0007/0042/0044/0046): the real SPA against api-fixture.mjs,
  * recorded and voiced with the feature-promo-video skill (its SKILL.md has the commands). Julia is a
  * member here, so an unknown payment offers "That's mine". bunq.me is drawn by a neutral stand-in page
- * (no bunq branding); paying there lands the top-up in the fixture's pool.
+ * (no bunq branding); paying there lands the top-up in the fixture's pool. The out-of-pocket expense
+ * (ADR-0048/0049) uses the real text recognition, served by the build under /ocr, and the take ends on
+ * the pool without a Bunq connection.
  *
- * Render choices of the published videos (2026-11-11), so a regeneration needs no new listening round.
+ * Render choices of the published videos (2026-11-11; out-of-pocket beat added 2026-11-16, same cut), so a regeneration needs no new listening round.
  * One take serves both phones; only the frame differs:
  *
  *   S=.agents/skills/feature-promo-video/scripts; OUT=/tmp/money-pool
@@ -15,11 +17,14 @@
  *     --song $S/../music/teambalance-theme.json --cut 18.02 --phone ios        # --phone android
  */
 import { fileURLToPath } from 'node:url'
-import { installFixtureApi, paidTopUp } from './api-fixture.mjs'
+import { disconnectBunq, installFixtureApi, paidTopUp } from './api-fixture.mjs'
 import { narratedTake } from './narrated-take.mjs'
 
 const TEAM_SLUG = 'heren-3'
 const RECEIPT = fileURLToPath(new URL('./receipt.jpg', import.meta.url))
+// A second receipt for the out-of-pocket expense, so the café receipt is not shown for two things.
+const OWN_RECEIPT = fileURLToPath(new URL('./receipt-supermarket.jpg', import.meta.url))
+const OWN_EXPENSE = 'Match snacks'
 
 // What the browser shows at the bunq.me link: the amount and the description the app put in it, without
 // the user id at its end.
@@ -36,7 +41,7 @@ button{margin-top:40px;width:100%;max-width:320px;height:52px;border:0;border-ra
 <p class="paid">✓ Paid</p></body></html>`
 }
 
-export default async function script({ page, caption, section, sleep, click, scrollTo, moveTo, BASE }) {
+export default async function script({ page, caption, section, sleep, click, type, scrollTo, moveTo, BASE }) {
   const { speak, say, untilLineEnds, captionAt } = await narratedTake({ page, caption, sleep })
   await installFixtureApi(page, { role: 'MEMBER' })
   await page.route('https://bunq.me/**', (route) => route.fulfill({ contentType: 'text/html; charset=utf-8', body: handOffPage(route.request().url()) }))
@@ -116,6 +121,36 @@ export default async function script({ page, caption, section, sleep, click, scr
     await captionAt('bottom')
   })
 
+  await section('out of pocket', async () => {
+    const sheet = page.getByRole('dialog')
+    await speak('Paid with your own money? Add it.', 2600)
+    await scrollTo(page, page.getByRole('button', { name: 'Add an expense you paid' }))
+    await sleep(page, 300)
+    await captionAt('top')
+    await click(page, page.getByRole('button', { name: 'Add an expense you paid' }), onScreen)
+    await sheet.getByRole('heading', { name: 'Add an expense you paid' }).waitFor()
+    await untilLineEnds()
+    await speak('Snap the receipt; the app reads the total.', 3000)
+    await sleep(page, 300)
+    const chooser = page.waitForEvent('filechooser')
+    await click(page, sheet.getByRole('button', { name: 'Add receipt' }), onScreen)
+    await (await chooser).setFiles(OWN_RECEIPT)
+    await sheet.getByRole('img', { name: 'The receipt you added' }).waitFor()
+    await sheet.getByText('Read from the receipt. Check that it is the total.').waitFor({ timeout: 90_000 })
+    await scrollTo(page, sheet.getByLabel('Amount (€)'))
+    await untilLineEnds()
+    await sleep(page, 500)
+    await speak('Save it, and it counts as your contribution.', 3000)
+    await type(page, sheet.getByLabel('What was it for?'), OWN_EXPENSE)
+    await sleep(page, 300)
+    await click(page, sheet.getByRole('button', { name: 'Save expense' }))
+    await sheet.waitFor({ state: 'hidden' })
+    await captionAt('bottom')
+    await scrollTo(page, row(OWN_EXPENSE))
+    await moveTo(page, row(OWN_EXPENSE))
+    await untilLineEnds()
+  })
+
   await section('claim', async () => {
     const sheet = page.getByRole('dialog')
     const transfer = row('J. VERMEER')
@@ -153,5 +188,17 @@ export default async function script({ page, caption, section, sleep, click, scr
     await sleep(page, 300)
     await say('Two linked transfers later, you\'re on top.', 2600)
     await sleep(page, 400)
+  })
+
+  await section('without Bunq', async () => {
+    disconnectBunq()
+    await page.goto(`${BASE}/t/${TEAM_SLUG}/money`)
+    await captionAt('bottom')
+    await page.getByRole('region', { name: 'Paid by members' }).waitFor()
+    await speak('No Bunq account for the team? It still works.', 3400)
+    await sleep(page, 1800)
+    await scrollTo(page, page.getByRole('region', { name: 'Toppers' }))
+    await untilLineEnds()
+    await sleep(page, 500)
   })
 }

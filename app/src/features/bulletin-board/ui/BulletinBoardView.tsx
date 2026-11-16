@@ -1,0 +1,278 @@
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
+import { formatLocale } from '@shared/i18n/i18n'
+import { BulletinPostView, type PostEditEntry } from '@entities/bulletin/ui/BulletinPostView'
+import { Button } from '@shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@shared/ui/dropdown-menu'
+import { Markdown } from '@shared/ui/Markdown'
+import { Switch } from '@shared/ui/switch'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
+import { cn } from '@shared/lib/utils'
+import { postTitle } from '@shared/lib/post-title'
+import { dateFromShowUntil, hasEnded, showUntilFromDate } from '@shared/lib/show-until'
+import type { PostContent } from '@shared/api/bulletin'
+
+export interface BoardPost {
+  id: string
+  markdown: string
+  authorName: string
+  postedAt: string
+  edits: PostEditEntry[]
+  pinned: boolean
+  showUntil?: string
+  /** Set on a deleted Post (Admins only), restorable until [removedAt]. */
+  deletedAt?: string
+  removedAt?: string
+}
+
+type Save = (content: PostContent) => Promise<unknown> | void
+
+interface BulletinBoardViewProps {
+  posts: BoardPost[]
+  /** Admins get "New post" and an Edit menu per Post; for a Member an empty board renders nothing. */
+  isAdmin: boolean
+  isLoading?: boolean
+  isError?: boolean
+  /** Resolves when the Post is saved; the sheet closes then, and stays open with an error on a reject. */
+  onCreate: Save
+  onUpdate: (id: string, content: PostContent) => Promise<unknown> | void
+  /** The page's clock: a Post past its show-until shows as ended. */
+  now: Date
+  onDelete: (id: string) => void
+  onRestore: (id: string) => void
+}
+
+// The sheet's target: a new Post, or the one being edited.
+type Compose = { kind: 'new' } | { kind: 'edit'; post: BoardPost }
+
+/** The Team's Bulletin Board at the top of the Team page (ADR-0050). Prop-only. */
+export function BulletinBoardView({
+  posts, isAdmin, isLoading, isError, onCreate, onUpdate, onDelete, onRestore, now,
+}: BulletinBoardViewProps) {
+  const { t } = useTranslation()
+  const [compose, setCompose] = useState<Compose | null>(null)
+  // Kept apart from `compose` so the sheet keeps its content while it animates out.
+  const [open, setOpen] = useState(false)
+  const start = (target: Compose) => {
+    setCompose(target)
+    setOpen(true)
+  }
+
+  // Members get neither ended nor deleted Posts from the API; Admins see ended ones last, dimmed.
+  const notDeleted = posts.filter((post) => !post.deletedAt)
+  const live = [
+    ...notDeleted.filter((post) => !hasEnded(post.showUntil, now)),
+    ...notDeleted.filter((post) => hasEnded(post.showUntil, now)),
+  ]
+  const deleted = posts.filter((post) => post.deletedAt)
+
+  if (!isAdmin && !isLoading && !isError && live.length === 0) return null
+
+  return (
+    <section aria-labelledby="bulletin-board-heading" className="flex flex-col gap-3">
+      <div className="flex min-h-11 items-center justify-between gap-2">
+        <h2 id="bulletin-board-heading" className="font-display text-title font-bold">{t('bulletin.heading')}</h2>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={() => start({ kind: 'new' })}>
+            <Plus size={16} />
+            {t('bulletin.newPost')}
+          </Button>
+        )}
+      </div>
+
+      {isLoading && <p className="text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isError && <p className="text-small text-red-ink">{t('bulletin.loadFailed')}</p>}
+      {!isLoading && !isError && live.length === 0 && (
+        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-small text-muted-foreground">
+          {t('bulletin.emptyAdmin')}
+        </p>
+      )}
+      {!isLoading && !isError && live.map((post) => (
+        <BulletinPostView
+          key={post.id}
+          markdown={post.markdown}
+          authorName={post.authorName}
+          postedAt={post.postedAt}
+          edits={post.edits}
+          pinned={post.pinned}
+          showUntil={post.showUntil}
+          ended={hasEnded(post.showUntil, now)}
+          actions={isAdmin && (
+            <PostMenu onEdit={() => start({ kind: 'edit', post })} onDelete={() => onDelete(post.id)} />
+          )}
+        />
+      ))}
+
+      {isAdmin && deleted.length > 0 && <DeletedPosts posts={deleted} onRestore={onRestore} />}
+
+      {isAdmin && compose && (
+        <ComposeSheet
+          // A fresh form per target, so an edit starts from that Post's text.
+          key={compose.kind === 'edit' ? compose.post.id : 'new'}
+          open={open}
+          onOpenChange={setOpen}
+          initialMarkdown={compose.kind === 'edit' ? compose.post.markdown : ''}
+          initialPinned={compose.kind === 'edit' && compose.post.pinned}
+          initialShowUntil={compose.kind === 'edit' ? compose.post.showUntil : undefined}
+          isEdit={compose.kind === 'edit'}
+          onSave={compose.kind === 'edit' ? (content) => onUpdate(compose.post.id, content) : onCreate}
+        />
+      )}
+    </section>
+  )
+}
+
+function PostMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={t('bulletin.postActions')}
+          className="-mr-2 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent"
+        >
+          ⋯
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onEdit}>{t('bulletin.edit')}</DropdownMenuItem>
+        {/* No confirm dialog: a delete can be restored for 14 days. */}
+        <DropdownMenuItem tone="destructive" onSelect={onDelete}>{t('bulletin.delete')}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function DeletedPosts({ posts, onRestore }: { posts: BoardPost[]; onRestore: (id: string) => void }) {
+  const { t, i18n } = useTranslation()
+  const date = (iso: string) => new Date(iso).toLocaleDateString(formatLocale(i18n.language), { day: 'numeric', month: 'short' })
+
+  return (
+    <details className="rounded-lg border border-dashed border-border px-3 py-1 text-small">
+      <summary className="flex min-h-11 cursor-pointer items-center text-muted-foreground">
+        {t('bulletin.deletedPosts', { count: posts.length })}
+      </summary>
+      <ul className="flex flex-col divide-y divide-border/40 pb-2">
+        {posts.map((post) => (
+          <li key={post.id} className="flex items-center justify-between gap-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{postTitle(post.markdown)}</p>
+              {post.removedAt && (
+                <p className="text-caption text-muted-foreground">{t('bulletin.removedOn', { date: date(post.removedAt) })}</p>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onRestore(post.id)}>{t('bulletin.restore')}</Button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
+interface ComposeSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  initialMarkdown: string
+  initialPinned: boolean
+  initialShowUntil?: string
+  isEdit: boolean
+  onSave: Save
+}
+
+function ComposeSheet({ open, onOpenChange, initialMarkdown, initialPinned, initialShowUntil, isEdit, onSave }: ComposeSheetProps) {
+  const { t } = useTranslation()
+  const [markdown, setMarkdown] = useState(initialMarkdown)
+  const [pinned, setPinned] = useState(initialPinned)
+  const [untilDate, setUntilDate] = useState(dateFromShowUntil(initialShowUntil))
+  const [preview, setPreview] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  const submit = async () => {
+    setSaving(true)
+    setFailed(false)
+    try {
+      await onSave({ markdown, pinned, showUntil: showUntilFromDate(untilDate) })
+      if (!isEdit) {
+        setMarkdown('')
+        setPinned(false)
+        setUntilDate('')
+      }
+      setPreview(false)
+      onOpenChange(false)
+    } catch {
+      setFailed(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>{isEdit ? t('bulletin.editPost') : t('bulletin.newPost')}</SheetTitle>
+          <SheetDescription>{t('bulletin.composeHint')}</SheetDescription>
+        </SheetHeader>
+        <div role="tablist" className="mb-2 flex gap-1 self-start rounded-md bg-muted p-1 text-small">
+          {([false, true] as const).map((isPreview) => (
+            <button
+              key={String(isPreview)}
+              type="button"
+              role="tab"
+              aria-selected={preview === isPreview}
+              onClick={() => setPreview(isPreview)}
+              className={cn('min-h-9 rounded px-3', preview === isPreview && 'bg-card font-semibold shadow-sm')}
+            >
+              {isPreview ? t('bulletin.preview') : t('bulletin.write')}
+            </button>
+          ))}
+        </div>
+        {preview ? (
+          <div className="min-h-40 rounded-md border border-border/60 p-3">
+            <Markdown source={markdown} />
+          </div>
+        ) : (
+          <textarea
+            aria-label={t('bulletin.markdownLabel')}
+            value={markdown}
+            onChange={(e) => setMarkdown(e.target.value)}
+            rows={8}
+            maxLength={5000}
+            className="min-h-40 w-full rounded-md border border-border/60 bg-card p-3 font-mono text-small"
+          />
+        )}
+        <div className="mt-4 flex items-center justify-between gap-4 text-small">
+          <div>
+            <p id="bulletin-pin-label">{t('bulletin.pinLabel')}</p>
+            <p id="bulletin-pin-hint" className="text-caption text-muted-foreground">{t('bulletin.pinHint')}</p>
+          </div>
+          <Switch
+            checked={pinned}
+            onCheckedChange={setPinned}
+            aria-label={t('bulletin.pinLabel')}
+            aria-describedby="bulletin-pin-hint"
+          />
+        </div>
+        <label className="mt-4 flex items-center justify-between gap-4 text-small">
+          <span>
+            {t('bulletin.showUntilLabel')}
+            <span className="block text-caption text-muted-foreground">{t('bulletin.showUntilHint')}</span>
+          </span>
+          <input
+            type="date"
+            value={untilDate}
+            onChange={(e) => setUntilDate(e.target.value)}
+            className="min-h-11 rounded-md border border-border/60 bg-card px-2"
+          />
+        </label>
+        {failed && <p role="alert" className="mt-2 text-small text-red-ink">{t('bulletin.postFailed')}</p>}
+        <Button className="mt-6" disabled={saving || markdown.trim() === ''} onClick={submit}>
+          {isEdit ? t('bulletin.save') : t('bulletin.post')}
+        </Button>
+      </SheetContent>
+    </Sheet>
+  )
+}

@@ -10,6 +10,7 @@ import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { PasskeyPrompt } from '@features/passkey-prompt/ui/PasskeyPrompt'
 import { DemoBanner } from '@widgets/demo-banner/ui/DemoBanner'
+import { PinnedPostsStrip } from '@widgets/pinned-posts-strip/ui/PinnedPostsStrip'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { IS_DEMO_BUILD } from '@shared/lib/demo-build'
 import { queryClient } from '@shared/api/query-client'
@@ -117,6 +118,7 @@ function RootLayout() {
             {/* Demo build only (VITE_DEMO); its own element, outside the act-as banner, so the two share no state. */}
             {IS_DEMO_BUILD && <DemoBanner />}
             <ActAsBanner />
+            {!isAuthRoute(pathname) && <PinnedPostsStrip />}
           </>
         }
         nav={isAuthRoute(pathname) ? undefined : <BottomNav />}

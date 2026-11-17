@@ -32,6 +32,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // Micrometer metrics pushed over OTLP (micrometer-registry-otlp) to Scaleway Cockpit.
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+    // Error events to Bugsink (a Sentry-compatible receiver) through the official Sentry SDK: unhandled
+    // request exceptions and ERROR log lines. Off unless SENTRY_DSN is set (application-prod.yml).
+    val sentryVersion = project.property("sentryVersion") as String
+    implementation("io.sentry:sentry-spring-boot-4-starter:$sentryVersion")
+    implementation("io.sentry:sentry-logback:$sentryVersion")
     // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
     // authenticated-by-default rule (ADR-0012).
     implementation("org.springframework.boot:spring-boot-starter-security")

@@ -36,6 +36,12 @@ export default defineConfig({
       workbox: pwaWorkbox,
     }),
   ],
+  build: {
+    // The deploy job sets BUGSINK_SOURCEMAPS=true: 'hidden' writes the .map files without a
+    // sourceMappingURL comment, CI uploads them to Bugsink and deletes them before the bucket sync, so
+    // no source map is public. Every other build (dev, e2e, demo) writes none.
+    sourcemap: process.env.BUGSINK_SOURCEMAPS === 'true' ? 'hidden' : false,
+  },
   resolve: {
     alias: {
       '@app': resolve(import.meta.dirname, 'src/app'),

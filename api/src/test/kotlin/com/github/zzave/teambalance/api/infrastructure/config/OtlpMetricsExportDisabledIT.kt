@@ -4,12 +4,14 @@ import com.github.zzave.teambalance.api.TeamBalanceIT
 import io.kotest.matchers.maps.shouldBeEmpty
 import io.micrometer.registry.otlp.OtlpMeterRegistry
 import io.opentelemetry.sdk.trace.export.SpanExporter
+import io.sentry.IScopes
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 
 /**
  * Without the opt-in, the app makes no OTLP registry and no span exporter: a local run or a container
- * without Cockpit configured does not try to push metrics or traces to the default localhost:4318.
+ * without Cockpit configured does not try to push metrics or traces to the default localhost:4318. Nor
+ * does it set up the Sentry SDK, which the prod profile alone configures (see application-prod.yml).
  */
 class OtlpMetricsExportDisabledIT : TeamBalanceIT() {
 
@@ -23,6 +25,10 @@ class OtlpMetricsExportDisabledIT : TeamBalanceIT() {
 
         test("no span exporter exists unless a traces endpoint is set") {
             context.getBeansOfType(SpanExporter::class.java).shouldBeEmpty()
+        }
+
+        test("outside the prod profile the error tracking SDK is not set up at all") {
+            context.getBeansOfType(IScopes::class.java).shouldBeEmpty()
         }
     }
 }

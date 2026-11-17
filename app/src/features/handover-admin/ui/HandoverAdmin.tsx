@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import {
   useActiveAdminInvitation,
@@ -5,7 +6,7 @@ import {
   useExpireAdminInvitations,
   useRotateAdminInvitation,
 } from '@shared/api/invitations'
-import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
+import { canShare, useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { HandoverAdminView } from './HandoverAdminView'
 
 /**
@@ -15,6 +16,7 @@ import { HandoverAdminView } from './HandoverAdminView'
  * covered by e2e rather than a story (ADR-0017).
  */
 export function HandoverAdmin() {
+  const { t } = useTranslation()
   const clipboard = useCopyToClipboard()
   const [justRevoked, setJustRevoked] = useState(false)
   const activeInvitation = useActiveAdminInvitation({ enabled: true })
@@ -54,7 +56,8 @@ export function HandoverAdmin() {
       isRotating={rotateInvitation.isPending}
       isRevoking={expireInvitation.isPending}
       actionError={createInvitation.isError || rotateInvitation.isError || expireInvitation.isError}
-      onCopy={() => link && clipboard.copy(link)}
+      canShare={canShare()}
+      onCopy={() => link && clipboard.share({ title: t('handover.heading'), url: link })}
       onCreate={handleCreate}
       onRotate={handleRotate}
       onRevoke={handleRevoke}

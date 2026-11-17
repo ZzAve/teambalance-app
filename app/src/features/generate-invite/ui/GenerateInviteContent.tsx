@@ -11,6 +11,8 @@ interface GenerateInviteContentProps {
   /** The team's current invite link, or null if it has none. */
   link: string | null
   copied: boolean
+  /** The browser has a native share sheet: the button says Share and opens it instead of copying. */
+  canShare?: boolean
   /** The browser refused the clipboard write; the link is still in the field to copy by hand. */
   copyFailed?: boolean
   /** Set only for the moment after an expire, to confirm the link is gone before offering a new one. */
@@ -44,6 +46,7 @@ export function GenerateInviteContent({
   link,
   copied,
   copyFailed,
+  canShare,
   justExpired,
   isGenerating,
   isRotating,
@@ -89,7 +92,9 @@ export function GenerateInviteContent({
       <div className="flex gap-2">
         <Input readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         <Button type="button" onClick={onCopy}>
-          {copied ? t('generateInvite.copied') : t('generateInvite.copy')}
+          {copied
+                ? t('generateInvite.copied')
+                : canShare ? t('generateInvite.shareButton') : t('generateInvite.copy')}
         </Button>
       </div>
       {copyFailed && <FormError>{t('generateInvite.copyFailed')}</FormError>}

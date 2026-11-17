@@ -10,7 +10,7 @@ import { GenerateInviteContent } from './GenerateInviteContent'
 //
 // Three stories (ADR-0032 §1): Data is the active-link instance and keeps the snapshot — it renders
 // inside a dialog the TeamPageView composite can't show open, so this file owns that picture
-// (ADR-0032 §3). Shells stacks every non-data state — load / error / no-link / generating / copied /
+// (ADR-0032 §3). Shells stacks every non-data state — load / error / no-link / generating / share available / copied /
 // rotating / revoking / just-expired / action-error — in one frame. Interactions has no picture; one
 // play walks every click and keeps every onCopy/onGenerate/onRotate/onExpire spy assertion, including
 // the revoke-confirm dialog's cancel and confirm paths.
@@ -61,6 +61,8 @@ export const Shells: Story = {
         // for (ADR-0025).
         'No link': <GenerateInviteContent {...args} />,
         Generating: <GenerateInviteContent {...args} isGenerating />,
+        // Phones (navigator.share present): the button opens the share sheet instead of copying.
+        'Share available': <GenerateInviteContent {...args} link={LINK} canShare />,
         Copied: <GenerateInviteContent {...args} link={LINK} copied />,
         'Copy refused': <GenerateInviteContent {...args} link={LINK} copyFailed />,
         Rotating: <GenerateInviteContent {...args} link={LINK} isRotating />,
@@ -85,6 +87,7 @@ export const Shells: Story = {
     await expect(
       region('Generating').getByRole('button', { name: 'Generating...' }),
     ).toBeDisabled()
+    await expect(region('Share available').getByRole('button', { name: 'Share' })).toBeInTheDocument()
     await expect(region('Copied').getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
     // The browser refused the clipboard write: say so, and point at the link field beside the button.
     await expect(region('Copy refused').getByRole('alert')).toHaveTextContent(
@@ -133,6 +136,7 @@ export const Interactions: Story = {
     <Stack
       items={{
         'Active link': <GenerateInviteContent {...args} link={LINK} />,
+        'Share available': <GenerateInviteContent {...args} link={LINK} canShare />,
         'No link': <GenerateInviteContent {...args} />,
         'Just expired': <GenerateInviteContent {...args} justExpired />,
       }}
@@ -143,7 +147,10 @@ export const Interactions: Story = {
     const dialog = within(document.body)
 
     await userEvent.click(region('Active link').getByRole('button', { name: 'Copy' }))
-    await expect(args.onCopy).toHaveBeenCalled()
+    await expect(args.onCopy).toHaveBeenCalledTimes(1)
+    // Share and Copy are one action (the container shares, or copies where it can't): same callback.
+    await userEvent.click(region('Share available').getByRole('button', { name: 'Share' }))
+    await expect(args.onCopy).toHaveBeenCalledTimes(2)
     await userEvent.click(region('Active link').getByRole('button', { name: 'Rotate link' }))
     await expect(args.onRotate).toHaveBeenCalled()
 

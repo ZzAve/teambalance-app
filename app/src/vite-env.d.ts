@@ -16,4 +16,8 @@ interface ImportMetaEnv {
   readonly VITE_BUGSINK_DSN?: string
   /** The commit SHA of the build, sent as the release of each error event. */
   readonly VITE_BUGSINK_RELEASE?: string
+  /** The Plausible site domain (app.teambalance.nl). Set in the production deploy only; unset = no analytics. */
+  readonly VITE_PLAUSIBLE_DOMAIN?: string
+  /** The Plausible event endpoint, e.g. a proxy on an own domain. Unset = https://plausible.io/api/event. */
+  readonly VITE_PLAUSIBLE_ENDPOINT?: string
 }

@@ -257,6 +257,8 @@ Repository **variables** (same page, *Variables* tab; not secret):
 |----------|----------|
 | `BUGSINK_SPA_DSN` | The DSN of the Bugsink `teambalance-app` project, built into the prod SPA as `VITE_BUGSINK_DSN`. Unset: the SPA reports nothing. |
 | `BUGSINK_URL` | The base URL of the Bugsink instance (`https://<host>/`), for the source map upload. |
+| `PLAUSIBLE_DOMAIN` | The Plausible site domain (`app.teambalance.nl`), built into the prod SPA as `VITE_PLAUSIBLE_DOMAIN`. Unset: the SPA loads no tracker and sends nothing. See "Analytics to Plausible". |
+| `PLAUSIBLE_ENDPOINT` | Optional. The event endpoint, built in as `VITE_PLAUSIBLE_ENDPOINT`. Unset: `https://plausible.io/api/event`. Set it only for a proxy on an own domain. |
 
 > **`INTERNAL_API_KEY` must be set in two places with the same value:** as the GitHub Actions
 > secret above **and** as an env/secret on the Serverless Container (Scaleway console → the
@@ -409,6 +411,52 @@ Log in at http://localhost:8000, make a project, and run the API with `SENTRY_DS
 
 To stop the API events, remove `SENTRY_DSN` and redeploy or restart the container. To stop the SPA
 events, remove the `BUGSINK_SPA_DSN` variable; the next frontend deploy has no DSN.
+
+## Analytics to Plausible
+
+Plausible (EU, hosted) counts the pageviews of the SPA. It sets no cookies and stores no session ID:
+it counts a visitor with a hash of the IP address, the user agent and the site, with a salt that
+changes each day. **Only prod sends.** Every other build (dev, e2e, demo, Storybook, tests) has no
+domain, so it loads no tracker code.
+
+**Setup (once):**
+
+1. In Plausible (Starter plan), add the site `app.teambalance.nl`. Do not copy the script snippet:
+   the SPA uses the npm package `@plausible-analytics/tracker`.
+2. GitHub (*Settings → Secrets and variables → Actions → Variables*): set `PLAUSIBLE_DOMAIN` to
+   `app.teambalance.nl`. The next frontend deploy sends pageviews.
+3. Optional: `PLAUSIBLE_ENDPOINT`, only for a proxy (see below).
+
+**What is sent:** one `pageview` for each path change, from `shared/lib/analytics.ts`. Automatic
+pageviews, outbound links, file downloads and form submissions are off. The tracker also sends
+`engagement` events (time on page, scroll depth) for each pageview, with the same URL. The Plausible
+docs do not say whether these are billable; check the usage page after the first week.
+
+**Privacy (what is not sent):**
+
+- The URL is the route template, not the real path: `/t/$slug/events/$eventId`, `/invite/$token`,
+  `/auth/verify`. So no team slug, event or member ID, invite token or magic-link token. A URL that
+  no route matches is sent as `/404`.
+- No query string and no `#` fragment.
+- No referrer from the app itself (it is a real path). An external referrer loses its query string
+  and fragment.
+- No custom properties, no member ID, email or name.
+
+**Ad blockers:** many block `plausible.io`, so some visits are not counted. A proxy on an own domain
+(for example a route on the Scaleway Edge Services in front of the SPA bucket that forwards
+`/api/event` to `https://plausible.io/api/event`) gets most of them back. The npm package is in the
+bundle, so only the event endpoint needs the proxy. **Decision: _open_ (no proxy until decided).**
+With a proxy, set `PLAUSIBLE_ENDPOINT` to its URL.
+
+**Cost:** Starter is about $9/month for 10k pageviews (plus VAT). Custom events also count against
+this; the SPA sends none.
+
+**Local check:** Plausible ignores `localhost` and browsers driven by automation. Run the SPA dev
+server with `VITE_PLAUSIBLE_DOMAIN=app.teambalance.nl` and `VITE_PLAUSIBLE_ENDPOINT` set to a local
+HTTP receiver, open it on a host name that is not `localhost` (e.g. through `/etc/hosts`), and look at
+the request bodies: `u` must be a route template.
+
+To stop the pageviews, remove the `PLAUSIBLE_DOMAIN` variable; the next frontend deploy has no domain.
 
 ## Rollback
 

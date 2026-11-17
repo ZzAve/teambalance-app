@@ -1,7 +1,7 @@
 // Renders the landing page and privacy page in Dutch at / and English at /en/ (#464, decision 7, #152):
 // one template per page, one string file per language. Output goes to www/dist/ (or $OUT_DIR),
 // which the deploy uploads in full.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { render } from './render.mjs'
@@ -20,10 +20,6 @@ const STATIC_FILES = [
   ['app/public/favicon.ico', 'favicon.ico'],
   ['app/public/tb-monogram.svg', 'tb-monogram.svg'],
   ['app/public/apple-touch-icon-180x180.png', 'apple-touch-icon-180x180.png'],
-  // Silent app clips per language, recorded from the real app (poster, webm, mp4).
-  ...['attend', 'substitute', 'pot-topup'].flatMap((clip) =>
-    ['nl', 'en'].flatMap((lang) => ['jpg', 'webm', 'mp4'].map((ext) => [`www/clips/${clip}.${lang}.${ext}`, `clips/${clip}.${lang}.${ext}`])),
-  ),
 ]
 
 // Latin subset only; the families are app dependencies, so `npm ci` in app/ provides them.
@@ -64,6 +60,9 @@ for (const [from, to] of STATIC_FILES) {
   if (!existsSync(src)) throw new Error(`${from} is missing`)
   copy(src, join(dist, to))
 }
+
+// App clips (poster, webm, mp4 per language): the whole folder; build.test.mjs checks every page reference exists.
+cpSync(join(here, 'clips'), join(dist, 'clips'), { recursive: true })
 
 for (const [family, file] of FONT_FILES) {
   const src = join(root, 'app/node_modules/@fontsource-variable', family, 'files', file)

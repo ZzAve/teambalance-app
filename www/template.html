@@ -139,7 +139,7 @@
                   <source src="/clips/attend.{{lang}}.webm" type="video/webm" />
                   <source src="/clips/attend.{{lang}}.mp4" type="video/mp4" />
                 </video></div>
-                <figcaption>{{clipAttend}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
+                <figcaption><span id="cap-attend">{{clipAttend}}</span><button class="clip-toggle" type="button" aria-describedby="cap-attend" hidden>{{clipPause}}</button></figcaption>
               </figure>
             </article>
             <article class="row feature flip">
@@ -152,7 +152,7 @@
                   <source src="/clips/substitute.{{lang}}.webm" type="video/webm" />
                   <source src="/clips/substitute.{{lang}}.mp4" type="video/mp4" />
                 </video></div>
-                <figcaption>{{clipSubstitute}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
+                <figcaption><span id="cap-substitute">{{clipSubstitute}}</span><button class="clip-toggle" type="button" aria-describedby="cap-substitute" hidden>{{clipPause}}</button></figcaption>
               </figure>
             </article>
           </div>
@@ -187,7 +187,7 @@
                   <source src="/clips/pot-topup.{{lang}}.webm" type="video/webm" />
                   <source src="/clips/pot-topup.{{lang}}.mp4" type="video/mp4" />
                 </video></div>
-                <figcaption>{{clipPot}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
+                <figcaption><span id="cap-pot">{{clipPot}}</span><button class="clip-toggle" type="button" aria-describedby="cap-pot" hidden>{{clipPause}}</button></figcaption>
               </figure>
             </article>
           </div>

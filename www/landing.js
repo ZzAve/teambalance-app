@@ -37,25 +37,35 @@ $('#bringBack').addEventListener('click', () => {
 })
 
 // ---- app clips: play while on screen, start paused for reduced motion; the button pauses (WCAG 2.2.2) ----
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+const reduced = matchMedia('(prefers-reduced-motion: reduce)')
 for (const fig of $$('[data-clip]')) {
   const video = $('video', fig)
   const toggle = $('.clip-toggle', fig)
-  let paused = reduced
+  let paused = reduced.matches
   let visible = false
   fig.classList.add('pre') // CSS tilts the phone until .in; without this script it stays upright
   const sync = () => {
-    if (visible && !paused) video.play().catch(() => {})
-    else video.pause()
+    if (visible && !paused) {
+      // Blocked autoplay (e.g. iOS Low Power Mode): show Play, so one tap starts it.
+      video.play().catch(() => {
+        paused = true
+        sync()
+      })
+    } else video.pause()
     toggle.textContent = paused ? copy.clipPlay : copy.clipPause
   }
+  // A quarter of the clip is enough, so it also plays in a short landscape window.
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting
     if (visible) fig.classList.add('in')
     sync()
-  }, { threshold: 0.5 }).observe(video)
+  }, { threshold: 0.25 }).observe(video)
   toggle.addEventListener('click', () => {
     paused = !paused
+    sync()
+  })
+  reduced.addEventListener('change', () => {
+    if (reduced.matches) paused = true
     sync()
   })
   toggle.hidden = false

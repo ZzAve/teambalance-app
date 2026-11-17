@@ -5,6 +5,7 @@ import { Providers } from '@app/providers'
 import { SwUpdateManager } from '@app/pwa/sw-update'
 import { AppShellFrame } from '@shared/ui/AppShellFrame'
 import { BottomNav } from '@shared/ui/BottomNav'
+import { SideNav } from '@shared/ui/SideNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
@@ -122,6 +123,7 @@ function RootLayout() {
           </>
         }
         nav={isAuthRoute(pathname) ? undefined : <BottomNav />}
+        sideNav={isAuthRoute(pathname) ? undefined : <SideNav />}
       >
         <Outlet />
       </AppShellFrame>

@@ -40,7 +40,12 @@ function tabsFor(routes: TeamRoutes, showMoney: boolean): TabConfig[] {
   ]
 }
 
-export function BottomNav() {
+/**
+ * The primary tabs for the current path, shared by BottomNav (phone) and SideNav (from `lg`), so the
+ * teamless/onboarding rule and the money-off rule live in one place. `pathname` is returned for the
+ * active check.
+ */
+export function useNavTabs() {
   useTranslation() // re-render the tab labels on a language change
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const me = useAuthMe().data
@@ -51,7 +56,11 @@ export function BottomNav() {
   // back to where the caller is, so they get Profile alone: the way to Log out stays (ADR-0027), the dead
   // tabs go (as Money does, ADR-0042).
   const parked = slug === null || pathname.replace(/\/$/, '') === routes.getStarted
-  const TABS = parked ? allTabs.filter((tab) => tab.id === 'profile') : allTabs
+  return { pathname, tabs: parked ? allTabs.filter((tab) => tab.id === 'profile') : allTabs }
+}
+
+export function BottomNav() {
+  const { pathname, tabs: TABS } = useNavTabs()
 
   return (
     <nav

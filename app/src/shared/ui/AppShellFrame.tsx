@@ -31,6 +31,8 @@ interface AppShellFrameProps {
   nav?: ReactNode
   /** The same tabs for the sidebar. When given, from `lg` up the sidebar (wordmark, team switcher, these tabs) replaces the tab bar and the header's monogram and team chip. */
   sideNav?: ReactNode
+  /** From `lg` up, drop the `max-w-2xl` cap so the page fills the width next to the sidebar (the season grid). */
+  wide?: boolean
   children: ReactNode
 }
 
@@ -43,12 +45,13 @@ interface AppShellFrameProps {
  * outlet; the Storybook app-shell decorator renders the same frame around a page composite, so a
  * story's snapshot is the phone's actual screen rather than a floating component (ADR-0032 §3).
  */
-export function AppShellFrame({ teamSwitcher, banner, nav, sideNav, children }: AppShellFrameProps) {
+export function AppShellFrame({ teamSwitcher, banner, nav, sideNav, wide, children }: AppShellFrameProps) {
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   const [nested, setNested] = useState(false)
   const pageHeader = useMemo(() => ({ slot, setNested }), [slot])
   // What the sidebar takes over from `lg` up: hidden there only when a sidebar is rendered.
   const lgHidden = sideNav ? 'lg:hidden' : ''
+  const lgWide = wide ? 'lg:max-w-none' : ''
 
   return (
     // min-h-dvh (not min-h-screen/100vh) so the layout measures the *visible* viewport on mobile —
@@ -79,7 +82,7 @@ export function AppShellFrame({ teamSwitcher, banner, nav, sideNav, children }: 
           className="sticky top-0 z-40 h-[var(--header-height)] border-b border-border/40 bg-card/88 backdrop-blur-lg"
           style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
         >
-          <div className="mx-auto flex h-full max-w-2xl items-center gap-2 px-2">
+          <div className={`mx-auto flex h-full max-w-2xl items-center gap-2 px-2 ${lgWide}`}>
             {!nested && (
               <Link
                 to="/"
@@ -117,7 +120,7 @@ export function AppShellFrame({ teamSwitcher, banner, nav, sideNav, children }: 
             row of content is never hidden behind the bar on notched devices. Without a nav only the
             normal py-6 gap and the inset remain. */}
         <main
-          className={`${APP_COLUMN} py-6 ${nav ? 'pb-[calc(6rem+env(safe-area-inset-bottom))]' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom))]'} ${sideNav ? 'lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]' : ''}`}
+          className={`${APP_COLUMN} ${lgWide} py-6 ${nav ? 'pb-[calc(6rem+env(safe-area-inset-bottom))]' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom))]'} ${sideNav ? 'lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]' : ''}`}
         >
           <PageHeaderSlotContext value={pageHeader}>{children}</PageHeaderSlotContext>
         </main>

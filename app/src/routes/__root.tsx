@@ -124,6 +124,7 @@ function RootLayout() {
         }
         nav={isAuthRoute(pathname) ? undefined : <BottomNav />}
         sideNav={isAuthRoute(pathname) ? undefined : <SideNav />}
+        wide={/^\/t\/[^/]+\/season\/?$/.test(pathname)}
       >
         <Outlet />
       </AppShellFrame>

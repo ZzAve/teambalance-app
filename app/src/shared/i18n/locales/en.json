@@ -86,6 +86,7 @@
   },
   "nav": {
     "events": "Events",
+    "season": "Season",
     "team": "Team",
     "money": "Money",
     "profile": "Profile"
@@ -1411,5 +1412,15 @@
     "approveConfirm": "Approving creates a creation code and emails it to {{email}}.",
     "confirmApprove": "Approve and send code",
     "reject": "Reject"
+  },
+  "season": {
+    "title": "Season",
+    "member": "Member",
+    "attended": "Attended",
+    "today": "Today",
+    "cell": "{{name}}, {{event}}: {{state}}",
+    "notOnEvent": "not on this event",
+    "empty": "No events in this season yet.",
+    "loadFailed": "Couldn't load the season."
   }
 }

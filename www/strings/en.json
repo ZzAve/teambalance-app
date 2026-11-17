@@ -81,8 +81,6 @@
   "potNote": "The money stays in that member's account. TeamBalance only reads the balance and payments; it cannot move money. The pot is optional: attendance works without it.",
   "calTitle": "A calendar link",
   "calText": "Subscribe once. Every training and match shows up in your own calendar, with the right time.",
-  "calField": "Subscribe to the team calendar",
-  "inviteField": "Invite link for your team",
   "subTitle": "A substitute for one training or match",
   "subText": "Know someone who can fill in? Call them in for a single training or match. They do not have to join the team.",
   "originTitle": "It started with two volleyball teams",
@@ -122,5 +120,10 @@
   "clipSubstitute": "One player short? Call in a substitute.",
   "clipPot": "Top up from your phone.",
   "clipPause": "Pause",
-  "clipPlay": "Play"
+  "clipPlay": "Play",
+  "whoLead": "Nobody has to scroll back through the group chat to count. Everyone answers for themselves, and the answer sits with the training or match.",
+  "oneTapTitle": "All trainings at once",
+  "moneyLead": "The same app also keeps track of the money the team shares.",
+  "startLead": "You can look around in the demo team first. Setting up your own team takes three steps.",
+  "faqMore": "Is your question not listed? Email"
 }

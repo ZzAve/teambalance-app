@@ -81,8 +81,6 @@
   "potNote": "Het geld staat op de rekening van dat teamlid. TeamBalance leest alleen het saldo en de betalingen; het kan geen geld overmaken. De pot is niet verplicht: aanwezigheid werkt ook zonder.",
   "calTitle": "Een agendalink",
   "calText": "Abonneer je één keer, dan staat elke training en wedstrijd met de juiste tijd in je eigen agenda.",
-  "calField": "Abonneer je op de teamagenda",
-  "inviteField": "Uitnodigingslink voor je team",
   "subTitle": "Een invaller voor één training of wedstrijd",
   "subText": "Ken je iemand die kan invallen? Vraag diegene voor één training of wedstrijd. Diegene hoeft geen lid van het team te worden.",
   "originTitle": "Het begon met twee volleybalteams",
@@ -122,5 +120,10 @@
   "clipSubstitute": "Eén speler tekort? Vraag een invaller.",
   "clipPot": "Inleggen vanaf je telefoon.",
   "clipPause": "Pauzeer",
-  "clipPlay": "Speel af"
+  "clipPlay": "Speel af",
+  "whoLead": "Niemand hoeft nog terug te scrollen in de groepsapp om te tellen. Iedereen geeft zelf antwoord, en dat antwoord staat bij de training of wedstrijd.",
+  "oneTapTitle": "Alle trainingen in één keer",
+  "moneyLead": "In dezelfde app houdt het team ook het gezamenlijke geld bij.",
+  "startLead": "Eerst rondkijken kan in het demoteam. Voor je eigen team zijn het drie stappen.",
+  "faqMore": "Staat je vraag er niet bij? Mail naar"
 }

@@ -34,6 +34,10 @@
         <header class="topbar">
           <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
           <nav class="topnav">
+            <a class="sec-link" href="#who">{{groupWhoTitle}}</a>
+            <a class="sec-link" href="#money">{{groupMoneyTitle}}</a>
+            <a class="sec-link" href="#start">{{startTitle}}</a>
+            <a class="sec-link" href="#faq">{{faqTitle}}</a>
             <a class="lang-switch" href="{{otherHref}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{otherName}}</a>
             <a class="login" href="https://app.teambalance.nl/login">{{logIn}}</a>
           </nav>
@@ -42,7 +46,7 @@
     </div>
 
     <main id="top">
-      <div class="dark">
+      <div class="dark curve">
         <div class="wrap hero">
           <div class="hook">
             <h1>{{heroTitle}}</h1>
@@ -120,119 +124,159 @@
         </div>
       </div>
 
-      <div class="calm">
+      <section class="sec" id="who" aria-labelledby="who-title">
         <div class="wrap">
-          <h2 class="group-title">{{groupWhoTitle}}</h2>
-          <article class="answer">
-            <h3>{{rosterTitle}}</h3>
-            <p>{{rosterText}}</p>
-            <p class="one-tap">{{rosterOneTap}}</p>
-            <figure class="clip" data-clip>
-              <video muted loop playsinline preload="none" aria-hidden="true" poster="/clips/attend.{{lang}}.jpg">
-                <source src="/clips/attend.{{lang}}.webm" type="video/webm" />
-                <source src="/clips/attend.{{lang}}.mp4" type="video/mp4" />
-              </video>
-              <figcaption>{{clipAttend}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
-            </figure>
-          </article>
-
-          <div class="smalls">
-            <section>
-              <h3>{{subTitle}}</h3>
-              <p>{{subText}}</p>
+          <h2 id="who-title">{{groupWhoTitle}}</h2>
+          <p class="lead">{{whoLead}}</p>
+          <div class="rows">
+            <article class="row feature">
+              <div class="feature-text">
+                <h3>{{rosterTitle}}</h3>
+                <p>{{rosterText}}</p>
+              </div>
               <figure class="clip" data-clip>
-              <video muted loop playsinline preload="none" aria-hidden="true" poster="/clips/substitute.{{lang}}.jpg">
-                <source src="/clips/substitute.{{lang}}.webm" type="video/webm" />
-                <source src="/clips/substitute.{{lang}}.mp4" type="video/mp4" />
-              </video>
-              <figcaption>{{clipSubstitute}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
-            </figure>
-            </section>
-            <section>
+                <div class="stage"><video muted loop playsinline preload="none" aria-hidden="true" poster="/clips/attend.{{lang}}.jpg">
+                  <source src="/clips/attend.{{lang}}.webm" type="video/webm" />
+                  <source src="/clips/attend.{{lang}}.mp4" type="video/mp4" />
+                </video></div>
+                <figcaption>{{clipAttend}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
+              </figure>
+            </article>
+            <article class="row feature flip">
+              <div class="feature-text">
+                <h3>{{subTitle}}</h3>
+                <p>{{subText}}</p>
+              </div>
+              <figure class="clip" data-clip>
+                <div class="stage"><video muted loop playsinline preload="none" aria-hidden="true" poster="/clips/substitute.{{lang}}.jpg">
+                  <source src="/clips/substitute.{{lang}}.webm" type="video/webm" />
+                  <source src="/clips/substitute.{{lang}}.mp4" type="video/mp4" />
+                </video></div>
+                <figcaption>{{clipSubstitute}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
+              </figure>
+            </article>
+          </div>
+          <ul class="extras">
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
+              <h3>{{oneTapTitle}}</h3>
+              <p>{{rosterOneTap}}</p>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
               <h3>{{calTitle}}</h3>
               <p>{{calText}}</p>
-              <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>{{calField}}</p>
-            </section>
-          </div>
-
-          <h2 class="group-title">{{groupMoneyTitle}}</h2>
-          <article class="pot-panel">
-            <figure class="clip" data-clip>
-              <video muted loop playsinline preload="none" aria-hidden="true" poster="/clips/pot-topup.{{lang}}.jpg">
-                <source src="/clips/pot-topup.{{lang}}.webm" type="video/webm" />
-                <source src="/clips/pot-topup.{{lang}}.mp4" type="video/mp4" />
-              </video>
-              <figcaption>{{clipPot}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
-            </figure>
-            <div class="pot-body">
-              <h3>{{potTitle}}</h3>
-              <p>{{potText}}</p>
-              <p class="pot-note">{{potNote}}</p>
-            </div>
-          </article>
-
-          <section class="start" id="start" aria-labelledby="start-title">
-            <h2 id="start-title">{{startTitle}}</h2>
-            <p class="sub">{{startInvited}}</p>
-            <ol class="steps">
-              <li>
-                <h3>{{step1Title}}</h3>
-                <p id="step1-text">{{step1Text}}</p>
-                <form class="request" method="post" novalidate data-request>
-                  <label class="sr-only" for="email">{{emailLabel}}</label>
-                  <div class="row">
-                    <input id="email" aria-describedby="step1-text email-msg" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
-                    <button class="btn btn-primary" type="submit">{{formButton}}</button>
-                  </div>
-                  <p class="form-msg" id="email-msg" role="status" aria-live="polite"></p>
-                </form>
-              </li>
-              <li>
-                <h3>{{step2Title}}</h3>
-                <p>{{step2Text}}</p>
-              </li>
-              <li>
-                <h3>{{step3Title}}</h3>
-                <p>{{step3Text}}</p>
-                <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1" /></svg>{{inviteField}}</p>
-              </li>
-            </ol>
-          </section>
-
-          <section class="faq" aria-labelledby="faq-title">
-            <h2 id="faq-title">{{faqTitle}}</h2>
-            <details>
-              <summary>{{faqCostQ}}</summary>
-              <p>{{faqCostA}}</p>
-            </details>
-            <details>
-              <summary>{{faqBunqQ}}</summary>
-              <p>{{faqBunqA}}</p>
-            </details>
-            <details>
-              <summary>{{faqApproveQ}}</summary>
-              <p>{{faqApproveA}}</p>
-            </details>
-            <details>
-              <summary>{{faqAppQ}}</summary>
-              <p>{{faqAppA}}</p>
-            </details>
-            <details>
-              <summary>{{faqSportQ}}</summary>
-              <p>{{faqSportA}}</p>
-            </details>
-            <details>
-              <summary>{{faqDataQ}}</summary>
-              <p>{{faqDataA}} <a href="{{privacyHref}}">{{faqDataLink}}</a>.</p>
-            </details>
-          </section>
-
-          <section class="origin">
-            <h2>{{originTitle}}</h2>
-            <p>{{originText}}</p>
-          </section>
+            </li>
+          </ul>
         </div>
-      </div>
+      </section>
+
+      <section class="sec band" id="money" aria-labelledby="money-title">
+        <div class="wrap">
+          <h2 id="money-title">{{groupMoneyTitle}}</h2>
+          <p class="lead">{{moneyLead}}</p>
+          <div class="rows">
+            <article class="row feature">
+              <div class="feature-text">
+                <h3>{{potTitle}}</h3>
+                <p>{{potText}}</p>
+                <p>{{potNote}}</p>
+              </div>
+              <figure class="clip" data-clip>
+                <div class="stage"><video muted loop playsinline preload="none" aria-hidden="true" poster="/clips/pot-topup.{{lang}}.jpg">
+                  <source src="/clips/pot-topup.{{lang}}.webm" type="video/webm" />
+                  <source src="/clips/pot-topup.{{lang}}.mp4" type="video/mp4" />
+                </video></div>
+                <figcaption>{{clipPot}}<button class="clip-toggle" type="button" hidden>{{clipPause}}</button></figcaption>
+              </figure>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec start" id="start" aria-labelledby="start-title">
+        <div class="wrap row">
+          <div>
+            <h2 id="start-title">{{startTitle}}</h2>
+            <p class="lead">{{startLead}}</p>
+            <p class="note">{{startInvited}}</p>
+          </div>
+          <ol class="steps">
+            <li>
+              <h3>{{step1Title}}</h3>
+              <p id="step1-text">{{step1Text}}</p>
+              <form class="request" method="post" novalidate data-request>
+                <label class="sr-only" for="email">{{emailLabel}}</label>
+                <div class="field">
+                  <input id="email" aria-describedby="step1-text email-msg" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+                  <button class="btn btn-primary" type="submit">{{formButton}}</button>
+                </div>
+                <p class="form-msg" id="email-msg" role="status" aria-live="polite"></p>
+              </form>
+            </li>
+            <li>
+              <h3>{{step2Title}}</h3>
+              <p>{{step2Text}}</p>
+            </li>
+            <li>
+              <h3>{{step3Title}}</h3>
+              <p>{{step3Text}}</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="sec band curve faq" id="faq" aria-labelledby="faq-title">
+        <div class="wrap row">
+          <div>
+            <h2 id="faq-title">{{faqTitle}}</h2>
+            <p class="lead">{{faqMore}} <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>.</p>
+          </div>
+          <div>
+              <details>
+                <summary>{{faqCostQ}}</summary>
+                <p>{{faqCostA}}</p>
+              </details>
+              <details>
+                <summary>{{faqBunqQ}}</summary>
+                <p>{{faqBunqA}}</p>
+              </details>
+              <details>
+                <summary>{{faqApproveQ}}</summary>
+                <p>{{faqApproveA}}</p>
+              </details>
+              <details>
+                <summary>{{faqAppQ}}</summary>
+                <p>{{faqAppA}}</p>
+              </details>
+              <details>
+                <summary>{{faqSportQ}}</summary>
+                <p>{{faqSportA}}</p>
+              </details>
+              <details>
+                <summary>{{faqDataQ}}</summary>
+                <p>{{faqDataA}} <a href="{{privacyHref}}">{{faqDataLink}}</a>.</p>
+              </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec dark" aria-labelledby="origin-title">
+        <div class="wrap row">
+          <div>
+            <svg class="ball" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 12c-1-4 0-7.500 2.500-9.700M12 12c3.500-2 7-1.800 9.800.300M12 12c-2.500 3.200-2.700 6.700-1 9.800M5.200 4.700c-.500 3 .800 5.700 3.800 7.800M21.300 15.600c-2.600 1.500-5.600 1.200-8.800-.800M5.600 19.700c2.400-1.700 3.700-4.300 3.900-7.700" /></svg>
+            <h2 id="origin-title">{{originTitle}}</h2>
+          </div>
+          <div>
+            <p class="lead">{{originText}}</p>
+            <div class="cta">
+              <a class="btn btn-primary" href="https://demo.teambalance.nl/">{{demoButton}}</a>
+              <a class="linkbtn" href="#start">{{howToStart}}</a>
+            </div>
+            <p class="cta-note">{{ctaNote}}</p>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer>

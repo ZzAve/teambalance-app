@@ -43,6 +43,7 @@ for (const fig of $$('[data-clip]')) {
   const toggle = $('.clip-toggle', fig)
   let paused = reduced
   let visible = false
+  fig.classList.add('pre') // CSS tilts the phone until .in; without this script it stays upright
   const sync = () => {
     if (visible && !paused) video.play().catch(() => {})
     else video.pause()
@@ -50,6 +51,7 @@ for (const fig of $$('[data-clip]')) {
   }
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting
+    if (visible) fig.classList.add('in')
     sync()
   }, { threshold: 0.5 }).observe(video)
   toggle.addEventListener('click', () => {

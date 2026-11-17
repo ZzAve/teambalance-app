@@ -1422,5 +1422,23 @@
     "notOnEvent": "niet bij dit event",
     "empty": "Nog geen events in dit seizoen.",
     "loadFailed": "Kon het seizoen niet laden."
+  },
+  "palette": {
+    "search": "Zoeken",
+    "title": "Zoeken en openen",
+    "placeholder": "Zoek events, leden, pagina’s…",
+    "groups": {
+      "events": "Events",
+      "members": "Leden",
+      "goto": "Ga naar",
+      "actions": "Acties"
+    },
+    "empty": "Niets gevonden voor “{{query}}”.",
+    "loading": "Events en leden laden…",
+    "loadFailed": "Events en leden konden niet worden geladen.",
+    "teamSettings": "Teaminstellingen",
+    "answer": "{{answer}}: {{event}}",
+    "switchTeam": "Wissel naar {{team}}",
+    "answered": "Antwoord opgeslagen: {{answer}}"
   }
 }

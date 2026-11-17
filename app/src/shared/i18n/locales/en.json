@@ -1422,5 +1422,23 @@
     "notOnEvent": "not on this event",
     "empty": "No events in this season yet.",
     "loadFailed": "Couldn't load the season."
+  },
+  "palette": {
+    "search": "Search",
+    "title": "Search and go",
+    "placeholder": "Search events, members, pages…",
+    "groups": {
+      "events": "Events",
+      "members": "Members",
+      "goto": "Go to",
+      "actions": "Actions"
+    },
+    "empty": "Nothing matches “{{query}}”.",
+    "loading": "Loading events and members…",
+    "loadFailed": "Events and members could not be loaded.",
+    "teamSettings": "Team settings",
+    "answer": "{{answer}}: {{event}}",
+    "switchTeam": "Switch to {{team}}",
+    "answered": "Answer saved: {{answer}}"
   }
 }

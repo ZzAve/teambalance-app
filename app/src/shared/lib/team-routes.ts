@@ -20,6 +20,9 @@ export function teamSlugFromPath(pathname: string): string | null {
   return slug === '' ? null : decodeURIComponent(slug)
 }
 
+/** The Team settings hub's sub-pages, each one setting under /team/settings/. */
+export type TeamSettingsSection = 'positions' | 'event-types' | 'match-feed' | 'season' | 'money' | 'bunq' | 'handover' | 'access'
+
 export interface TeamRoutes {
   /** The Team's home — the events list. */
   events: string
@@ -27,7 +30,11 @@ export interface TeamRoutes {
   team: string
   /** A Member's detail page, opened from the roster. */
   member: (userId: string) => string
+  /** A Substitute's page, opened from the roster (ADR-0033). */
+  substitute: (substituteId: string) => string
+  /** The admin settings hub. */
   teamSettings: string
+  teamSetting: (section: TeamSettingsSection) => string
   /** The shared-money pool. */
   money: string
   /** The member's own calendar links (webcal subscriptions) for this Team. */
@@ -46,7 +53,9 @@ export function teamRoutes(slug: string | null): TeamRoutes {
       event: () => '/',
       team: '/',
       member: () => '/',
+      substitute: () => '/',
       teamSettings: '/',
+      teamSetting: () => '/',
       money: '/',
       calendar: '/',
       getStarted: '/',
@@ -58,7 +67,9 @@ export function teamRoutes(slug: string | null): TeamRoutes {
     event: (eventId) => `${base}/events/${encodeURIComponent(eventId)}`,
     team: `${base}/team`,
     member: (userId) => `${base}/team/${encodeURIComponent(userId)}`,
+    substitute: (substituteId) => `${base}/team/sub/${encodeURIComponent(substituteId)}`,
     teamSettings: `${base}/team/settings`,
+    teamSetting: (section) => `${base}/team/settings/${section}`,
     money: `${base}/money`,
     calendar: `${base}/calendar`,
     getStarted: `${base}/get-started`,

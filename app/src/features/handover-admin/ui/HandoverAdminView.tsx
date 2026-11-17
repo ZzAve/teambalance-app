@@ -60,7 +60,6 @@ export function HandoverAdminView({
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const heading = (
     <div>
-      <h2 className="font-display text-title font-bold">{t('handover.heading')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
         {t('handover.intro')}
       </p>

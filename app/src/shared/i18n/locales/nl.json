@@ -939,19 +939,15 @@
   "members": {
     "heading": "Leden",
     "loadFailed": "Leden laden is mislukt. Probeer het opnieuw.",
-    "emptyManage": "Nog geen leden. Deel een uitnodigingslink om mensen erbij te halen.",
     "empty": "Nog geen leden.",
     "removeTitle": "Lid verwijderen",
     "removeDescription": "{{name}} uit het team verwijderen? Ze hebben geen toegang meer tot je ze opnieuw uitnodigt.",
-    "lastAdminHint": "Dit is de laatste admin — een team moet er minstens één houden.",
-    "displayNameFor": "Weergavenaam van {{name}}",
     "admin": "Admin",
     "positionFor": "Positie van {{name}}",
     "actionsFor": "Acties voor {{name}}",
     "rename": "Naam wijzigen",
     "makeMember": "Maak lid",
-    "makeAdmin": "Maak admin",
-    "removeMenu": "Verwijder…"
+    "makeAdmin": "Maak admin"
   },
   "positions": {
     "heading": "Posities",
@@ -983,7 +979,6 @@
   "manageSubstitutes": {
     "heading": "Invallers",
     "loadFailed": "Invallers laden is mislukt. Probeer het opnieuw.",
-    "emptyManage": "Nog geen invallers. Leden voegen ze toe als ze iemand oproepen voor een event.",
     "empty": "Nog geen invallers.",
     "removeTitle": "Invaller verwijderen",
     "removeDescription": "{{name}} verdwijnt uit elk event waaraan die is toegevoegd, ook uit eerdere. Dit kan niet ongedaan worden gemaakt.",
@@ -996,7 +991,9 @@
       "none": "{{name}} staat bij geen enkel event.",
       "some_one": "{{name}} staat bij {{count}} event.",
       "some_other": "{{name}} staat bij {{count}} events."
-    }
+    },
+    "substitute": "Invaller",
+    "faceLabel": "{{name}}, invaller"
   },
   "eventTypes": {
     "heading": "Eventtypes",
@@ -1061,7 +1058,6 @@
     "revokeDescription": "De oude link werkt niet meer en er komt geen nieuwe voor in de plaats. Niemand kan er nog admin van dit team mee worden."
   },
   "generateInvite": {
-    "trigger": "Uitnodigingslink",
     "title": "Uitnodigingslink voor het team",
     "loading": "Laden...",
     "loadFailed": "De uitnodigingslink laden is mislukt.",
@@ -1098,7 +1094,10 @@
   },
   "teamPage": {
     "settings": "Teaminstellingen",
-    "back": "Terug naar team"
+    "back": "Terug naar team",
+    "invite": "Mensen uitnodigen",
+    "inviteHint": "Deel de uitnodigingslink van het team",
+    "settingsHint": "Posities, eventtypes, seizoen, geld, toegang"
   },
   "memberDetail": {
     "fallbackTitle": "Lid",
@@ -1116,7 +1115,11 @@
     "removeOther": "De foto van {{name}} verwijderen? Alleen {{name}} kan een nieuwe toevoegen.",
     "role": "Rol",
     "roleMember": "Lid",
-    "editProfile": "Profiel bewerken"
+    "editProfile": "Profiel bewerken",
+    "adminGroup": "Admin",
+    "makeAdminHint": "Kan teaminstellingen en leden wijzigen",
+    "makeMemberHint": "Kan teaminstellingen niet meer wijzigen",
+    "removeFromTeam": "Uit het team verwijderen"
   },
   "pageHeader": {
     "back": "Terug"
@@ -1357,5 +1360,29 @@
       "read": "Van het bonnetje gelezen. Controleer of dit het totaal is.",
       "notFound": "Het bedrag kon niet van het bonnetje worden gelezen. Vul het zelf in."
     }
+  },
+  "substituteDetail": {
+    "fallbackTitle": "Invaller",
+    "notOnList": "Deze invaller staat niet op de lijst.",
+    "subline": "{{position}} · Invaller"
+  },
+  "teamSettingsHub": {
+    "seasonSetup": "Seizoensopzet",
+    "money": "Geld",
+    "access": "Toegang",
+    "bunq": "Bunq",
+    "matchFeed": "Wedstrijdfeed",
+    "seasonFrom": "Vanaf {{month}}",
+    "seasonUntil": "Tot {{month}}",
+    "notSet": "Niet ingesteld",
+    "on": "Aan",
+    "off": "Uit",
+    "onWithBeer": "Aan · biertje {{price}}",
+    "connected": "Gekoppeld",
+    "notConnected": "Niet gekoppeld",
+    "none": "Geen",
+    "visits_one": "{{count}} bezoek",
+    "visits_other": "{{count}} bezoeken",
+    "back": "Terug naar teaminstellingen"
   }
 }

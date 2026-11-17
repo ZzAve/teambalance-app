@@ -51,7 +51,6 @@ export function MatchFeedView({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-display text-title font-bold">{t('matchFeed.title')}</h2>
         <p className="mt-1 text-small text-muted-foreground">{t('matchFeed.intro')}</p>
       </div>
 

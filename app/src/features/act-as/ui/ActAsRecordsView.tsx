@@ -30,7 +30,6 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
   const { t } = useTranslation()
   return (
     <section>
-      <h3 className="font-display text-lead font-bold">{t('actAs.records.title')}</h3>
       <p className="mt-1 text-small text-muted-foreground">
         {t('actAs.records.intro')}
       </p>

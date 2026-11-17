@@ -80,8 +80,6 @@ export function ManagePositionsView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">{t('positions.heading')}</h2>
-
       {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('account.loading')}</p>}
       {isError && (
         <p className="mt-4 text-small text-red-ink">{t('positions.loadFailed')}</p>

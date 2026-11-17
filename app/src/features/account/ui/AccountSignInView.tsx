@@ -8,7 +8,7 @@ import { Button } from '@shared/ui/button'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { useTranslation } from 'react-i18next'
-import { CARD, ICON, ROW } from './account-styles'
+import { CARD, ICON, ROW } from '@shared/ui/settings-list'
 
 interface AccountSignInViewProps {
   userId: string

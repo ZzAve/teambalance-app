@@ -86,7 +86,6 @@ export function ConnectBunqView({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-display text-title font-bold">{t('connectBunq.title')}</h2>
         {!connected && (
           <p className="mt-1 text-small text-muted-foreground">
             {t('connectBunq.intro')}

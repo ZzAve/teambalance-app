@@ -38,6 +38,11 @@ member who paid. The two cancel out, so the balance does not change and no money
   Off. Without a working Bunq Connection the pool lists the expenses alone, with their total and the
   Toppers, and shows no balance. When a connection exists but cannot be read (Unavailable, Rejected) the
   page says that the bank's payments are missing, because the list and the ranking are then incomplete.
+- **No top-up without Bunq** (added 2026-11-19, #565). Top up is offered only while the pool is Connected:
+  the connected account is the team's only shared bank account and the only common view of its money, so
+  without it a top-up goes somewhere nobody can follow. The pool then shows no Top up button, and the
+  top-up link is refused (404) while no Bunq Connection with a picked account exists. Members of a team
+  without Bunq see only the expenses; an Admin also sees what connecting adds and a link to the Bunq settings.
 - **Only inside the history the pool shows.** The date is not in the future and not before the first day
   the pool covers (season start, or the last 90 days; the same rule with and without Bunq). A recorded
   expense is therefore always visible, and it stops counting when the period no longer covers its date,

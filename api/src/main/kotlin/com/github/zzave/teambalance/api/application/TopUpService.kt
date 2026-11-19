@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TopUpAmount
 import com.github.zzave.teambalance.api.domain.model.TopUpDescription
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -12,11 +13,13 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 /**
- * Builds the bunq.me payment link a member follows to top up the pool. Needs no Bunq Connection.
+ * Builds the bunq.me payment link a member follows to top up the pool. Needs a Bunq Connection with an account
+ * picked: the connected account is the team's shared money; without it a top-up has nowhere to show (ADR-0048).
  * Refused under Act-as: the description carries the caller's user id, and a Platform Admin is no member.
  */
 class TopUpService(
     private val settingsRepository: MoneyPoolSettingsRepository,
+    private val connectionRepository: BunqConnectionRepository,
     private val teamRepository: TeamRepository,
     private val teamMemberRepository: TeamMemberRepository,
     private val authorizationService: AuthorizationService,
@@ -24,6 +27,7 @@ class TopUpService(
     fun topUpLink(userId: UserId, teamId: TeamId, amount: TopUpAmount): String {
         authorizationService.requireNotUnderActAs()
         val link = settingsRepository.get().topUpLink ?: throw TopUpUnavailableException()
+        connectionRepository.find()?.accountId ?: throw TopUpUnavailableException()
         val team = checkNotNull(teamRepository.findById(teamId)) { "Team $teamId has no row" }
         val member = checkNotNull(teamMemberRepository.findDisplayName(userId)) { "Member $userId has no display name" }
         val description = TopUpDescription.of(team.name.value, member.value, userId.toString())

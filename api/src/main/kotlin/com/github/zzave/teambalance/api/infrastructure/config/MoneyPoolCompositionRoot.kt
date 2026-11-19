@@ -154,11 +154,13 @@ class MoneyPoolCompositionRoot {
     @Bean
     fun topUpService(
         settingsRepository: MoneyPoolSettingsRepository,
+        connectionRepository: BunqConnectionRepository,
         teamRepository: TeamRepository,
         teamMemberRepository: TeamMemberRepository,
         authorizationService: AuthorizationService,
     ) = TopUpService(
         settingsRepository = settingsRepository,
+        connectionRepository = connectionRepository,
         teamRepository = teamRepository,
         teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,

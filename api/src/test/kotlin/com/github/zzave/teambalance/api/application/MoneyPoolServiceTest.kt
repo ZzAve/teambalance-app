@@ -308,6 +308,18 @@ class MoneyPoolServiceTest : FunSpec({
         (pool as MoneyPool.Connected).payments.single().memberId shouldBe null
     }
 
+    test("can top up only when the pool is Connected and a bunq.me link is set: the connected account is where the money goes") {
+        val withLink = MoneyPoolSettings(true, bunqMeLink = BunqMeLink.parse("bunq.me/setpointvt"))
+
+        service(settings = withLink).getMoneyPool(team, MEMBER).canTopUp shouldBe true
+        service(settings = MoneyPoolSettings(true)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+        service(settings = withLink, connected = false).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+        service(settings = withLink, accountPicked = false).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+        service(settings = withLink, cache = HoldingCache(MoneyPool.Unavailable)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+        service(settings = withLink, cache = HoldingCache(MoneyPool.Rejected)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+        service(settings = withLink.copy(enabled = false)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+    }
+
     test("is Off when the team switched the money pool off") {
         service(enabled = false).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Off
     }
@@ -518,14 +530,6 @@ class MoneyPoolServiceTest : FunSpec({
         val pool = service().getMoneyPool(team, MEMBER).pool as MoneyPool.Connected
         pool.beerPrice shouldBe null
         pool.beerCount shouldBe null
-    }
-
-    test("members can top up once the pool is on and a bunq.me link is set, in any state") {
-        val link = BunqMeLink.parse("bunq.me/setpointvt")
-        service(settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool(team, MEMBER).canTopUp shouldBe true
-        service(connected = false, settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool(team, MEMBER).canTopUp shouldBe true
-        service(settings = MoneyPoolSettings(true)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
-        service(settings = MoneyPoolSettings(false, bunqMeLink = link)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
     }
 
     test("a stored link that is not a bunq.me page does not allow top-up") {

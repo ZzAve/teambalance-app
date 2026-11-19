@@ -549,28 +549,13 @@
       "reconnect": "Bunq no longer accepts the team's connection. Reconnect it.",
       "reconnectInSettings": "Bunq no longer accepts the team's connection. Reconnect it in the team settings."
     },
-    "preview": "Money pool preview",
-    "previewTitle": "A shared team pot",
-    "memberCopy": "Once an admin connects the team’s Bunq account, the balance and payments show up here.",
     "admin": {
-      "pickAccount": "Pick the account in the team settings. The balance and payments will show up here.",
-      "unknown": "The balance and payments of the team’s Bunq account will show up here.",
-      "connect": "Connect the team’s Bunq account in the team settings. The balance and payments will show up here.",
-      "comingSoon": "Connecting the team’s Bunq account is coming soon. The balance and payments will show up here."
-    },
-    "pillar": {
-      "pot": {
-        "title": "One shared pot",
-        "blurb": "The whole team's money, in one place"
-      },
-      "chipIn": {
-        "title": "Chip in fast",
-        "blurb": "Top up your share in a couple of taps"
-      },
-      "tracked": {
-        "title": "Every euro tracked",
-        "blurb": "See what was paid, and where it went"
-      }
+      "title": "No bank account connected",
+      "pickAccount": "Pick the account the pool reads to show the balance here and let members top up.",
+      "unknown": "With the team’s Bunq account connected, the balance shows here and members can top up.",
+      "connect": "Connect the team’s Bunq account to show the balance here and let members top up.",
+      "comingSoon": "Connecting the team’s Bunq account is coming soon. Then the balance shows here and members can top up.",
+      "toSettings": "Go to Bunq settings"
     },
     "balance": "Balance",
     "poolBalance": "Pool balance",
@@ -583,7 +568,7 @@
     "incoming": "Incoming",
     "outgoing": "Outgoing",
     "totalIn": "In",
-    "toppedUp": "Topped up",
+    "toppedUp": "Contributed",
     "totalSpent": "Spent",
     "thisSeason": "This season",
     "last90Days": "Last 90 days",
@@ -598,18 +583,18 @@
       "period": "Period",
       "season": "Season",
       "last30Days": "Last 30 days",
-      "empty": "No one has topped up yet.",
+      "empty": "No one has contributed yet.",
       "formerMember": "Former member",
       "play": "Play the ranking",
       "pause": "Pause",
       "reset": "Back to now",
       "nowSeason": "Now, this season",
       "nowLast30Days": "Now, last 30 days",
-      "totalToppedUp": "Total topped up",
+      "totalToppedUp": "Total contributed",
       "ranking": "Toppers ranking",
       "rankItem": "Number {{rank}}: {{name}}, {{amount}}",
       "resume": "Resume",
-      "emptyLast30Days": "No top-ups in the last 30 days.",
+      "emptyLast30Days": "No contributions in the last 30 days.",
       "nowLast90Days": "Now, last 90 days",
       "onTop": "{{name}} is on top with {{amount}}.",
       "day": "Day",

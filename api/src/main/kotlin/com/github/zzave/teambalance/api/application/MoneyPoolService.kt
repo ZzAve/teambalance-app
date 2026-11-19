@@ -53,7 +53,8 @@ class MoneyPoolService(
             CachedMoneyPool(MoneyPool.Off, refreshing = false)
         }
         val pool = cached.pool.withBeerFigures(settings).withMembers(teamId, viewerId)
-        val canTopUp = settings.topUpLink != null
+        // A top-up goes to the connected account, the only shared view of the team's money (ADR-0048).
+        val canTopUp = pool is MoneyPool.Connected && settings.topUpLink != null
         if (pool == MoneyPool.Off) return MoneyPoolOverview(pool, canTopUp, cached.refreshing)
 
         val connected = pool as? MoneyPool.Connected

@@ -56,6 +56,8 @@ jobs:
       - run: npm run build
         working-directory: app
 
+      - run: make test-www
+
       # Frontend tests (Vitest: jsdom units + headless-Chromium Storybook project).
       #
       # Vitest's browser-mode project intermittently fails to tear down its headless
@@ -79,6 +81,21 @@ jobs:
           done
           echo "::error::vitest failed on both attempts"
           exit 1
+
+      # Landing page smoke test (www/): builds the page and drives it at 390 and 1440 px.
+      - name: Landing page smoke test
+        run: npm run e2e:www
+        working-directory: app
+
+      - name: Upload landing page Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: www-playwright-report
+          path: |
+            app/playwright-report/
+            app/test-results/
+          retention-days: 7
 
   e2e:
     runs-on: ubuntu-latest
@@ -360,20 +377,28 @@ jobs:
           # application/octet-stream and be rejected as a manifest — set the type explicitly.
           aws --endpoint-url "$S3_ENDPOINT" s3 cp app/dist/manifest.webmanifest "s3://${SPA_BUCKET}/manifest.webmanifest" \
             --cache-control no-cache --content-type application/manifest+json
-          # Landing page (#464): Dutch at /, English at /en/, both rendered from www/template.html and
-          # www/strings/*.json. style.css at root, tokens.css under /design-tokens/ (absolute paths,
-          # so /en/ finds them too).
+          # Landing page (#464, #152): Dutch at /, English at /en/, plus privacy pages, stylesheet,
+          # script, fonts and images, all built into www/dist. Only www/dist is uploaded, so
+          # nothing else under www/ can reach the bucket. No --delete (same reasoning as the SPA
+          # block); the bucket root holds nothing else.
           node www/build.mjs
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/dist/index.html "s3://${WWW_BUCKET}/index.html" \
-            --cache-control no-cache
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/dist/en/index.html "s3://${WWW_BUCKET}/en/index.html" \
-            --cache-control no-cache
-          # style.css + tokens.css are unhashed and referenced by name from index.html's <head>,
-          # so they must revalidate in lockstep with it: no-cache matches index.html and prevents
-          # a half-updated landing (fresh HTML, stale CSS served under the CDN default TTL).
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/style.css "s3://${WWW_BUCKET}/style.css" \
-            --cache-control no-cache
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp design-tokens/tokens.css "s3://${WWW_BUCKET}/design-tokens/tokens.css" \
+          # Content types are set explicitly where a wrong one breaks the page: a browser refuses an
+          # ES module that is not served as a JavaScript type, and woff2 is not in every mime table.
+          # Fonts and images are unhashed but change rarely: a day at the edge, revalidated after.
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "fonts/*" \
+            --content-type font/woff2 --cache-control "public,max-age=86400"
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "*.png" --include "*.svg" --include "*.ico" \
+            --cache-control "public,max-age=86400"
+          # HTML, CSS and JS are unhashed and reference each other by name: no-cache makes them
+          # revalidate together, so a fresh page never runs against a stale stylesheet or script.
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "*.js" --include "*.mjs" \
+            --content-type text/javascript --cache-control no-cache
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "fonts/*" --exclude "*.png" --exclude "*.svg" --exclude "*.ico" \
+            --exclude "*.js" --exclude "*.mjs" \
             --cache-control no-cache
 
       - name: Purge Edge Services cache

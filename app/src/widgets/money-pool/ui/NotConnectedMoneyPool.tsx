@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Landmark } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -25,11 +26,12 @@ interface NotConnectedMoneyPoolProps {
 export function NotConnectedMoneyPool({ connectAvailable, accountPending }: NotConnectedMoneyPoolProps) {
   const { t } = useTranslation()
   const routes = useTeamRoutes()
+  const titleId = useId()
   return (
-    <section aria-labelledby="no-bank-account" className="flex gap-3 rounded-lg bg-card p-4">
+    <section aria-labelledby={titleId} className="flex gap-3 rounded-lg bg-card p-4">
       <Landmark size={20} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div>
-        <h3 id="no-bank-account" className="text-small font-bold">
+        <h3 id={titleId} className="text-small font-bold">
           {t('money.admin.title')}
         </h3>
         <p className="mt-1 text-small text-muted-foreground">{adminCopy(connectAvailable, accountPending)}</p>

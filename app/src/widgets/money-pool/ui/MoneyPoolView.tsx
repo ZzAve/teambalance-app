@@ -125,7 +125,7 @@ export function MoneyPoolView({
       {recordExpense && (
         <div className="flex flex-col gap-3">
           {recordExpense}
-          {recordExpense && expenses.length === 0 && <p className="text-center text-small text-muted-foreground">{t('money.noExpenses')}</p>}
+          {expenses.length === 0 && <p className="text-center text-small text-muted-foreground">{t('money.noExpenses')}</p>}
         </div>
       )}
       {expenses.length > 0 && (

@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCurrentUser } from '@shared/api/auth'
-import { MemberUpdateError, useMembers, useUpdateMember } from '@shared/api/members'
+import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember, type Role } from '@shared/api/members'
+import { teamRoutes } from '@shared/lib/team-routes'
+import { toggleRole } from '@features/manage-members/lib/roster'
 import { PhotoError, personalPhotoUrl, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
 import { usePositions } from '@shared/api/positions'
 import { PaymentAliases } from '@features/edit-payment-aliases/ui/PaymentAliases'
@@ -16,15 +18,20 @@ export const Route = createFileRoute('/t/$slug/team/$userId')({
  * Container for one Member's page (ADR-0038): reads the roster query the /team page already filled
  * and wires the full-member update. Pure wiring — every state lives in the prop-only View — so this
  * seam is covered by e2e, not a story. Editing is allowed for the member themselves and for Admins;
- * the Team Photo is set only by the member and removed by them or an Admin. The backend enforces the
- * same rules.
+ * the Team Photo is set only by the member and removed by them or an Admin. An Admin on someone else's
+ * page also changes their Position and Role, or removes them (ADR-0013). The backend enforces the
+ * same rules, LAST_ADMIN included.
  */
 function MemberDetailPage() {
-  const { userId } = Route.useParams()
+  const { slug, userId } = Route.useParams()
+  const navigate = useNavigate()
   const currentUser = useCurrentUser()
   const { data: members, isLoading, error } = useMembers()
   const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
+  // A second instance, so an Admin-group refusal (LAST_ADMIN) does not show up in the profile form.
+  const adminUpdate = useUpdateMember()
+  const removeMember = useRemoveMember()
   const uploadPhoto = useUploadTeamPhoto()
   const copyPersonalPhoto = useCopyPersonalPhotoToTeam()
   const removePhoto = useRemoveTeamPhoto()
@@ -43,6 +50,24 @@ function MemberDetailPage() {
   // Each photo action clears the others' errors, so only the latest outcome shows.
   const resetPhotoErrors = () => photoMutations.forEach((m) => m.reset())
   const isSelf = currentUser?.id === userId
+  const adminError = adminUpdate.error ?? removeMember.error
+  const adminErrorMessage = adminError
+    ? adminError instanceof MemberUpdateError
+      ? adminError.message
+      : t('errors.saveFailed')
+    : undefined
+  // The update saves the whole member, so each Admin-group change resends the rest as it is.
+  const adminSave = (change: { role?: Role; positionId?: string | null }) => {
+    if (!member) return
+    removeMember.reset()
+    adminUpdate.mutate({
+      userId,
+      displayName: member.displayName,
+      role: change.role ?? member.role,
+      positionId: change.positionId !== undefined ? change.positionId : (member.position?.id ?? null),
+      shirtNumber: member.shirtNumber ?? null,
+    })
+  }
 
   return (
     <MemberDetailView
@@ -88,6 +113,15 @@ function MemberDetailPage() {
       }}
       // Aliases only attribute money-pool payments, so a team with the pool off has no use for them.
       paymentAliases={currentUser?.moneyPoolEnabled !== false ? <PaymentAliases userId={userId} /> : undefined}
+      canAdminister={!isSelf && currentUser?.role === 'ADMIN'}
+      isAdminSaving={adminUpdate.isPending || removeMember.isPending}
+      adminErrorMessage={adminErrorMessage}
+      onChangePosition={(positionId) => adminSave({ positionId })}
+      onToggleRole={() => member && adminSave({ role: toggleRole(member.role) })}
+      onRemove={() => {
+        adminUpdate.reset()
+        removeMember.mutate({ userId }, { onSuccess: () => navigate({ to: teamRoutes(slug).team }) })
+      }}
     />
   )
 }

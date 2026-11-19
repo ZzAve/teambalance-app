@@ -55,7 +55,7 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
 
   // 4. Write, as an Admin of a team we are not in: curating Positions is admin-only, so this is the
   //    Virtual Member doing real work (ADR-0024 §1).
-  await page.goto(`/t/${TEAM.slug}/team/settings`)
+  await page.goto(`/t/${TEAM.slug}/team/settings/positions`)
   await page.getByLabel('New position label').fill(POSITION)
   await page.getByRole('button', { name: 'Add', exact: true }).click()
   // The curated list renders each label as text on its row (#341); Rename lives in the row's menu.
@@ -68,9 +68,10 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   await expect(page.getByRole('link', { name: OPERATOR_NAME })).toHaveCount(0)
 
   // 6. ...and the team's Admins can see the platform was here, attributed generically (ADR-0024 §4).
-  //    The record lives on the Admin-only settings page, collapsed until asked for.
-  await page.goto(`/t/${TEAM.slug}/team/settings`)
-  const platformAccess = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Platform access' }) })
+  //    The record lives on its Admin-only settings page, collapsed until asked for.
+  await page.goto(`/t/${TEAM.slug}/team/settings/access`)
+  await expect(page.getByRole('heading', { name: 'Platform access' })).toBeVisible({ timeout: 15_000 })
+  const platformAccess = page.locator('section').filter({ hasText: 'When the people who run TeamBalance worked' })
   await expect(platformAccess).toBeVisible({ timeout: 15_000 })
   const platformRecords = platformAccess.locator('details').filter({ hasText: /The TeamBalance owner worked here/ }).first()
   await expect(platformRecords).not.toHaveAttribute('open')

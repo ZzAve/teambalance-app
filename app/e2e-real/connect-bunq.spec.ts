@@ -12,7 +12,7 @@ import { authenticateViaApi, csrfHeader } from './helpers'
 // a warm DB: the first step deletes whatever connection a previous run left behind.
 
 const TEAM = 'e2e-test-team'
-const SETTINGS = `/t/${TEAM}/team/settings`
+const SETTINGS = `/t/${TEAM}/team/settings/bunq`
 const MONEY = `/t/${TEAM}/money`
 const MEMBER_EMAIL = 'e2e-teammate@example.com'
 const BASE_URL = 'http://localhost:5173'
@@ -163,7 +163,7 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
   await page.getByRole('button', { name: 'Connect Bunq' }).click()
   await page.getByRole('textbox', { name: 'Login' }).fill(login)
   await page.getByRole('button', { name: 'Approve' }).click()
-  await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`), BACK_FROM_BUNQ)
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`), BACK_FROM_BUNQ)
   await page.getByRole('radio', { name: 'Teamkas' }).check()
   await page.getByRole('button', { name: 'Use this account' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
@@ -215,7 +215,7 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
     await page.getByRole('button', { name: 'Connect again' }).click()
     await page.getByRole('textbox', { name: 'Login' }).fill(login)
     await page.getByRole('button', { name: 'Approve' }).click()
-    await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`), BACK_FROM_BUNQ)
+    await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`), BACK_FROM_BUNQ)
     await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible(BACK_FROM_BUNQ)
     await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
     await expect(page.getByText('can’t use its stored bunq access any more')).toHaveCount(0)

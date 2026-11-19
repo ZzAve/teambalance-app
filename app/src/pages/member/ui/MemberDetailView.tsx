@@ -1,15 +1,18 @@
 import { useTranslation } from 'react-i18next'
 import { useState, type ReactNode } from 'react'
-import { Hash, Shield, Shirt } from 'lucide-react'
+import { Hash, Shield, Shirt, Trash2 } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { MemberFace } from '@entities/member/ui/MemberFace'
+import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { Button } from '@shared/ui/button'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
+import { SectionLabel } from '@shared/ui/SectionLabel'
+import { CARD, ICON, ROW, ROW_INTERACTIVE } from '@shared/ui/settings-list'
 
 interface MemberDetailViewProps {
   /** Undefined while loading, on error, or when the id names nobody on the Roster. */
@@ -17,7 +20,7 @@ interface MemberDetailViewProps {
   positions: Position[]
   isLoading?: boolean
   isError?: boolean
-  /** The member themselves, or an Admin (ADR-0038). Role changes stay in team settings. */
+  /** The member themselves, or an Admin (ADR-0038). */
   canEdit: boolean
   isEditing: boolean
   isSaving: boolean
@@ -41,11 +44,21 @@ interface MemberDetailViewProps {
   onRemovePhoto: () => void
   /** The payment-aliases editor, container-supplied (ADR-0045). Shown only when `canEdit`. */
   paymentAliases?: ReactNode
+  /**
+   * An Admin on another member's page (ADR-0013): shows the Admin group — Position, Make admin /
+   * Make member, Remove from team. Never on your own page, so an Admin cannot demote themselves here.
+   */
+  canAdminister?: boolean
+  /** A role, Position or remove write from the Admin group is in flight. */
+  isAdminSaving?: boolean
+  /** A refusal of an Admin-group write (e.g. LAST_ADMIN), shown in the group. */
+  adminErrorMessage?: string
+  onChangePosition?: (positionId: string | null) => void
+  onToggleRole?: () => void
+  /** Called once the remove is confirmed in the dialog. */
+  onRemove?: () => void
 }
 
-const CARD = 'overflow-hidden rounded-md border border-border bg-card shadow-[var(--shadow-card)]'
-const ROW = 'flex items-center gap-3 px-4 py-3 text-small'
-const ICON = 'shrink-0 text-muted-foreground'
 
 /**
  * One Member's page, opened from the /team roster (ADR-0038): their face with the Shirt Number, then
@@ -76,10 +89,17 @@ export function MemberDetailView({
   onUsePersonalPhoto,
   onRemovePhoto,
   paymentAliases,
+  canAdminister = false,
+  isAdminSaving = false,
+  adminErrorMessage,
+  onChangePosition,
+  onToggleRole,
+  onRemove,
 }: MemberDetailViewProps) {
   const { t } = useTranslation()
   const routes = useTeamRoutes()
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const [confirmingRemoveMember, setConfirmingRemoveMember] = useState(false)
   const [previewingPersonal, setPreviewingPersonal] = useState(false)
 
   return (
@@ -211,6 +231,63 @@ export function MemberDetailView({
                 <Button variant="outline" onClick={onEdit}>
                   {t('memberDetail.editProfile')}
                 </Button>
+              )}
+              {canAdminister && (
+                <section>
+                  <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('memberDetail.adminGroup')}</SectionLabel>
+                  {adminErrorMessage && (
+                    <p role="alert" className="mb-2 rounded-md bg-red/10 px-3 py-2 text-small text-red-ink">
+                      {adminErrorMessage}
+                    </p>
+                  )}
+                  <div className={`${CARD} divide-y divide-border`}>
+                    <div className={ROW}>
+                      <Shirt size={18} className={ICON} aria-hidden="true" />
+                      <span className="flex-1 font-medium">{t('profileForm.position')}</span>
+                      <div className="w-40 shrink-0">
+                        <PositionPicker
+                          aria-label={t('members.positionFor', { name: member.displayName })}
+                          positions={positions}
+                          value={member.position?.id ?? null}
+                          includeUnassigned
+                          disabled={isAdminSaving}
+                          onChange={(positionId) => onChangePosition?.(positionId)}
+                        />
+                      </div>
+                    </div>
+                    <button type="button" className={`${ROW_INTERACTIVE} disabled:opacity-50`} disabled={isAdminSaving} onClick={onToggleRole}>
+                      <Shield size={18} className={ICON} aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">
+                          {member.role === 'ADMIN' ? t('members.makeMember') : t('members.makeAdmin')}
+                        </span>
+                        <span className="block text-caption text-muted-foreground">
+                          {member.role === 'ADMIN' ? t('memberDetail.makeMemberHint') : t('memberDetail.makeAdminHint')}
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${ROW_INTERACTIVE} font-semibold text-red-ink hover:bg-red/5 disabled:opacity-50`}
+                      disabled={isAdminSaving}
+                      onClick={() => setConfirmingRemoveMember(true)}
+                    >
+                      <Trash2 size={18} className="shrink-0" aria-hidden="true" />
+                      {t('memberDetail.removeFromTeam')}
+                    </button>
+                  </div>
+                  <ConfirmDialog
+                    open={confirmingRemoveMember}
+                    title={t('members.removeTitle')}
+                    description={t('members.removeDescription', { name: member.displayName })}
+                    confirmLabel={t('account.remove')}
+                    onConfirm={() => {
+                      setConfirmingRemoveMember(false)
+                      onRemove?.()
+                    }}
+                    onCancel={() => setConfirmingRemoveMember(false)}
+                  />
+                </section>
               )}
               {canEdit && paymentAliases}
             </>

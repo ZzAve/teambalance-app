@@ -34,7 +34,10 @@ import { Route as TSlugMoneyIndexRouteImport } from './routes/t/$slug/money/inde
 import { Route as TSlugProfileIndexRouteImport } from './routes/t/$slug/profile/index'
 import { Route as TSlugTeamIndexRouteImport } from './routes/t/$slug/team/index'
 import { Route as TSlugTeamUserIdRouteImport } from './routes/t/$slug/team/$userId'
-import { Route as TSlugTeamSettingsRouteImport } from './routes/t/$slug/team/settings'
+import { Route as TSlugTeamSettingsRouteRouteImport } from './routes/t/$slug/team/settings/route'
+import { Route as TSlugTeamSettingsIndexRouteImport } from './routes/t/$slug/team/settings/index'
+import { Route as TSlugTeamSettingsSectionRouteImport } from './routes/t/$slug/team/settings/$section'
+import { Route as TSlugTeamSubSubstituteIdRouteImport } from './routes/t/$slug/team/sub/$substituteId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -161,11 +164,28 @@ const TSlugTeamUserIdRoute = TSlugTeamUserIdRouteImport.update({
   path: '/team/$userId',
   getParentRoute: () => TSlugRouteRoute,
 } as any)
-const TSlugTeamSettingsRoute = TSlugTeamSettingsRouteImport.update({
+const TSlugTeamSettingsRouteRoute = TSlugTeamSettingsRouteRouteImport.update({
   id: '/team/settings',
   path: '/team/settings',
   getParentRoute: () => TSlugRouteRoute,
 } as any)
+const TSlugTeamSettingsIndexRoute = TSlugTeamSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TSlugTeamSettingsRouteRoute,
+} as any)
+const TSlugTeamSettingsSectionRoute =
+  TSlugTeamSettingsSectionRouteImport.update({
+    id: '/$section',
+    path: '/$section',
+    getParentRoute: () => TSlugTeamSettingsRouteRoute,
+  } as any)
+const TSlugTeamSubSubstituteIdRoute =
+  TSlugTeamSubSubstituteIdRouteImport.update({
+    id: '/team/sub/$substituteId',
+    path: '/team/sub/$substituteId',
+    getParentRoute: () => TSlugRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -186,14 +206,17 @@ export interface FileRoutesByFullPath {
   '/create-team/': typeof CreateTeamIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/t/$slug/': typeof TSlugIndexRoute
+  '/t/$slug/team/settings': typeof TSlugTeamSettingsRouteRouteWithChildren
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
   '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
-  '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
   '/t/$slug/calendar/': typeof TSlugCalendarIndexRoute
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
   '/t/$slug/profile/': typeof TSlugProfileIndexRoute
   '/t/$slug/team/': typeof TSlugTeamIndexRoute
+  '/t/$slug/team/settings/$section': typeof TSlugTeamSettingsSectionRoute
+  '/t/$slug/team/sub/$substituteId': typeof TSlugTeamSubSubstituteIdRoute
+  '/t/$slug/team/settings/': typeof TSlugTeamSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -215,12 +238,14 @@ export interface FileRoutesByTo {
   '/t/$slug': typeof TSlugIndexRoute
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
   '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
-  '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
   '/t/$slug/calendar': typeof TSlugCalendarIndexRoute
   '/t/$slug/get-started': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money': typeof TSlugMoneyIndexRoute
   '/t/$slug/profile': typeof TSlugProfileIndexRoute
   '/t/$slug/team': typeof TSlugTeamIndexRoute
+  '/t/$slug/team/settings/$section': typeof TSlugTeamSettingsSectionRoute
+  '/t/$slug/team/sub/$substituteId': typeof TSlugTeamSubSubstituteIdRoute
+  '/t/$slug/team/settings': typeof TSlugTeamSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -242,14 +267,17 @@ export interface FileRoutesById {
   '/create-team/': typeof CreateTeamIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/t/$slug/': typeof TSlugIndexRoute
+  '/t/$slug/team/settings': typeof TSlugTeamSettingsRouteRouteWithChildren
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
   '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
-  '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
   '/t/$slug/calendar/': typeof TSlugCalendarIndexRoute
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
   '/t/$slug/profile/': typeof TSlugProfileIndexRoute
   '/t/$slug/team/': typeof TSlugTeamIndexRoute
+  '/t/$slug/team/settings/$section': typeof TSlugTeamSettingsSectionRoute
+  '/t/$slug/team/sub/$substituteId': typeof TSlugTeamSubSubstituteIdRoute
+  '/t/$slug/team/settings/': typeof TSlugTeamSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -272,14 +300,17 @@ export interface FileRouteTypes {
     | '/create-team/'
     | '/onboarding/'
     | '/t/$slug/'
+    | '/t/$slug/team/settings'
     | '/t/$slug/events/$eventId'
     | '/t/$slug/team/$userId'
-    | '/t/$slug/team/settings'
     | '/t/$slug/calendar/'
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
     | '/t/$slug/profile/'
     | '/t/$slug/team/'
+    | '/t/$slug/team/settings/$section'
+    | '/t/$slug/team/sub/$substituteId'
+    | '/t/$slug/team/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -301,12 +332,14 @@ export interface FileRouteTypes {
     | '/t/$slug'
     | '/t/$slug/events/$eventId'
     | '/t/$slug/team/$userId'
-    | '/t/$slug/team/settings'
     | '/t/$slug/calendar'
     | '/t/$slug/get-started'
     | '/t/$slug/money'
     | '/t/$slug/profile'
     | '/t/$slug/team'
+    | '/t/$slug/team/settings/$section'
+    | '/t/$slug/team/sub/$substituteId'
+    | '/t/$slug/team/settings'
   id:
     | '__root__'
     | '/'
@@ -327,14 +360,17 @@ export interface FileRouteTypes {
     | '/create-team/'
     | '/onboarding/'
     | '/t/$slug/'
+    | '/t/$slug/team/settings'
     | '/t/$slug/events/$eventId'
     | '/t/$slug/team/$userId'
-    | '/t/$slug/team/settings'
     | '/t/$slug/calendar/'
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
     | '/t/$slug/profile/'
     | '/t/$slug/team/'
+    | '/t/$slug/team/settings/$section'
+    | '/t/$slug/team/sub/$substituteId'
+    | '/t/$slug/team/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -538,34 +574,73 @@ declare module '@tanstack/react-router' {
       id: '/t/$slug/team/settings'
       path: '/team/settings'
       fullPath: '/t/$slug/team/settings'
-      preLoaderRoute: typeof TSlugTeamSettingsRouteImport
+      preLoaderRoute: typeof TSlugTeamSettingsRouteRouteImport
+      parentRoute: typeof TSlugRouteRoute
+    }
+    '/t/$slug/team/settings/': {
+      id: '/t/$slug/team/settings/'
+      path: '/'
+      fullPath: '/t/$slug/team/settings/'
+      preLoaderRoute: typeof TSlugTeamSettingsIndexRouteImport
+      parentRoute: typeof TSlugTeamSettingsRouteRoute
+    }
+    '/t/$slug/team/settings/$section': {
+      id: '/t/$slug/team/settings/$section'
+      path: '/$section'
+      fullPath: '/t/$slug/team/settings/$section'
+      preLoaderRoute: typeof TSlugTeamSettingsSectionRouteImport
+      parentRoute: typeof TSlugTeamSettingsRouteRoute
+    }
+    '/t/$slug/team/sub/$substituteId': {
+      id: '/t/$slug/team/sub/$substituteId'
+      path: '/team/sub/$substituteId'
+      fullPath: '/t/$slug/team/sub/$substituteId'
+      preLoaderRoute: typeof TSlugTeamSubSubstituteIdRouteImport
       parentRoute: typeof TSlugRouteRoute
     }
   }
 }
 
+interface TSlugTeamSettingsRouteRouteChildren {
+  TSlugTeamSettingsSectionRoute: typeof TSlugTeamSettingsSectionRoute
+  TSlugTeamSettingsIndexRoute: typeof TSlugTeamSettingsIndexRoute
+}
+
+const TSlugTeamSettingsRouteRouteChildren: TSlugTeamSettingsRouteRouteChildren =
+  {
+    TSlugTeamSettingsSectionRoute: TSlugTeamSettingsSectionRoute,
+    TSlugTeamSettingsIndexRoute: TSlugTeamSettingsIndexRoute,
+  }
+
+const TSlugTeamSettingsRouteRouteWithChildren =
+  TSlugTeamSettingsRouteRoute._addFileChildren(
+    TSlugTeamSettingsRouteRouteChildren,
+  )
+
 interface TSlugRouteRouteChildren {
   TSlugIndexRoute: typeof TSlugIndexRoute
+  TSlugTeamSettingsRouteRoute: typeof TSlugTeamSettingsRouteRouteWithChildren
   TSlugEventsEventIdRoute: typeof TSlugEventsEventIdRoute
   TSlugTeamUserIdRoute: typeof TSlugTeamUserIdRoute
-  TSlugTeamSettingsRoute: typeof TSlugTeamSettingsRoute
   TSlugCalendarIndexRoute: typeof TSlugCalendarIndexRoute
   TSlugGetStartedIndexRoute: typeof TSlugGetStartedIndexRoute
   TSlugMoneyIndexRoute: typeof TSlugMoneyIndexRoute
   TSlugProfileIndexRoute: typeof TSlugProfileIndexRoute
   TSlugTeamIndexRoute: typeof TSlugTeamIndexRoute
+  TSlugTeamSubSubstituteIdRoute: typeof TSlugTeamSubSubstituteIdRoute
 }
 
 const TSlugRouteRouteChildren: TSlugRouteRouteChildren = {
   TSlugIndexRoute: TSlugIndexRoute,
+  TSlugTeamSettingsRouteRoute: TSlugTeamSettingsRouteRouteWithChildren,
   TSlugEventsEventIdRoute: TSlugEventsEventIdRoute,
   TSlugTeamUserIdRoute: TSlugTeamUserIdRoute,
-  TSlugTeamSettingsRoute: TSlugTeamSettingsRoute,
   TSlugCalendarIndexRoute: TSlugCalendarIndexRoute,
   TSlugGetStartedIndexRoute: TSlugGetStartedIndexRoute,
   TSlugMoneyIndexRoute: TSlugMoneyIndexRoute,
   TSlugProfileIndexRoute: TSlugProfileIndexRoute,
   TSlugTeamIndexRoute: TSlugTeamIndexRoute,
+  TSlugTeamSubSubstituteIdRoute: TSlugTeamSubSubstituteIdRoute,
 }
 
 const TSlugRouteRouteWithChildren = TSlugRouteRoute._addFileChildren(

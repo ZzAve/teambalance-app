@@ -939,19 +939,15 @@
   "members": {
     "heading": "Members",
     "loadFailed": "Couldn't load members. Please try again.",
-    "emptyManage": "No members yet. Share an invite link to bring people in.",
     "empty": "No members yet.",
     "removeTitle": "Remove member",
     "removeDescription": "Remove {{name}} from the team? They will lose access until re-invited.",
-    "lastAdminHint": "This is the last admin — the team must keep at least one.",
-    "displayNameFor": "Display name for {{name}}",
     "admin": "Admin",
     "positionFor": "Position for {{name}}",
     "actionsFor": "Actions for {{name}}",
     "rename": "Rename",
     "makeMember": "Make member",
-    "makeAdmin": "Make admin",
-    "removeMenu": "Remove…"
+    "makeAdmin": "Make admin"
   },
   "positions": {
     "heading": "Positions",
@@ -983,7 +979,6 @@
   "manageSubstitutes": {
     "heading": "Substitutes",
     "loadFailed": "Couldn't load substitutes. Please try again.",
-    "emptyManage": "No substitutes yet. Members add them when calling someone in for an event.",
     "empty": "No substitutes yet.",
     "removeTitle": "Remove substitute",
     "removeDescription": "{{name}} will disappear from every event they were added to, including past ones. This can't be undone.",
@@ -996,7 +991,9 @@
       "none": "{{name}} is not on any event.",
       "some_one": "{{name}} is on {{count}} event.",
       "some_other": "{{name}} is on {{count}} events."
-    }
+    },
+    "substitute": "Substitute",
+    "faceLabel": "{{name}}, substitute"
   },
   "eventTypes": {
     "heading": "Event types",
@@ -1061,7 +1058,6 @@
     "revokeDescription": "The old link stops working and no replacement is created. It can no longer be used to become an admin of this team."
   },
   "generateInvite": {
-    "trigger": "Invite Link",
     "title": "Team invite link",
     "loading": "Loading...",
     "loadFailed": "Failed to load the invite link.",
@@ -1098,7 +1094,10 @@
   },
   "teamPage": {
     "settings": "Team settings",
-    "back": "Back to team"
+    "back": "Back to team",
+    "invite": "Invite people",
+    "inviteHint": "Share the team invite link",
+    "settingsHint": "Positions, event types, season, money, access"
   },
   "memberDetail": {
     "fallbackTitle": "Member",
@@ -1116,7 +1115,11 @@
     "removeOther": "Remove {{name}}'s photo? Only they can add a new one.",
     "role": "Role",
     "roleMember": "Member",
-    "editProfile": "Edit profile"
+    "editProfile": "Edit profile",
+    "adminGroup": "Admin",
+    "makeAdminHint": "They can change team settings and members",
+    "makeMemberHint": "They can no longer change team settings",
+    "removeFromTeam": "Remove from team"
   },
   "pageHeader": {
     "back": "Back"
@@ -1357,5 +1360,29 @@
       "read": "Read from the receipt. Check that it is the total.",
       "notFound": "Could not read the amount from the receipt. Enter it yourself."
     }
+  },
+  "substituteDetail": {
+    "fallbackTitle": "Substitute",
+    "notOnList": "This substitute is not on the list.",
+    "subline": "{{position}} · Substitute"
+  },
+  "teamSettingsHub": {
+    "seasonSetup": "Season setup",
+    "money": "Money",
+    "access": "Access",
+    "bunq": "Bunq",
+    "matchFeed": "Match feed",
+    "seasonFrom": "From {{month}}",
+    "seasonUntil": "Until {{month}}",
+    "notSet": "Not set",
+    "on": "On",
+    "off": "Off",
+    "onWithBeer": "On · beer {{price}}",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "none": "None",
+    "visits_one": "{{count}} visit",
+    "visits_other": "{{count}} visits",
+    "back": "Back to team settings"
   }
 }

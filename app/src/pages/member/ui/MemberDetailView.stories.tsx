@@ -48,6 +48,9 @@ const meta = {
     onUploadPhoto: fn(),
     onUsePersonalPhoto: fn(),
     onRemovePhoto: fn(),
+    onChangePosition: fn(),
+    onToggleRole: fn(),
+    onRemove: fn(),
   },
 } satisfies Meta<typeof MemberDetailView>
 
@@ -99,8 +102,19 @@ export const Shells: Story = {
         ),
         // An Admin on someone else's page: the photo can only be removed. (No network in stories, so
         // the photo falls back to initials.)
+        // Also the Admin group (ADR-0013): Position, Make member, Remove from team.
         'Admin, their photo': (
-          <MemberDetailView {...args} canEdit canChangePhoto={false} member={{ ...ADA, photoVersion: 'v1' }} />
+          <MemberDetailView {...args} canEdit canChangePhoto={false} canAdminister member={{ ...ADA, photoVersion: 'v1' }} />
+        ),
+        // The backend refused to demote the team's only Admin; the refusal shows in the group.
+        'Last admin refused': (
+          <MemberDetailView
+            {...args}
+            canEdit
+            canChangePhoto={false}
+            canAdminister
+            adminErrorMessage="The team must keep at least one admin."
+          />
         ),
         'Photo upload failed': (
           <MemberDetailView {...args} personalPhotoUrl={undefined} photoErrorMessage="That photo is too large. Please pick another one." />
@@ -127,6 +141,13 @@ export const Shells: Story = {
     await expect(region('Admin, their photo').getByRole('button', { name: 'Remove photo' })).toBeInTheDocument()
     await expect(region('Admin, their photo').queryByRole('button', { name: /upload/i })).not.toBeInTheDocument()
     await expect(region('Admin, their photo').queryByRole('button', { name: 'Use my personal photo' })).not.toBeInTheDocument()
+    await expect(region('Admin, their photo').getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
+    await expect(region('Admin, their photo').getByRole('button', { name: /^Make member/ })).toBeInTheDocument()
+    await expect(region('Admin, their photo').getByRole('button', { name: 'Remove from team' })).toBeInTheDocument()
+    await expect(region('Last admin refused').getByRole('alert')).toHaveTextContent('The team must keep at least one admin.')
+    // A member's own page, or a plain member's view, has no Admin group.
+    await expect(region('Read only').queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
+    await expect(region('Photo upload failed').queryByRole('button', { name: 'Remove from team' })).not.toBeInTheDocument()
 
     // Nothing to copy and nothing to remove: only the upload.
     await expect(region('Photo upload failed').getByRole('button', { name: 'Upload photo' })).toBeInTheDocument()
@@ -154,6 +175,14 @@ export const Interactions: Story = {
       items={{
         Reading: <MemberDetailView {...args} member={{ ...ADA, photoVersion: 'v1' }} />,
         Editing: <MemberDetailView {...args} isEditing />,
+        Administering: (
+          <MemberDetailView
+            {...args}
+            canChangePhoto={false}
+            canAdminister
+            member={{ ...ADA, userId: 'u3', displayName: 'Alan Turing', role: 'USER' }}
+          />
+        ),
       }}
     />
   ),
@@ -201,5 +230,22 @@ export const Interactions: Story = {
 
     await userEvent.click(editing.getByRole('button', { name: 'Cancel' }))
     await expect(args.onCancelEdit).toHaveBeenCalledOnce()
+
+    // The Admin group: change the Position, promote, and remove only after the confirm.
+    const administering = region('Administering')
+    await userEvent.click(administering.getByLabelText('Position for Alan Turing'))
+    await userEvent.click(await screen.findByRole('option', { name: 'Libero' }))
+    await expect(args.onChangePosition).toHaveBeenCalledWith('p2')
+    await userEvent.click(administering.getByRole('button', { name: /^Make admin/ }))
+    await expect(args.onToggleRole).toHaveBeenCalledOnce()
+    await userEvent.click(administering.getByRole('button', { name: 'Remove from team' }))
+    let confirm = within(await screen.findByRole('dialog'))
+    await expect(confirm.getByText(/Remove Alan Turing from the team\?/)).toBeInTheDocument()
+    await userEvent.click(confirm.getByRole('button', { name: 'Cancel' }))
+    await expect(args.onRemove).not.toHaveBeenCalled()
+    await userEvent.click(administering.getByRole('button', { name: 'Remove from team' }))
+    confirm = within(await screen.findByRole('dialog'))
+    await userEvent.click(confirm.getByRole('button', { name: 'Remove' }))
+    await expect(args.onRemove).toHaveBeenCalledOnce()
   },
 }

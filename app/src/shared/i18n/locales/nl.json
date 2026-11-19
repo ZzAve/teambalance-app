@@ -549,28 +549,13 @@
       "reconnect": "Bunq accepteert de koppeling van het team niet meer. Koppel hem opnieuw.",
       "reconnectInSettings": "Bunq accepteert de koppeling van het team niet meer. Koppel hem opnieuw in de teaminstellingen."
     },
-    "preview": "Voorproefje van de teampot",
-    "previewTitle": "Eén gedeelde teampot",
-    "memberCopy": "Zodra een admin de Bunq-rekening van het team koppelt, zie je hier het saldo en de betalingen.",
     "admin": {
-      "pickAccount": "Kies de rekening in de teaminstellingen. Daarna zie je hier het saldo en de betalingen.",
-      "unknown": "Hier komen het saldo en de betalingen van de Bunq-rekening van het team.",
-      "connect": "Koppel de Bunq-rekening van het team in de teaminstellingen. Daarna zie je hier het saldo en de betalingen.",
-      "comingSoon": "Binnenkort kun je de Bunq-rekening van het team koppelen. Daarna zie je hier het saldo en de betalingen."
-    },
-    "pillar": {
-      "pot": {
-        "title": "Eén gedeelde pot",
-        "blurb": "Het geld van het hele team, op één plek"
-      },
-      "chipIn": {
-        "title": "Snel inleggen",
-        "blurb": "Leg je deel in met een paar tikken"
-      },
-      "tracked": {
-        "title": "Elke euro bijgehouden",
-        "blurb": "Zie wat er is betaald, en waar het heen ging"
-      }
+      "title": "Geen bankrekening gekoppeld",
+      "pickAccount": "Kies de rekening die de teampot leest om hier het saldo te zien en leden te laten bijstorten.",
+      "unknown": "Met de Bunq-rekening van het team gekoppeld zie je hier het saldo en kunnen leden bijstorten.",
+      "connect": "Koppel de Bunq-rekening van het team om hier het saldo te zien en leden te laten bijstorten.",
+      "comingSoon": "Binnenkort kun je de Bunq-rekening van het team koppelen. Dan zie je hier het saldo en kunnen leden bijstorten.",
+      "toSettings": "Naar Bunq-instellingen"
     },
     "balance": "Saldo",
     "poolBalance": "Saldo teampot",
@@ -583,7 +568,7 @@
     "incoming": "Binnengekomen",
     "outgoing": "Uitgegeven",
     "totalIn": "Binnengekomen",
-    "toppedUp": "Bijgestort",
+    "toppedUp": "Bijgedragen",
     "totalSpent": "Uitgegeven",
     "thisSeason": "Dit seizoen",
     "last90Days": "Afgelopen 90 dagen",
@@ -598,18 +583,18 @@
       "period": "Periode",
       "season": "Seizoen",
       "last30Days": "Afgelopen 30 dagen",
-      "empty": "Nog niemand heeft bijgestort.",
+      "empty": "Nog niemand heeft bijgedragen.",
       "formerMember": "Oud-lid",
       "play": "Speel het klassement af",
       "pause": "Pauzeer",
       "reset": "Terug naar nu",
       "nowSeason": "Nu, dit seizoen",
       "nowLast30Days": "Nu, afgelopen 30 dagen",
-      "totalToppedUp": "Totaal bijgestort",
+      "totalToppedUp": "Totaal bijgedragen",
       "ranking": "Klassement toppers",
       "rankItem": "Nummer {{rank}}: {{name}}, {{amount}}",
       "resume": "Verder",
-      "emptyLast30Days": "Geen bijstortingen in de afgelopen 30 dagen.",
+      "emptyLast30Days": "Geen bijdragen in de afgelopen 30 dagen.",
       "nowLast90Days": "Nu, afgelopen 90 dagen",
       "onTop": "{{name}} staat bovenaan met {{amount}}.",
       "day": "Dag",

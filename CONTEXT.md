@@ -218,6 +218,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   custom, opening a bunq.me deep link (mobile-first, no QR). The payment's description
   names the app, the Team and the Member, and carries the Member's id, so both the payer and
   the Team can tell whose contribution it was and to which Team.
+  Offered only while the pool is Connected: the connected account is where the money goes (ADR-0048).
 - **Hall of Fame (Toppers 🏆)** / **Hall of Shame (Floppers 🐷)** — Side-by-side
   contributor rankings over a period (last 30 days or full season).
 

@@ -123,10 +123,10 @@ export const Shells: Story = {
   ),
   play: async ({ canvas }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
-    await expect(region('Empty').getByText('No one has topped up yet.')).toBeInTheDocument()
+    await expect(region('Empty').getByText('No one has contributed yet.')).toBeInTheDocument()
     await expect(region('Empty').queryByRole('button', { name: 'Play the ranking' })).not.toBeInTheDocument()
     await expect(region('Only unmatched money').getByText('€12.00 came in without a name we know.')).toBeInTheDocument()
-    await expect(region('Only unmatched money').getByText('No one has topped up yet.')).toBeInTheDocument()
+    await expect(region('Only unmatched money').getByText('No one has contributed yet.')).toBeInTheDocument()
     // One payment day is nothing to replay.
     await expect(region('One contributor').getByRole('button', { name: 'Play the ranking' })).toBeDisabled()
     await expect(region('One contributor').queryByText(/came in without a name/)).not.toBeInTheDocument()

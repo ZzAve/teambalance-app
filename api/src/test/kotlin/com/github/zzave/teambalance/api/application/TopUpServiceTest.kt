@@ -5,12 +5,16 @@ import com.github.zzave.teambalance.api.domain.exception.TopUpUnavailableExcepti
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.ActAsId
 import com.github.zzave.teambalance.api.domain.model.ActorKind
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
 import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TopUpAmount
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.assertions.throwables.shouldThrow
@@ -29,10 +33,23 @@ class TopUpServiceTest : FunSpec({
         override fun findDisplayName(userId: UserId) = DisplayName("Lisa")
     }
 
-    fun service(settings: MoneyPoolSettings, actAs: ActAs? = null) = TopUpService(
+    val connected = BunqConnection(
+        accountId = BunqAccountId("account-1"),
+        grant = EncryptedToken("sealed"),
+        connectedBy = MEMBER,
+        connectedAt = Instant.EPOCH,
+    )
+
+    fun service(settings: MoneyPoolSettings, actAs: ActAs? = null, connection: BunqConnection? = connected) = TopUpService(
         settingsRepository = object : MoneyPoolSettingsRepository {
             override fun get() = settings
             override fun save(settings: MoneyPoolSettings) = settings
+        },
+        connectionRepository = object : BunqConnectionRepository {
+            override fun find() = connection
+            override fun save(connection: BunqConnection) = error("not used")
+            override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken) = error("not used")
+            override fun delete() = error("not used")
         },
         teamRepository = directory.teamRepository(),
         teamMemberRepository = members,
@@ -52,6 +69,16 @@ class TopUpServiceTest : FunSpec({
         }
         shouldThrow<TopUpUnavailableException> {
             service(MoneyPoolSettings(true)).topUpLink(MEMBER, team, TopUpAmount(20))
+        }
+    }
+
+    test("is unavailable without a connected Bunq account, which is where the money would go") {
+        shouldThrow<TopUpUnavailableException> {
+            service(MoneyPoolSettings(true, bunqMeLink = link), connection = null).topUpLink(MEMBER, team, TopUpAmount(20))
+        }
+        shouldThrow<TopUpUnavailableException> {
+            service(MoneyPoolSettings(true, bunqMeLink = link), connection = connected.copy(accountId = null))
+                .topUpLink(MEMBER, team, TopUpAmount(20))
         }
     }
 

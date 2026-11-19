@@ -286,7 +286,7 @@ const POOL = {
   ],
 }
 const RECEIPTS = {}
-// Without a Bunq connection the server lists the out-of-pocket expenses alone, and no figures (ADR-0048).
+// Without a Bunq connection the server lists the out-of-pocket expenses alone, with no figures and no top-up (ADR-0048).
 const moneyPool = () =>
   POOL.state === 'Connected'
     ? {
@@ -297,7 +297,7 @@ const moneyPool = () =>
         beerCount: Math.floor(POOL.balance / POOL.beerPrice),
         canTopUp: true,
       }
-    : { state: POOL.state, payments: POOL.payments.filter((p) => p.outOfPocket), canTopUp: true }
+    : { state: POOL.state, payments: POOL.payments.filter((p) => p.outOfPocket), canTopUp: false }
 /** The team has no Bunq connection from here on. */
 export const disconnectBunq = () => { POOL.state = 'NotConnected' }
 // An out-of-pocket expense is one payment: an expense that counts for the member who paid (ADR-0048).

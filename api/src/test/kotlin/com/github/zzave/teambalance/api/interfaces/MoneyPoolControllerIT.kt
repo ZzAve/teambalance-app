@@ -548,6 +548,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         test("GET /api/team/money-pool/top-up-link returns the bunq.me link with the amount and the encoded description") {
             seedTeamAndMember()
             setBunqMeLink("https://bunq.me/setpointvt")
+            connectBunq()
             jdbcTemplate.update(
                 "UPDATE public.member_profiles SET display_name = 'Zoë Müller' WHERE user_id = '$MEMBER_USER_ID'::uuid",
             )
@@ -566,7 +567,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 )
         }
 
-        test("GET /api/team/money-pool/top-up-link works without a Bunq connection and while Bunq is down") {
+        test("GET /api/team/money-pool/top-up-link works while Bunq is down, without asking Bunq") {
             seedTeamAndMember()
             setBunqMeLink("https://bunq.me/setpointvt")
             connectBunq()
@@ -574,6 +575,13 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             perform(getTopUpLink(1), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isOk)
             perform(getTopUpLink(500), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isOk)
+        }
+
+        test("GET /api/team/money-pool/top-up-link is 404 without a Bunq connection, even with a link") {
+            seedTeamAndMember()
+            setBunqMeLink("https://bunq.me/setpointvt")
+
+            perform(getTopUpLink(20), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
         }
 
         test("GET /api/team/money-pool/top-up-link rejects amounts outside 1 to 500 with 400") {
@@ -624,27 +632,27 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             mockMvc.perform(getTopUpLink(20)).andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
 
-        test("canTopUp is true in every state once the pool is on and a link is set, and false otherwise") {
+        test("canTopUp is true only when the pool is Connected and a link is set") {
             seedTeamAndMember()
             getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
 
             setBunqMeLink("https://bunq.me/setpointvt")
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
 
             connectBunq()
             bunqGateway.failing = true
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Unavailable"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
 
             bunqGateway.failing = false
             bunqGateway.rejecting = true
             forgetCachedPool()
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
 
             bunqGateway.rejecting = false
             forgetCachedPool()

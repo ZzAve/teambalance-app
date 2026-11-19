@@ -54,9 +54,9 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await page.goto('/')
   await disconnectViaApi(page)
 
-  // 1. Not connected: the Money page is a preview, and the settings offer Connect behind the tick.
+  // 1. Not connected: the admin's Money page says what connecting adds, and the settings offer Connect behind the tick.
   await page.goto(MONEY)
-  await expect(page.getByRole('region', { name: 'Money pool preview' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'No bank account connected' })).toBeVisible()
   await page.goto(SETTINGS)
   await expect(page.getByRole('heading', { name: 'Connect Bunq' })).toBeVisible()
   const connect = page.getByRole('button', { name: 'Connect Bunq' })
@@ -74,7 +74,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await expect(page.getByRole('radio', { name: 'Teamkas' })).not.toBeChecked()
   await expect(page.getByRole('radio', { name: 'Privé' })).not.toBeChecked()
   await page.goto(MONEY)
-  await expect(page.getByText('Pick the account in the team settings')).toBeVisible()
+  await expect(page.getByText(/^Pick the account the pool reads/)).toBeVisible()
 
   // 4. Pick Teamkas: the Money page now shows its balance and payments.
   await page.goto(SETTINGS)
@@ -123,7 +123,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
     await expect(memberPage.getByText('Lisa de Vries')).toBeVisible()
     expect((await member.request.get('/api/team/money-pool/connection')).status()).toBe(403)
 
-    // 8. Disconnect, behind its confirmation: the pool is a preview again for the admin and the member.
+    // 8. Disconnect, behind its confirmation: the admin is offered to connect again; the member sees only the expenses part.
     await page.goto(SETTINGS)
     await page.getByRole('button', { name: 'Disconnect' }).click()
     // The accounts read is a 404 once disconnected; it must never show as a failure on the way out.
@@ -138,9 +138,11 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
     await expect(page.getByRole('status').filter({ hasText: 'Disconnected from bunq.' })).toBeFocused()
     expect(await page.evaluate(() => (window as unknown as { sawAccountsError?: boolean }).sawAccountsError)).toBeUndefined()
     await page.goto(MONEY)
-    await expect(page.getByRole('region', { name: 'Money pool preview' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'No bank account connected' })).toBeVisible()
     await memberPage.reload()
-    await expect(memberPage.getByRole('region', { name: 'Money pool preview' })).toBeVisible()
+    await expect(memberPage.getByRole('button', { name: 'Add an expense you paid' })).toBeVisible()
+    await expect(memberPage.getByRole('region', { name: 'No bank account connected' })).toHaveCount(0)
+    await expect(memberPage.getByRole('region', { name: 'Balance' })).toHaveCount(0)
   } finally {
     await member.close()
   }

@@ -10,5 +10,14 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  # Local stand-in for Scaleway Cockpit: an OTLP receiver with Grafana at http://localhost:3000.
+  # Start it with `docker compose --profile observability up -d otel-lgtm` (see docs/ops/deploy.md).
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.11.17@sha256:15b963783b3dc24a6256ebc1bffd4fc6c133348810faf86ecaa939912fd311b6
+    profiles: [observability]
+    ports:
+      - "3000:3000"
+      - "4318:4318"
+
 volumes:
   postgres-data:

@@ -90,6 +90,9 @@ hooks: ## Install git hooks (pre-commit: lint, pre-push: test)
 www: ## Build the landing page (Dutch at /, English at /en/) into www/dist
 	node www/build.mjs
 
+www-serve: www ## Build the landing page and serve www/dist on http://localhost:3173
+	python3 -m http.server 3173 -d www/dist
+
 wirespec: ## Generate code from Wirespec definitions
 	./gradlew :api:wirespec-kotlin
 	./gradlew :api:wirespec-typescript

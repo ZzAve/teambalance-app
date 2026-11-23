@@ -59,10 +59,13 @@ run-local: infra ## Start infra + backend + frontend (backend in background)
 
 # --- Test & Lint ---
 
-test: test-api test-app ## Run all tests
+test: test-api test-app test-www ## Run all tests
 
 test-api: ## Run backend tests only
 	./gradlew :api:test
+
+test-www: ## Landing page build tests (node:test)
+	node --test "www/*.test.mjs"
 
 test-app: ## Run frontend tests only
 	./gradlew :api:wirespec-typescript

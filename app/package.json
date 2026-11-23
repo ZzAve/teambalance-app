@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e:real": "playwright test --config playwright.real.config.ts",
+    "e2e:www": "playwright test --config playwright.www.config.ts",
     "yolo": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",

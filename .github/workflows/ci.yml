@@ -404,8 +404,8 @@ jobs:
             --exclude "*" --include "clips/*.mp4" \
             --content-type video/mp4 --cache-control "public,max-age=86400"
           aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
-            --exclude "*" --include "clips/*.jpg" \
-            --content-type image/jpeg --cache-control "public,max-age=86400"
+            --exclude "*" --include "clips/*.webp" \
+            --content-type image/webp --cache-control "public,max-age=86400"
           aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
             --exclude "fonts/*" --exclude "*.png" --exclude "*.svg" --exclude "*.ico" \
             --exclude "*.js" --exclude "*.mjs" --exclude "clips/*" \

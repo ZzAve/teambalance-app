@@ -22,8 +22,8 @@
   --dusk-text: #e6eef8;
   --dusk-soft: #a9beda;
   --dusk-line: rgba(169, 190, 218, 0.22);
-  --me-bubble: #2d6fb5;
-  --ink: #1e293b;
+  --me-bubble: var(--color-blue-light);
+  --ink: var(--color-text-primary);
   --ink-soft: #475569;
   --line: #e4dfd2;
   --court: #f1e6cd;
@@ -35,6 +35,11 @@
   --cant: var(--color-absent);
   --none: var(--color-no-response);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* wordmark on the dusk bands: lighter than any brand token, so it reads on the dark blue */
+  --dusk-wordmark-a: #8db8ea;
+  --dusk-wordmark-b: #3cc48c;
+  /* tokens.css ends this stack in cursive, which shows a script face until Grandstander loads */
+  --font-display: 'Grandstander Variable', 'Grandstander', ui-rounded, 'Arial Rounded MT Bold', system-ui, sans-serif;
 }
 
 *,
@@ -73,19 +78,38 @@ a {
   outline-offset: 3px;
   border-radius: 6px;
 }
-.dark {
+.dusk {
   caret-color: var(--color-gold-light);
 }
-.dark :focus-visible {
+.dusk :focus-visible {
   outline-color: var(--color-gold-light);
 }
-.dark ::selection {
+/* the event card is white, so its buttons keep the blue ring */
+.dusk .card :focus-visible {
+  outline-color: var(--color-blue);
+}
+.dusk ::selection {
   background: var(--color-gold-light);
   color: var(--dusk);
 }
 /* Inputs sit on a light field even inside the dark hero */
-.dark input:focus-visible {
+.dusk input:focus-visible {
   outline-color: #fff;
+}
+.skip {
+  position: absolute;
+  z-index: 10;
+  top: 8px;
+  left: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--ink);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+.skip:focus {
+  transform: none;
 }
 .sr-only {
   position: absolute;
@@ -119,15 +143,15 @@ a {
 .wordmark .b {
   color: var(--color-green-dark);
 }
-.dark .wordmark .a,
+.dusk .wordmark .a,
 footer .wordmark .a {
-  color: #8db8ea;
+  color: var(--dusk-wordmark-a);
 }
-.dark .wordmark .b,
+.dusk .wordmark .b,
 footer .wordmark .b {
-  color: #3cc48c;
+  color: var(--dusk-wordmark-b);
 }
-.dark {
+.dusk {
   background: var(--dusk);
   color: var(--dusk-text);
   padding-bottom: 72px;
@@ -148,6 +172,7 @@ footer .wordmark .b {
   display: none;
 }
 .topnav a {
+  white-space: nowrap;
   font-size: 0.9375rem;
   color: var(--dusk-soft);
   padding: 0 8px;
@@ -178,6 +203,7 @@ footer .wordmark .b {
   letter-spacing: -0.015em;
   color: #fff;
   text-wrap: balance;
+  padding-left: 0.12em; /* Grandstander's j hooks left past the text edge */
 }
 .hook .sub {
   margin-top: 14px;
@@ -199,6 +225,12 @@ footer .wordmark .b {
 .request {
   margin-top: 16px;
   max-width: 480px;
+}
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 .request .field {
   display: grid;
@@ -302,6 +334,7 @@ footer .wordmark .b {
   border-bottom: 1px solid var(--dusk-line);
 }
 .chat-title {
+  white-space: nowrap;
   font-weight: 700;
   color: #fff;
   line-height: 1.25;
@@ -318,7 +351,7 @@ footer .wordmark .b {
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 999px;
-  background: #f0965f;
+  background: var(--color-orange-light);
   color: #2a1405;
   font-variant-numeric: tabular-nums;
 }
@@ -409,7 +442,7 @@ footer .wordmark .b {
 .ev + .ev {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid #e9e5da;
+  border-top: 1px solid var(--line);
 }
 .ev-title {
   font-weight: 700;
@@ -463,7 +496,7 @@ footer .wordmark .b {
   border-radius: 999px;
   overflow: hidden;
   gap: 2px;
-  background: #e9e5da;
+  background: var(--line);
 }
 .bar i {
   display: block;
@@ -482,7 +515,7 @@ footer .wordmark .b {
   font-size: 0.9375rem;
   color: var(--ink);
   background: #fff;
-  border: 2px solid #94a3b8;
+  border: 2px solid var(--color-text-muted);
   border-radius: 12px;
   cursor: pointer;
   display: inline-flex;
@@ -505,8 +538,8 @@ footer .wordmark .b {
   color: var(--ink);
 }
 .ans[aria-pressed='true'][data-a='cant'] {
-  background: #c42a20;
-  border-color: #c42a20;
+  background: var(--color-red-dark);
+  border-color: var(--color-red-dark);
   color: #fff;
 }
 .ans[aria-pressed='true'] .dot {
@@ -553,12 +586,17 @@ footer .wordmark .b {
   padding: 64px 0;
   scroll-margin-top: 8px;
 }
+/* a light court tint: the clip stage keeps the full court colour, so it still stands out */
 .band {
-  background: var(--color-card);
+  background: color-mix(in srgb, var(--court) 55%, var(--color-background));
 }
 /* the section above bulges into the next one: hero into the body, FAQ into the closing band */
 .curve {
   position: relative;
+}
+/* a plain section needs its own surface for its bulge to show */
+.sec.curve:not(.band) {
+  background: var(--color-background);
 }
 .curve::after {
   content: '';
@@ -594,10 +632,10 @@ footer .wordmark .b {
   -webkit-mask: var(--squiggle) no-repeat;
   mask: var(--squiggle) no-repeat;
 }
-.dark.sec h2 {
+.dusk.sec h2 {
   color: #fff;
 }
-.dark.sec h2::after {
+.dusk.sec h2::after {
   background: var(--color-orange-light);
 }
 .lead {
@@ -672,10 +710,19 @@ h3 {
   top: 50%;
   border-width: 2px 0 0;
 }
+/* on the tinted band the court flips: light floor, court-colour lines */
+.band .stage {
+  background: var(--color-card);
+}
+.band .stage::before,
+.band .stage::after {
+  border-color: var(--court);
+}
 .clip video {
   position: relative;
   z-index: 1;
   width: min(270px, 100%);
+  max-width: 100%;
   aspect-ratio: 540 / 1168;
   height: auto;
   border-radius: 22px;
@@ -794,13 +841,13 @@ h3 {
 }
 .start .request input[type='email'] {
   background: #fff;
-  border-color: #94a3b8;
+  border-color: var(--color-text-secondary);
 }
 .start .request input:hover {
   border-color: var(--color-blue);
 }
 .start .request input[aria-invalid='true'] {
-  border-color: #b3261e;
+  border-color: var(--color-red-dark);
 }
 .start .btn-primary {
   background: var(--color-blue);
@@ -810,14 +857,14 @@ h3 {
   background: var(--color-blue-dark);
 }
 .start .form-msg.err {
-  color: #b3261e;
+  color: var(--color-red-dark);
 }
 .start .form-msg.ok {
-  color: #176b49;
+  color: color-mix(in srgb, var(--color-green-dark) 82%, #000); /* green-dark alone is 4.9:1 here; this keeps it near 6.4:1 */
 }
 
 /* closing band: where it came from, and the same two actions as the hero */
-.dark.sec .lead {
+.dusk.sec .lead {
   margin-top: 0;
   color: var(--dusk-text);
 }
@@ -836,13 +883,17 @@ footer :focus-visible {
 }
 .foot {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   padding-top: 24px;
   padding-bottom: 24px;
   font-size: 0.9375rem;
+}
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 20px;
 }
 .foot a:not(.wordmark) {
   min-height: 44px;
@@ -877,13 +928,13 @@ footer :focus-visible {
   .ball {
     transition: transform 900ms var(--ease-out);
   }
-  .dark.sec:hover .ball {
+  .dusk.sec:hover .ball {
     transform: rotate(200deg);
   }
 }
 
 /* ---------- privacy page ---------- */
-.dark-slim {
+.dusk-slim {
   padding-bottom: 0;
 }
 .privacy {
@@ -917,6 +968,31 @@ footer :focus-visible {
   .request .field {
     grid-template-columns: 1fr auto;
   }
+  .foot {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 32px;
+  }
+  .foot-links {
+    column-gap: 32px;
+  }
+  /* the phone grows, the court around it does not */
+  .stage {
+    max-width: 460px;
+  }
+  .clip video {
+    width: 320px;
+  }
+}
+/* from 720px the bar fits three section links in both languages; the FAQ link joins at 900px */
+@media (min-width: 720px) {
+  .topnav .sec-link:not(.sec-faq) {
+    display: inline-flex;
+  }
+  .topnav .lang-switch {
+    margin-left: 16px;
+  }
 }
 @media (min-width: 900px) {
   .wrap {
@@ -931,11 +1007,8 @@ footer :focus-visible {
   .scene {
     justify-self: end;
   }
-  .topnav .sec-link {
+  .topnav .sec-faq {
     display: inline-flex;
-  }
-  .topnav .lang-switch {
-    margin-left: 16px;
   }
   .sec {
     padding: 96px 0;
@@ -948,10 +1021,17 @@ footer :focus-visible {
     column-gap: 64px;
   }
   .feature {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
     align-items: center;
+  }
+  .feature.flip {
+    grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
   }
   .feature.flip .clip {
     order: -1;
+  }
+  .clip video {
+    width: 340px;
   }
   .rows {
     margin-top: 48px;

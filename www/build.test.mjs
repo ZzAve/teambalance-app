@@ -64,11 +64,13 @@ test('the #copy block of every landing page parses as JSON and has all its keys'
   }
 })
 
-test('the one sign-in form posts, so a submit before the script loads never puts the email in a URL', () => {
+test('without the script the sign-in form opens the app login and never sends the email or puts it in a URL', () => {
   for (const f of ['index.html', 'en/index.html']) {
-    const forms = read(f).match(/<form [^>]*data-request/g)
+    const forms = read(f).match(/<form [^>]*data-request[\s\S]*?<\/form>/g)
     assert.equal(forms.length, 1, f)
-    assert.ok(forms[0].includes('method="post"'), f)
+    assert.match(forms[0], /action="https:\/\/app\.teambalance\.nl\/login"/, f)
+    // a field without a name is not submitted, so the email stays out of the request
+    assert.doesNotMatch(forms[0], /<(input|select|textarea)\b[^>]*\bname=/, f)
   }
 })
 

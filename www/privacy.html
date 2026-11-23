@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
     <title>{{privacyTitle}}</title>
     <meta name="description" content="{{privacyDescription}}" />
     <link rel="canonical" href="{{privacyUrl}}" />
@@ -18,7 +19,8 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <div class="dark dark-slim">
+    <a class="skip" href="#top">{{skipToMain}}</a>
+    <div class="dusk dusk-slim">
       <div class="wrap">
         <header class="topbar">
           <a class="wordmark" href="{{homeHref}}" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
@@ -29,7 +31,7 @@
         </header>
       </div>
     </div>
-    <main class="privacy">
+    <main class="privacy" id="top">
       <h1>{{privacyHeading}}</h1>
       <p>{{privacyIntro}}</p>
       <h2>{{privacyStoredHeading}}</h2>
@@ -49,8 +51,10 @@
     <footer>
       <div class="wrap foot">
         <a class="wordmark" href="{{homeHref}}" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
-        <a href="{{homeHref}}">{{privacyHomeLabel}}</a>
-        <a href="mailto:{{contactEmail}}">{{contactLabel}}: {{contactEmail}}</a>
+        <span class="foot-links">
+          <a href="{{homeHref}}">{{privacyHomeLabel}}</a>
+          <a href="mailto:{{contactEmail}}">{{contactLabel}}: {{contactEmail}}</a>
+        </span>
         <span>{{footMade}}</span>
       </div>
     </footer>

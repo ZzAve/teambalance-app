@@ -1059,6 +1059,7 @@
     "share": "Share this link with your team. Anyone with the link can join.",
     "copy": "Copy",
     "copied": "Copied!",
+    "shareButton": "Share",
     "copyFailed": "Couldn't copy automatically. Copy the link from the field above.",
     "rotating": "Rotating...",
     "rotate": "Rotate link",

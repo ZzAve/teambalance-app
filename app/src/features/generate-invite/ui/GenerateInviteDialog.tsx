@@ -7,7 +7,7 @@ import {
   useExpireInvitations,
   useRotateInvitation,
 } from '@shared/api/invitations'
-import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
+import { canShare, useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { GenerateInviteContent } from './GenerateInviteContent'
 
 /**
@@ -82,7 +82,8 @@ export function GenerateInviteDialog({ trigger }: { trigger: ReactNode }) {
           actionError={
             createInvitation.isError || rotateInvitation.isError || expireInvitation.isError
           }
-          onCopy={() => link && clipboard.copy(link)}
+          canShare={canShare()}
+          onCopy={() => link && clipboard.share({ title: t('generateInvite.title'), url: link })}
           onGenerate={handleGenerate}
           onRotate={handleRotate}
           onExpire={handleExpire}

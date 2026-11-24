@@ -221,6 +221,18 @@ class TeamRequestControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.requests[?(@.id == '$id')].requesterEmail").value(user.email))
         }
 
+        test("the creation-code list names the request an approved code came from") {
+            val user = newRequester()
+            val id = idOf(submit(user.id, name = "Blockers"))
+            val code = json.readTree(
+                post("/api/admin/team-requests/$id/approve", admin).andReturn().response.contentAsString,
+            )["creationCode"].asText()
+            dispatch(MockMvcRequestBuilders.get("/api/admin/creation-codes").with(loginAs(admin)))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.codes[?(@.code == '$code')].requestedTeamName").value("Blockers"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.codes[?(@.code == '$code')].requestedBy").value(user.email))
+        }
+
         test("a plain user is forbidden from every admin endpoint, an anonymous caller is unauthorized") {
             val user = newRequester()
             val id = idOf(submit(user.id))

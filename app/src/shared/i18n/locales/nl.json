@@ -698,6 +698,7 @@
     "empty": "Nog geen aanmaakcodes. Maak er hierboven een.",
     "revokeTitle": "Code intrekken",
     "revokeDescription": "\"{{code}}\" intrekken? Daarna kan er geen team meer mee worden aangemaakt.",
+    "requestedFor": "Voor {{team}} · {{email}}",
     "revoke": "Intrekken",
     "status": {
       "active": "Actief",

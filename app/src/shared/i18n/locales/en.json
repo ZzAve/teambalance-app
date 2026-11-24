@@ -698,6 +698,7 @@
     "empty": "No creation codes yet. Generate one above.",
     "revokeTitle": "Revoke code",
     "revokeDescription": "Revoke \"{{code}}\"? It can no longer be used to create a team.",
+    "requestedFor": "For {{team}} · {{email}}",
     "revoke": "Revoke",
     "status": {
       "active": "Active",

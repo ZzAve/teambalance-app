@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.CreationCode
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import org.springframework.jdbc.core.JdbcTemplate
@@ -41,12 +43,19 @@ class JdbcTeamCreationCodeRepositoryAdapter(
     override fun findAll(): List<TeamCreationCode> =
         jdbcTemplate.query(
             """
-            SELECT code, created_at, expires_at, consumed_at, consumed_by_user_id, created_team_id
-            FROM public.team_creation_codes
-            ORDER BY created_at DESC
+            SELECT c.code, c.created_at, c.expires_at, c.consumed_at, c.consumed_by_user_id, c.created_team_id,
+                   r.team_name AS requested_team_name, u.email AS requested_by
+            FROM public.team_creation_codes c
+            LEFT JOIN public.team_requests r ON r.creation_code_id = c.id
+            LEFT JOIN public.users u ON u.id = r.user_id
+            ORDER BY c.created_at DESC
             """.trimIndent(),
-            ROW_MAPPER,
-        )
+        ) { rs, n ->
+            ROW_MAPPER.mapRow(rs, n)!!.copy(
+                requestedTeamName = rs.getString("requested_team_name")?.let(::TeamName),
+                requestedBy = rs.getString("requested_by")?.let { Email(it) },
+            )
+        }
 
     override fun findByCode(code: CreationCode): TeamCreationCode? =
         jdbcTemplate.query(

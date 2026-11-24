@@ -58,7 +58,7 @@ export function SeasonPageView({ grid, isLoading, isError, onRetry, onSetAnswer 
 
     return (
       <div className="overflow-x-auto">
-        <table className="border-separate border-spacing-1 text-small">
+        <table className="mx-auto border-separate border-spacing-1 text-small">
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-background text-left font-medium text-muted-foreground">{t('season.member')}</th>

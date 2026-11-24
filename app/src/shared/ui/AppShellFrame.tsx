@@ -31,7 +31,7 @@ interface AppShellFrameProps {
   nav?: ReactNode
   /** The same tabs for the sidebar. When given, from `lg` up the sidebar (wordmark, team switcher, these tabs) replaces the tab bar and the header's monogram and team chip. */
   sideNav?: ReactNode
-  /** From `lg` up, drop the `max-w-2xl` cap so the page fills the width next to the sidebar (the season grid). */
+  /** From `lg` up, drop the main column's `max-w-2xl` cap so the page can use the width next to the sidebar (the season grid). The header row keeps the cap, so the title lines up with other pages. */
   wide?: boolean
   children: ReactNode
 }
@@ -82,7 +82,7 @@ export function AppShellFrame({ teamSwitcher, banner, nav, sideNav, wide, childr
           className="sticky top-0 z-40 h-[var(--header-height)] border-b border-border/40 bg-card/88 backdrop-blur-lg"
           style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
         >
-          <div className={`mx-auto flex h-full max-w-2xl items-center gap-2 px-2 ${lgWide}`}>
+          <div className="mx-auto flex h-full max-w-2xl items-center gap-2 px-2">
             {!nested && (
               <Link
                 to="/"

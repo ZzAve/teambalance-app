@@ -46,7 +46,7 @@ object TeamNaming {
 
     // The name's three clauses stay together here rather than moving onto [TeamName]: they are one
     // rule set (trim, then non-blank, then the column cap) raising one typed failure. See TeamName.
-    private fun validatedName(rawName: String): TeamName {
+    fun validatedName(rawName: String): TeamName {
         val name = rawName.trim()
         if (name.isBlank()) {
             throw InvalidTeamNameException("Team name must not be blank")

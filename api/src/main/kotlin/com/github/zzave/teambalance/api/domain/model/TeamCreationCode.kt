@@ -14,6 +14,9 @@ import java.time.Instant
  * ([UserId]/[TeamId]) rather than bare UUIDs: they sit side by side and were interchangeable, so a
  * row mapper or a DTO could transpose them and still compile. Converted only at the JDBC and
  * Wirespec edges, like every other identity here.
+ *
+ * [requestedTeamName] and [requestedBy] name the team request a code was minted for (ADR-0047);
+ * null for a code an admin made by hand.
  */
 data class TeamCreationCode(
     val code: CreationCode,
@@ -22,4 +25,6 @@ data class TeamCreationCode(
     val consumedAt: Instant?,
     val consumedByUserId: UserId?,
     val createdTeamId: TeamId?,
+    val requestedTeamName: TeamName? = null,
+    val requestedBy: Email? = null,
 )

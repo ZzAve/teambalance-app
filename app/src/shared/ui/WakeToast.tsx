@@ -19,7 +19,7 @@ export function WakeToast({ show, elapsedMs }: WakeToastProps) {
     <div
       role="status"
       aria-label={t('shell.wake.label')}
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-50 mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-lg"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-lg"
     >
       <span
         aria-hidden

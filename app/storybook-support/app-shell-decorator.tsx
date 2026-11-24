@@ -17,6 +17,7 @@ export const SHELL_ROUTES = {
   team: `/t/${SHELL_TEAM.slug}/team`,
   money: `/t/${SHELL_TEAM.slug}/money`,
   account: '/account',
+  season: `/t/${SHELL_TEAM.slug}/season`,
 } as const
 
 /**
@@ -46,6 +47,7 @@ export const withAppShell: Decorator = (Story, { parameters }) => (
         teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
         nav={<BottomNav />}
         sideNav={<SideNav />}
+        wide={parameters.shellWide}
       >
         {/* A page whose title its container sets (the Account route) names it here instead. */}
         {parameters.shellPageTitle && <PageHeader title={parameters.shellPageTitle} />}

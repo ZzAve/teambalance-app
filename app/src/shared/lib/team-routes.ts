@@ -39,6 +39,8 @@ export interface TeamRoutes {
   money: string
   /** The member's own calendar links (webcal subscriptions) for this Team. */
   calendar: string
+  /** The season grid, a desktop page reached from the sidebar only. */
+  season: string
   getStarted: string
 }
 
@@ -58,6 +60,7 @@ export function teamRoutes(slug: string | null): TeamRoutes {
       teamSetting: () => '/',
       money: '/',
       calendar: '/',
+      season: '/',
       getStarted: '/',
     }
   }
@@ -72,6 +75,7 @@ export function teamRoutes(slug: string | null): TeamRoutes {
     teamSetting: (section) => `${base}/team/settings/${section}`,
     money: `${base}/money`,
     calendar: `${base}/calendar`,
+    season: `${base}/season`,
     getStarted: `${base}/get-started`,
   }
 }

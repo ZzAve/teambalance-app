@@ -32,6 +32,7 @@ import { Route as TSlugEventsEventIdRouteImport } from './routes/t/$slug/events/
 import { Route as TSlugGetStartedIndexRouteImport } from './routes/t/$slug/get-started/index'
 import { Route as TSlugMoneyIndexRouteImport } from './routes/t/$slug/money/index'
 import { Route as TSlugProfileIndexRouteImport } from './routes/t/$slug/profile/index'
+import { Route as TSlugSeasonIndexRouteImport } from './routes/t/$slug/season/index'
 import { Route as TSlugTeamIndexRouteImport } from './routes/t/$slug/team/index'
 import { Route as TSlugTeamUserIdRouteImport } from './routes/t/$slug/team/$userId'
 import { Route as TSlugTeamSettingsRouteRouteImport } from './routes/t/$slug/team/settings/route'
@@ -154,6 +155,11 @@ const TSlugProfileIndexRoute = TSlugProfileIndexRouteImport.update({
   path: '/profile/',
   getParentRoute: () => TSlugRouteRoute,
 } as any)
+const TSlugSeasonIndexRoute = TSlugSeasonIndexRouteImport.update({
+  id: '/season/',
+  path: '/season/',
+  getParentRoute: () => TSlugRouteRoute,
+} as any)
 const TSlugTeamIndexRoute = TSlugTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
   '/t/$slug/profile/': typeof TSlugProfileIndexRoute
+  '/t/$slug/season/': typeof TSlugSeasonIndexRoute
   '/t/$slug/team/': typeof TSlugTeamIndexRoute
   '/t/$slug/team/settings/$section': typeof TSlugTeamSettingsSectionRoute
   '/t/$slug/team/sub/$substituteId': typeof TSlugTeamSubSubstituteIdRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/t/$slug/get-started': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money': typeof TSlugMoneyIndexRoute
   '/t/$slug/profile': typeof TSlugProfileIndexRoute
+  '/t/$slug/season': typeof TSlugSeasonIndexRoute
   '/t/$slug/team': typeof TSlugTeamIndexRoute
   '/t/$slug/team/settings/$section': typeof TSlugTeamSettingsSectionRoute
   '/t/$slug/team/sub/$substituteId': typeof TSlugTeamSubSubstituteIdRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
   '/t/$slug/profile/': typeof TSlugProfileIndexRoute
+  '/t/$slug/season/': typeof TSlugSeasonIndexRoute
   '/t/$slug/team/': typeof TSlugTeamIndexRoute
   '/t/$slug/team/settings/$section': typeof TSlugTeamSettingsSectionRoute
   '/t/$slug/team/sub/$substituteId': typeof TSlugTeamSubSubstituteIdRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
     | '/t/$slug/profile/'
+    | '/t/$slug/season/'
     | '/t/$slug/team/'
     | '/t/$slug/team/settings/$section'
     | '/t/$slug/team/sub/$substituteId'
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
     | '/t/$slug/get-started'
     | '/t/$slug/money'
     | '/t/$slug/profile'
+    | '/t/$slug/season'
     | '/t/$slug/team'
     | '/t/$slug/team/settings/$section'
     | '/t/$slug/team/sub/$substituteId'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
     | '/t/$slug/profile/'
+    | '/t/$slug/season/'
     | '/t/$slug/team/'
     | '/t/$slug/team/settings/$section'
     | '/t/$slug/team/sub/$substituteId'
@@ -556,6 +568,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugProfileIndexRouteImport
       parentRoute: typeof TSlugRouteRoute
     }
+    '/t/$slug/season/': {
+      id: '/t/$slug/season/'
+      path: '/season'
+      fullPath: '/t/$slug/season/'
+      preLoaderRoute: typeof TSlugSeasonIndexRouteImport
+      parentRoute: typeof TSlugRouteRoute
+    }
     '/t/$slug/team/': {
       id: '/t/$slug/team/'
       path: '/team'
@@ -626,6 +645,7 @@ interface TSlugRouteRouteChildren {
   TSlugGetStartedIndexRoute: typeof TSlugGetStartedIndexRoute
   TSlugMoneyIndexRoute: typeof TSlugMoneyIndexRoute
   TSlugProfileIndexRoute: typeof TSlugProfileIndexRoute
+  TSlugSeasonIndexRoute: typeof TSlugSeasonIndexRoute
   TSlugTeamIndexRoute: typeof TSlugTeamIndexRoute
   TSlugTeamSubSubstituteIdRoute: typeof TSlugTeamSubSubstituteIdRoute
 }
@@ -639,6 +659,7 @@ const TSlugRouteRouteChildren: TSlugRouteRouteChildren = {
   TSlugGetStartedIndexRoute: TSlugGetStartedIndexRoute,
   TSlugMoneyIndexRoute: TSlugMoneyIndexRoute,
   TSlugProfileIndexRoute: TSlugProfileIndexRoute,
+  TSlugSeasonIndexRoute: TSlugSeasonIndexRoute,
   TSlugTeamIndexRoute: TSlugTeamIndexRoute,
   TSlugTeamSubSubstituteIdRoute: TSlugTeamSubSubstituteIdRoute,
 }

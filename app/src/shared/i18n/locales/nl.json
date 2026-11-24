@@ -86,6 +86,7 @@
   },
   "nav": {
     "events": "Events",
+    "season": "Seizoen",
     "team": "Team",
     "money": "Teampot",
     "profile": "Profiel"
@@ -1411,5 +1412,15 @@
     "approveConfirm": "Bij goedkeuren wordt een aanmaakcode gemaakt en naar {{email}} gemaild.",
     "confirmApprove": "Goedkeuren en code versturen",
     "reject": "Afwijzen"
+  },
+  "season": {
+    "title": "Seizoen",
+    "member": "Lid",
+    "attended": "Opkomst",
+    "today": "Vandaag",
+    "cell": "{{name}}, {{event}}: {{state}}",
+    "notOnEvent": "niet bij dit event",
+    "empty": "Nog geen events in dit seizoen.",
+    "loadFailed": "Kon het seizoen niet laden."
   }
 }

@@ -2,9 +2,14 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.CreationCodeAdminService
+import com.github.zzave.teambalance.api.domain.exception.TeamRequestNotPendingException
+import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.TeamRequestRepository
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.longs.shouldBeInRange
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -37,6 +42,9 @@ class TeamRequestControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var mails: FakeEmailGateway
+
+    @Autowired
+    lateinit var teamRequestRepository: TeamRequestRepository
 
     private val admin = "ee000000-0000-0000-0000-000000000001"
     private val json = ObjectMapper()
@@ -164,6 +172,40 @@ class TeamRequestControllerIT : TeamBalanceIT() {
 
             // Approving a decided request is a 409.
             post("/api/admin/team-requests/$id/approve", admin).andExpect(MockMvcResultMatchers.status().isConflict)
+        }
+
+        test("deciding an approved request again is a 409 and mints no second code") {
+            val user = newRequester()
+            val id = idOf(submit(user.id))
+            post("/api/admin/team-requests/$id/approve", admin).andExpect(MockMvcResultMatchers.status().isOk)
+            val codeCount = { jdbcTemplate.queryForObject("SELECT count(*) FROM public.team_creation_codes", Long::class.java) }
+            val codesAfterApprove = codeCount()
+
+            post("/api/admin/team-requests/$id/approve", admin).andExpect(MockMvcResultMatchers.status().isConflict)
+            post("/api/admin/team-requests/$id/reject", admin).andExpect(MockMvcResultMatchers.status().isConflict)
+
+            // Past the service's pre-check (a decision racing it): the code insert is rolled back with the 409.
+            val raced = CreationCodeAdminService.generateCode()
+            shouldThrow<TeamRequestNotPendingException> {
+                teamRequestRepository.approve(
+                    UUID.fromString(id),
+                    UserId(UUID.fromString(admin)),
+                    raced,
+                    Instant.now(),
+                    Instant.now(),
+                )
+            }
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_creation_codes WHERE code = ?",
+                Long::class.java,
+                raced.value,
+            ) shouldBe 0L
+            codeCount() shouldBe codesAfterApprove
+            jdbcTemplate.queryForObject(
+                "SELECT status FROM public.team_requests WHERE id = ?::uuid",
+                String::class.java,
+                id,
+            ) shouldBe "APPROVED"
         }
 
         test("a submit while the approved code is still usable is a 409; once the code is used it is allowed") {

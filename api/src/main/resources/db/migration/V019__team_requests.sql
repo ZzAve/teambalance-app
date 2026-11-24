@@ -10,7 +10,7 @@ CREATE TABLE team_requests (
     requested_at        TIMESTAMPTZ  NOT NULL,
     decided_at          TIMESTAMPTZ,
     decided_by_user_id  UUID REFERENCES users(id) ON DELETE SET NULL,
-    creation_code_id    UUID REFERENCES team_creation_codes(id) ON DELETE SET NULL,
+    creation_code_id    UUID UNIQUE REFERENCES team_creation_codes(id) ON DELETE SET NULL,
     CONSTRAINT team_requests_status_check CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
     CONSTRAINT team_requests_team_name_check CHECK (char_length(team_name) BETWEEN 1 AND 100),
     CONSTRAINT team_requests_purpose_check CHECK (char_length(purpose) BETWEEN 1 AND 1000),

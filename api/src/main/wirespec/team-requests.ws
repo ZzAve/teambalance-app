@@ -30,7 +30,7 @@ type RejectTeamRequestBody {
     reason: String?
 }
 
-// Any signed-in user. 400 for a blank or over-long team name (code INVALID_NAME) or a blank or over-long purpose (INVALID_PURPOSE). 409 when the caller already has a pending request.
+// Any signed-in user. 400 for a blank or over-long team name (code INVALID_NAME) or a blank or over-long purpose (INVALID_PURPOSE). 409 when the caller already has an open request: one that is pending, or approved with a creation code that is unused and unexpired.
 endpoint SubmitTeamRequest POST SubmitTeamRequestBody /api/team-requests -> {
     201 -> TeamRequest
     400 -> Unit

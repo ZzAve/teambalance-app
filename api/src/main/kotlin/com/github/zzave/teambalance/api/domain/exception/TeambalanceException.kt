@@ -259,9 +259,12 @@ class TeamSlugTakenException(slug: String) :
 class CreationCodeConsumedException(code: String) :
     ConflictException("Creation code '$code' has already been consumed", "CREATION_CODE_CONSUMED")
 
-// One pending team request per user (ADR-0047): a second submit while one is open is refused.
+// One open team request per user (ADR-0047): pending, or approved with a code that is unused and unexpired.
 class TeamRequestPendingException :
-    ConflictException("You already have a pending team request", "TEAM_REQUEST_PENDING")
+    ConflictException(
+        "You already have an open team request: one that is pending, or approved with a creation code you have not used yet",
+        "TEAM_REQUEST_PENDING",
+    )
 
 // Only a pending team request can be approved or rejected.
 class TeamRequestNotPendingException(id: UUID) :

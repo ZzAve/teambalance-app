@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
 import com.github.zzave.teambalance.api.domain.model.Language
+import com.github.zzave.teambalance.api.domain.model.TeamRequestEntry.Companion.CODE_VALIDITY_DAYS
 import org.springframework.web.util.HtmlUtils
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -27,8 +28,8 @@ object TeamRequestEmails {
                 "Teamnaam: $teamName",
                 "Waarvoor: $purpose",
                 "Beoordeel de aanvraag:",
-                adminUrl,
             ),
+            url = adminUrl,
         )
 
     fun received(teamName: String, purpose: String, language: Language): RenderedEmail = when (language) {
@@ -61,9 +62,9 @@ object TeamRequestEmails {
             lines = listOf(
                 "Hoi,",
                 "Je aanvraag voor het team $teamName is goedgekeurd. Je kunt het team nu aanmaken:",
-                createTeamUrl,
-                "De link werkt één keer en verloopt na 30 dagen.",
             ),
+            url = createTeamUrl,
+            afterUrl = "De link werkt één keer en verloopt na $CODE_VALIDITY_DAYS dagen.",
         )
         Language.EN -> render(
             subject = "Your request for $teamName is approved",
@@ -71,9 +72,9 @@ object TeamRequestEmails {
             lines = listOf(
                 "Hi,",
                 "Your request for the team $teamName is approved. You can create the team now:",
-                createTeamUrl,
-                "The link works once and expires after 30 days.",
             ),
+            url = createTeamUrl,
+            afterUrl = "The link works once and expires after $CODE_VALIDITY_DAYS days.",
         )
     }
 
@@ -98,23 +99,32 @@ object TeamRequestEmails {
         )
     }
 
-    private fun render(subject: String, noReply: String, lines: List<String>) = RenderedEmail(
-        subject = subject,
-        text = (lines + noReply).joinToString("\n\n"),
-        html = """
-            <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a;">
-              <p style="font-size:20px;font-weight:bold;">TeamBalance</p>
-              ${lines.joinToString("\n") { paragraph(it) }}
-              <p style="font-size:12px;color:#999;">$noReply</p>
-            </div>
-        """.trimIndent(),
-    )
-
-    // A line that is a URL becomes a link, so it does not depend on the mail client auto-linking it.
-    private fun paragraph(line: String): String {
-        val escaped = HtmlUtils.htmlEscape(line)
-        return if (line.startsWith("http")) "<p><a href=\"$escaped\">$escaped</a></p>" else "<p>$escaped</p>"
+    // Only [url] (ours, never user input) becomes a link, so it does not depend on the mail client auto-linking it.
+    private fun render(
+        subject: String,
+        noReply: String,
+        lines: List<String>,
+        url: String? = null,
+        afterUrl: String? = null,
+    ): RenderedEmail {
+        val escapedUrl = url?.let(HtmlUtils::htmlEscape)
+        val html = lines.map(::paragraph) +
+            listOfNotNull(escapedUrl?.let { "<p><a href=\"$it\">$it</a></p>" }, afterUrl?.let(::paragraph))
+        return RenderedEmail(
+            subject = subject,
+            text = (lines + listOfNotNull(url, afterUrl) + noReply).joinToString("\n\n"),
+            html = """
+                <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a;">
+                  <p style="font-size:20px;font-weight:bold;">TeamBalance</p>
+                  ${html.joinToString("\n")}
+                  <p style="font-size:12px;color:#999;">$noReply</p>
+                </div>
+            """.trimIndent(),
+        )
     }
+
+    // User text may hold line breaks (a multi-line purpose); keep them in the HTML part.
+    private fun paragraph(line: String) = "<p>${HtmlUtils.htmlEscape(line).replace("\n", "<br>")}</p>"
 
     private fun encode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

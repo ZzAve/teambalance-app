@@ -39,7 +39,7 @@ export function useCurrentMember(options?: { enabled?: boolean }) {
 
 // The admin roster. Keyed ['members'] so a member mutation invalidating that prefix refreshes both
 // the list and ['members', 'me'].
-export function useMembers() {
+export function useMembers(enabled = true) {
   return useQuery({
     queryKey: ['members'],
     queryFn: async () => {
@@ -47,6 +47,7 @@ export function useMembers() {
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.', res.status)
       return res.body.members
     },
+    enabled,
   })
 }
 

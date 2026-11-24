@@ -5,6 +5,7 @@ import { Button } from '@shared/ui/button'
 import { FormError } from '@shared/ui/FormError'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { Textarea } from '@shared/ui/textarea'
 import { deriveRequestTeamState } from '../lib/request-team-state'
 
@@ -15,6 +16,9 @@ interface RequestTeamViewProps {
   /** The caller's latest request; null/undefined when they never made one. */
   request?: TeamRequest | null
   isLoading?: boolean
+  /** The latest-request query failed: shows a retry instead of the form, which could hide an approved code. */
+  isError?: boolean
+  onRetry: () => void
   isSubmitting?: boolean
   /** The failure from the last submit, shown inline. */
   errorCode?: TeamRequestErrorCode | null
@@ -30,6 +34,8 @@ interface RequestTeamViewProps {
 export function RequestTeamView({
   request,
   isLoading,
+  isError,
+  onRetry,
   isSubmitting,
   errorCode,
   onSubmit,
@@ -37,6 +43,7 @@ export function RequestTeamView({
 }: RequestTeamViewProps) {
   const { t } = useTranslation()
   const state = deriveRequestTeamState(request)
+  const ready = !isLoading && !isError
 
   // A real href so open-in-new-tab works; a plain click navigates inside the SPA instead.
   const link = (prefill?: { code: string; name: string }) => ({
@@ -53,14 +60,15 @@ export function RequestTeamView({
       <h2 className="font-display text-lead font-bold">{t('requestTeam.title')}</h2>
 
       {isLoading && <p className="mt-2 text-small text-muted-foreground">{t('account.loading')}</p>}
+      {!isLoading && isError && <QueryErrorState title={t('requestTeam.loadFailed')} onRetry={onRetry} />}
 
-      {!isLoading && state.kind === 'pending' && (
+      {ready && state.kind === 'pending' && (
         <p className="mt-2 text-small" role="status">
           {t('requestTeam.pending', { name: state.teamName })}
         </p>
       )}
 
-      {!isLoading && state.kind === 'approved' && (
+      {ready && state.kind === 'approved' && (
         <div className="mt-2 flex flex-col gap-3">
           <p className="text-small">{t('requestTeam.approvedHint')}</p>
           <Button asChild>
@@ -71,7 +79,7 @@ export function RequestTeamView({
         </div>
       )}
 
-      {!isLoading && state.kind === 'rejected' && (
+      {ready && state.kind === 'rejected' && (
         <div className="mt-2 text-small" role="status">
           <p className="font-semibold">{t('requestTeam.rejected')}</p>
           {state.reason && <p className="mt-1 text-muted-foreground">{t('requestTeam.rejectedReason', { reason: state.reason })}</p>}
@@ -79,7 +87,7 @@ export function RequestTeamView({
         </div>
       )}
 
-      {!isLoading && (state.kind === 'form' || state.kind === 'rejected') && (
+      {ready && (state.kind === 'form' || state.kind === 'rejected') && (
         <RequestForm isSubmitting={isSubmitting} errorCode={errorCode} onSubmit={onSubmit} />
       )}
 

@@ -1389,7 +1389,8 @@
     "rejectedReason": "Reason: {{reason}}",
     "askAgain": "You can send a new request below.",
     "haveCode": "I already have a code",
-    "alreadyPending": "You already have a request waiting for approval."
+    "alreadyPending": "You already have an open request: one waiting for approval, or an approved code you haven't used yet.",
+    "loadFailed": "Couldn't load your team request. Please try again."
   },
   "teamRequests": {
     "title": "Team requests",
@@ -1406,6 +1407,8 @@
     "confirmReject": "Reject request",
     "cancel": "Cancel",
     "approve": "Approve",
+    "approveConfirm": "Approving creates a creation code and emails it to {{email}}.",
+    "confirmApprove": "Approve and send code",
     "reject": "Reject"
   }
 }

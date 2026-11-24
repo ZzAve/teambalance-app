@@ -26,7 +26,7 @@ const meta = {
     activeTeam: SETPOINT,
     onSelect: fn(), onJoin: fn(),
     // The request card is a prop-only slot; its own states are RequestTeamView's stories.
-    requestTeam: <RequestTeamView onSubmit={fn()} onOpenCreateTeam={fn()} />,
+    requestTeam: <RequestTeamView onSubmit={fn()} onOpenCreateTeam={fn()} onRetry={fn()} />,
   },
 } satisfies Meta<typeof TeamsView>
 

@@ -30,7 +30,7 @@ const REJECTED: TeamRequest = {
 const REQUESTS = [PENDING, PENDING_2, APPROVED, REJECTED]
 
 // Three stories (ADR-0032 §1): Data is the populated list, Shells every other state, Interactions
-// has no picture and drives approve and the reject-with-reason flow against the spies.
+// has no picture and drives the approve confirm and the reject-with-reason flow against the spies.
 const meta = {
   title: 'features/manage-team-requests/TeamRequestsView',
   component: TeamRequestsView,
@@ -77,8 +77,17 @@ export const Shells: Story = {
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Approve' })[0])
+    // Approve asks first: Cancel backs out without calling the spy, the confirm calls it.
+    const firstRow = within(canvas.getAllByRole('listitem')[0])
+    await userEvent.click(firstRow.getByRole('button', { name: 'Approve' }))
+    await expect(firstRow.getByText('Approving creates a creation code and emails it to anna@example.com.')).toBeInTheDocument()
+    await userEvent.click(firstRow.getByRole('button', { name: 'Cancel' }))
+    await expect(args.onApprove).not.toHaveBeenCalled()
+    await userEvent.click(firstRow.getByRole('button', { name: 'Approve' }))
+    await userEvent.click(firstRow.getByRole('button', { name: 'Approve and send code' }))
     await expect(args.onApprove).toHaveBeenCalledWith(PENDING)
+    // The spy doesn't refetch, so the confirm stays open; back out so the reject steps below see the row's buttons.
+    await userEvent.click(firstRow.getByRole('button', { name: 'Cancel' }))
 
     // Reject the second request with a reason, then with a blank one.
     await userEvent.click(canvas.getAllByRole('button', { name: 'Reject' })[1])

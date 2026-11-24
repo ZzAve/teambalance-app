@@ -30,7 +30,7 @@ const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language)
 
 /**
  * Platform-admin list of team requests (ADR-0047): the pending ones with Approve / Reject (optional
- * reason), then the recently decided ones. Local state is only which row's reject form is open.
+ * reason), then the recently decided ones. Local state is only which row's approve confirm or reject form is open.
  * A 403 renders nothing here: the creation-codes view below already shows the no-access shell.
  */
 export function TeamRequestsView({
@@ -111,7 +111,8 @@ function PendingRow({
   onReject: (request: TeamRequest, reason: string | undefined) => void
 }) {
   const { t } = useTranslation()
-  const [rejecting, setRejecting] = useState(false)
+  // Approving mails a creation code, so it gets the same second step as reject.
+  const [step, setStep] = useState<'approve' | 'reject' | null>(null)
   const [reason, setReason] = useState('')
   const reasonId = `reject-reason-${request.id}`
 
@@ -125,7 +126,19 @@ function PendingRow({
         <p className="mt-1 whitespace-pre-line break-words text-small">{request.purpose}</p>
       </div>
 
-      {rejecting ? (
+      {step === 'approve' ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-small">{t('teamRequests.approveConfirm', { email: request.requesterEmail })}</p>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={isSaving} onClick={() => onApprove(request)}>
+              {t('teamRequests.confirmApprove')}
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setStep(null)}>
+              {t('teamRequests.cancel')}
+            </Button>
+          </div>
+        </div>
+      ) : step === 'reject' ? (
         <form
           className="flex flex-col gap-2"
           onSubmit={(e) => {
@@ -140,17 +153,17 @@ function PendingRow({
             <Button type="submit" variant="destructive" size="sm" disabled={isSaving}>
               {t('teamRequests.confirmReject')}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setRejecting(false)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setStep(null)}>
               {t('teamRequests.cancel')}
             </Button>
           </div>
         </form>
       ) : (
         <div className="flex gap-2">
-          <Button size="sm" disabled={isSaving} onClick={() => onApprove(request)}>
+          <Button size="sm" disabled={isSaving} onClick={() => setStep('approve')}>
             {t('teamRequests.approve')}
           </Button>
-          <Button variant="outline" size="sm" disabled={isSaving} onClick={() => setRejecting(true)}>
+          <Button variant="outline" size="sm" disabled={isSaving} onClick={() => setStep('reject')}>
             {t('teamRequests.reject')}
           </Button>
         </div>

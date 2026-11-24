@@ -75,7 +75,9 @@ export function useApproveTeamRequest() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const res = await api.approveTeamRequest({ id })
+      const res = await api.approveTeamRequest({ id }).catch(() => {
+        throw new TeamRequestError('GENERIC', i18n.t('errors.teamRequest.generic'))
+      })
       if (res.status === 200) return res.body
       throw toTeamRequestError(res.status, bodyCode(res.body))
     },
@@ -92,7 +94,9 @@ export function useRejectTeamRequest() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const res = await api.rejectTeamRequest({ id, body: { reason } })
+      const res = await api.rejectTeamRequest({ id, body: { reason } }).catch(() => {
+        throw new TeamRequestError('GENERIC', i18n.t('errors.teamRequest.generic'))
+      })
       if (res.status === 200) return res.body
       throw toTeamRequestError(res.status, bodyCode(res.body))
     },

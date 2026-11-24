@@ -22,7 +22,7 @@ const REQUEST: TeamRequest = {
 const meta = {
   title: 'features/request-team/RequestTeamView',
   component: RequestTeamView,
-  args: { onSubmit: fn(), onOpenCreateTeam: fn() },
+  args: { onSubmit: fn(), onOpenCreateTeam: fn(), onRetry: fn() },
 } satisfies Meta<typeof RequestTeamView>
 
 export default meta
@@ -43,6 +43,8 @@ export const Shells: Story = {
     <Stack
       items={{
         Loading: <RequestTeamView {...args} isLoading />,
+        // A failed load hides the form: the caller may hold an approved code the form would hide.
+        Error: <RequestTeamView {...args} isError />,
         Pending: <RequestTeamView {...args} request={REQUEST} />,
         Approved: <RequestTeamView {...args} request={{ ...REQUEST, status: 'APPROVED', creationCode: 'AAAA-BBBB-CCCC' }} />,
         'Approved, code used': (
@@ -54,11 +56,16 @@ export const Shells: Story = {
       }}
     />
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Loading').queryByRole('button', { name: 'Send request' })).not.toBeInTheDocument()
+
+    await expect(region('Error').getByRole('alert')).toHaveTextContent("Couldn't load your team request")
+    await expect(region('Error').queryByRole('button', { name: 'Send request' })).not.toBeInTheDocument()
+    await userEvent.click(region('Error').getByRole('button', { name: 'Retry' }))
+    await expect(args.onRetry).toHaveBeenCalledOnce()
 
     await expect(region('Pending').getByText('Request sent for Tovo Heren 4, waiting for approval.')).toBeInTheDocument()
     await expect(region('Pending').queryByRole('button', { name: 'Send request' })).not.toBeInTheDocument()
@@ -74,7 +81,7 @@ export const Shells: Story = {
     await expect(region('Rejected').getByText('Reason: Please be more specific')).toBeInTheDocument()
     await expect(region('Rejected').getByLabelText('Team name')).toBeInTheDocument()
 
-    await expect(region('Already pending').getByRole('alert')).toHaveTextContent('already have a request')
+    await expect(region('Already pending').getByRole('alert')).toHaveTextContent('already have an open request')
     await expect(region('Invalid name').getByText('Enter a team name of 1 to 100 characters.')).toBeInTheDocument()
   },
 }

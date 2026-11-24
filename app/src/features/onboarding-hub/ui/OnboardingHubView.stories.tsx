@@ -19,7 +19,7 @@ const meta = {
   title: 'features/onboarding-hub/OnboardingHubView',
   component: OnboardingHubView,
   // The request card is a prop-only slot; its own states are RequestTeamView's stories.
-  args: { onChooseJoin: fn(), requestTeam: <RequestTeamView onSubmit={fn()} onOpenCreateTeam={fn()} /> },
+  args: { onChooseJoin: fn(), requestTeam: <RequestTeamView onSubmit={fn()} onOpenCreateTeam={fn()} onRetry={fn()} /> },
 } satisfies Meta<typeof OnboardingHubView>
 
 export default meta

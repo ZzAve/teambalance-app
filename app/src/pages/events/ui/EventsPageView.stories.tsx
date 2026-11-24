@@ -350,7 +350,8 @@ export const Data: Story = {
       await expect(canvas.getByText(title)).toBeInTheDocument()
     }
     // The shell around it: the team is named up top and the Events tab is the current one.
-    await expect(canvas.getByText('Setpoint VT')).toBeInTheDocument()
+    // The sidebar repeats the team chip from `lg`; at this width only the header's is visible.
+    await expect(canvas.getAllByText('Setpoint VT').filter((el) => el.checkVisibility())).toHaveLength(1)
     await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page')
   },
 }

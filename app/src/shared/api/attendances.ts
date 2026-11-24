@@ -7,6 +7,7 @@ import { patchCachedEvents, rollBack } from './event-cache'
 import { useCurrentUser } from './auth'
 import type { AttendanceEntry } from './events'
 import { i18n } from '@shared/i18n/i18n'
+import { hapticTap } from '@shared/lib/haptic-tap'
 
 type AttendanceState = AttendanceEntry['state']
 
@@ -42,10 +43,13 @@ export function useSetAttendance() {
     },
     // Optimistic update: every cached read of the event — the list cards, the hero and the detail —
     // shows the tap instantly; a failure rolls them all back from one snapshot.
-    onMutate: ({ eventId, userId, state }) =>
-      patchCachedEvents<CachedEvents>(queryClient, (cached) =>
+    onMutate: ({ eventId, userId, state }) => {
+      // Buzz only for the member's own answer, not for an admin answering on someone else's behalf.
+      if (userId === actorId) hapticTap()
+      return patchCachedEvents<CachedEvents>(queryClient, (cached) =>
         applyOptimisticAttendanceToCache(cached, eventId, userId, state, actorId),
-      ),
+      )
+    },
     onError: (_error, _variables, context) => {
       // The re-enabled toggle is the recovery path — tapping again retries.
       rollBack(queryClient, context)
@@ -78,6 +82,7 @@ export function useBulkAttend() {
       const res = await api.bulkAttend({ body: { userId, eventIds, state: 'ATTENDING' } })
       return res.body.eventIds
     },
+    onMutate: hapticTap,
     onError: () => {
       toast.error(i18n.t('errors.attendance.setFailed'))
     },

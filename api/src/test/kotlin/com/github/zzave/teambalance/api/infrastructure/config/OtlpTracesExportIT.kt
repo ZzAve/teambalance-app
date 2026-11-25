@@ -124,6 +124,20 @@ class OtlpTracesExportIT : TeamBalanceIT() {
             }
         }
 
+        test("no span holds the real request path: a calendar-feed token or team slug stays out of Tempo") {
+            val before = receiver.spans().size
+
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/calendar/$SECRET_SLUG/$SECRET_TOKEN.ics"))
+
+            eventually(15.seconds) {
+                val pushed = receiver.spans().drop(before)
+                val server = pushed.single { it.kind == Span.SpanKind.SPAN_KIND_SERVER }
+                server.attribute("http.url") shouldBe "/api/calendar/{teamSlug}/{token}.ics"
+                pushed.flatMap { span -> listOf(span.name) + span.attributesList.map { it.value.stringValue } }
+                    .filter { it.contains(SECRET_TOKEN) || it.contains(SECRET_SLUG) } shouldBe emptyList()
+            }
+        }
+
         test("every push carries the Cockpit token header") {
             eventually(15.seconds) { receiver.tokens.firstOrNull() shouldNotBe null }
             receiver.tokens.toSet() shouldBe setOf("test-push-token")
@@ -174,6 +188,8 @@ class OtlpTracesExportIT : TeamBalanceIT() {
 
     companion object {
         private const val PATH = "/otlp/v1/traces"
+        private const val SECRET_SLUG = "secret-team-slug"
+        private const val SECRET_TOKEN = "SecretFeedToken123"
         val receiver = OtlpReceiver()
     }
 }

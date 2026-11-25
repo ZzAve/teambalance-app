@@ -338,6 +338,11 @@ What to look for in Cockpit's Grafana (Explore → the traces data source):
   spans (`security filterchain before`/`after`, `authorize request`, `secured request`).
 - **Log correlation:** each log line of a request shows `[<traceId>-<spanId>]` after the thread name.
   Search Tempo for that trace ID to see the request, or copy a trace ID from Tempo into a log search.
+  This also holds after a `suspend` handler switches thread (`withContext(Dispatchers.IO)`):
+  `CoroutineContextPropagationConfiguration` switches on Reactor's automatic context propagation, so
+  Spring copies the trace context into the coroutine. `OtlpTracesExportIT` checks both cases.
+- **Request paths:** a span's `http.url` is the route template, not the real path
+  (`RouteTemplateObservationConvention`), so calendar-feed and invite tokens stay out of Tempo.
 - **Not traced:** the health probe (`/internal/actuator/health`). It is also not in the endpoint
   metrics. `HealthProbeObservationConfiguration` skips it.
 - **Also traced:** the hourly match-feed task (`task matchFeedScheduler.checkDueFeeds`), and the
@@ -426,7 +431,10 @@ domain, so it loads no tracker code.
    the SPA uses the npm package `@plausible-analytics/tracker`.
 2. GitHub (*Settings → Secrets and variables → Actions → Variables*): set `PLAUSIBLE_DOMAIN` to
    `app.teambalance.nl`. The next frontend deploy sends pageviews.
-3. Optional: `PLAUSIBLE_ENDPOINT`, only for a proxy (see below).
+3. Landing page: add the site `teambalance.nl` in Plausible, and set the GitHub variable
+   `PLAUSIBLE_WWW_DOMAIN` to `teambalance.nl`. `www/build.mjs` then adds the tracker to every landing
+   and privacy page; without the variable no page loads it.
+4. `PLAUSIBLE_ENDPOINT` stays unset: there is no proxy (see below).
 
 **What is sent:** one `pageview` for each path change, from `shared/lib/analytics.ts`. Automatic
 pageviews, outbound links, file downloads and form submissions are off. The tracker also sends
@@ -446,8 +454,17 @@ docs do not say whether these are billable; check the usage page after the first
 **Ad blockers:** many block `plausible.io`, so some visits are not counted. A proxy on an own domain
 (for example a route on the Scaleway Edge Services in front of the SPA bucket that forwards
 `/api/event` to `https://plausible.io/api/event`) gets most of them back. The npm package is in the
-bundle, so only the event endpoint needs the proxy. **Decision: _open_ (no proxy until decided).**
-With a proxy, set `PLAUSIBLE_ENDPOINT` to its URL.
+bundle, so only the event endpoint needs the proxy. **Decision: no proxy.** The counts that ad
+blockers block are accepted as lost. If that changes, set `PLAUSIBLE_ENDPOINT` to the proxy's URL.
+
+**Landing page (`teambalance.nl`):** its paths (`/`, `/en/`, `/privacy/`, `/en/privacy/`) hold no
+tokens or IDs, so its tracker sends its own pageviews (`www/analytics-config.mjs`). Query strings,
+fragments and custom properties are still removed. The tracker file is the same pinned npm package
+as the SPA's, copied from `app/node_modules` into `www/dist`, so no page loads a script from
+`plausible.io`; only the events go there.
+
+**Privacy page:** `www/privacy.html` ("Visitor counts", "Error reports", "Server measurements")
+describes Plausible, Bugsink and Cockpit. Change it together with any change to what these send.
 
 **Cost:** Starter is about $9/month for 10k pageviews (plus VAT). Custom events also count against
 this; the SPA sends none.
@@ -457,7 +474,8 @@ server with `VITE_PLAUSIBLE_DOMAIN=app.teambalance.nl` and `VITE_PLAUSIBLE_ENDPO
 HTTP receiver, open it on a host name that is not `localhost` (e.g. through `/etc/hosts`), and look at
 the request bodies: `u` must be a route template.
 
-To stop the pageviews, remove the `PLAUSIBLE_DOMAIN` variable; the next frontend deploy has no domain.
+To stop the pageviews, remove the `PLAUSIBLE_DOMAIN` variable (SPA) or `PLAUSIBLE_WWW_DOMAIN` (landing
+page); the next frontend deploy has no domain.
 
 ## Rollback
 

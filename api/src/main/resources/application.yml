@@ -71,6 +71,24 @@ management:
         # 403s everything under /internal/actuator except `health` — and `startup` only while the
         # teambalance.startup.actuator.enabled flag is set (perf-test window). See #95.
         include: health,info,metrics,startup
+  metrics:
+    distribution:
+      # Latency buckets for the endpoint metrics: with these set, each route template, method and status
+      # is pushed as one histogram with these bounds, and nothing else (no client-side percentiles).
+      slo:
+        http.server.requests: 50ms,100ms,250ms,500ms,1s,2500ms
+  otlp:
+    metrics:
+      export:
+        # Pushes the metrics to Scaleway Cockpit once a minute. Off unless the environment switches it on
+        # (MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED and _URL; see docs/ops/deploy.md): Micrometer would
+        # otherwise push to localhost:4318 in every local run and test.
+        enabled: false
+  tracing:
+    sampling:
+      # Every request is traced: at this traffic the trace volume costs cents a month. The spans are
+      # only pushed when the environment sets a traces endpoint (see docs/ops/deploy.md).
+      probability: 1.0
   info:
     # Surface the `info.*` properties below (the deployed image's build SHA) on /internal/actuator/info.
     # Off by default in Spring Boot, so the deploy-verify probe would otherwise see an empty payload.

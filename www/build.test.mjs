@@ -1,0 +1,83 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const out = mkdtempSync(join(tmpdir(), 'www-dist-'))
+const build = spawnSync('node', [join(here, 'build.mjs')], { env: { ...process.env, OUT_DIR: out }, encoding: 'utf8' })
+const read = (f) => readFileSync(join(out, f), 'utf8')
+
+test('build succeeds', () => assert.equal(build.status, 0, build.stderr))
+
+test('landing and privacy render in both languages with no placeholder left', () => {
+  for (const f of ['index.html', 'en/index.html', 'privacy/index.html', 'en/privacy/index.html']) {
+    assert.ok(!read(f).includes('{{'), `${f} still has a {{placeholder}}`)
+  }
+  assert.match(read('index.html'), /<html lang="nl">/)
+  assert.match(read('en/privacy/index.html'), /<html lang="en">/)
+})
+
+test('dist is self-contained: static files, fonts and icons are copied', () => {
+  for (const f of ['style.css', 'landing.js', 'landing-state.mjs', 'design-tokens/tokens.css', 'og.png', 'favicon.ico', 'tb-monogram.svg', 'apple-touch-icon-180x180.png']) {
+    assert.ok(existsSync(join(out, f)), `missing ${f}`)
+  }
+  assert.deepEqual(readdirSync(join(out, 'fonts')).sort(), [
+    'dm-sans-latin-opsz-normal.woff2',
+    'grandstander-latin-wght-normal.woff2',
+  ])
+})
+
+test('every clip a landing page points at is in dist, in that page\'s language', () => {
+  for (const [f, lang] of [['index.html', 'nl'], ['en/index.html', 'en']]) {
+    const refs = [...read(f).matchAll(/(?:src|poster)="\/(clips\/[^"]+)"/g)].map((m) => m[1])
+    assert.equal(refs.length, 9, `${f}: expected 3 clips with poster, webm and mp4`)
+    for (const ref of refs) {
+      assert.ok(ref.includes(`.${lang}.`), `${f} points at ${ref}`)
+      assert.ok(existsSync(join(out, ref)), `missing ${ref}`)
+    }
+  }
+})
+
+test('no third-party font host in the output', () => {
+  for (const f of ['index.html', 'en/index.html', 'privacy/index.html', 'style.css']) {
+    assert.doesNotMatch(read(f), /fonts\.(googleapis|gstatic)\.com/, f)
+  }
+})
+
+test('head metadata is present on the landing pages', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const html = read(f)
+    for (const m of ['name="description"', 'property="og:image"', 'name="twitter:card"', 'rel="canonical"', 'rel="icon"', 'rel="apple-touch-icon"', 'rel="preload"']) {
+      assert.ok(html.includes(m), `${f} lacks ${m}`)
+    }
+  }
+})
+
+test('the #copy block of every landing page parses as JSON and has all its keys', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const copy = JSON.parse(read(f).match(/id="copy">([\s\S]*?)<\/script>/)[1])
+    assert.ok(copy.formSent && copy.training_going && copy.unreadQuiet, `${f}: copy block incomplete`)
+  }
+})
+
+test('without the script the sign-in form opens the app login and never sends the email or puts it in a URL', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const forms = read(f).match(/<form [^>]*data-request[\s\S]*?<\/form>/g)
+    assert.equal(forms.length, 1, f)
+    assert.match(forms[0], /action="https:\/\/app\.teambalance\.nl\/login"/, f)
+    // a field without a name is not submitted, so the email stays out of the request
+    assert.doesNotMatch(forms[0], /<(input|select|textarea)\b[^>]*\bname=/, f)
+  }
+})
+
+test('the hero links to the How to start section, which holds the form', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const html = read(f)
+    assert.ok(html.includes('href="#start"'), f)
+    assert.match(html.slice(html.indexOf('id="start"')), /<form [^>]*data-request/, f)
+  }
+})

@@ -1,6 +1,7 @@
 import type { Decorator } from '@storybook/react-vite'
 import { AppShellFrame } from '@shared/ui/AppShellFrame'
 import { BottomNav } from '@shared/ui/BottomNav'
+import { SideNav } from '@shared/ui/SideNav'
 import { withRouter } from '@shared/testing/router-decorator'
 import { AuthMeProvider, authenticatedUser } from '@shared/testing/auth-decorator'
 import type { TeamRef } from '@shared/api/teams'
@@ -16,6 +17,7 @@ export const SHELL_ROUTES = {
   team: `/t/${SHELL_TEAM.slug}/team`,
   money: `/t/${SHELL_TEAM.slug}/money`,
   account: '/account',
+  season: `/t/${SHELL_TEAM.slug}/season`,
 } as const
 
 /**
@@ -44,6 +46,8 @@ export const withAppShell: Decorator = (Story, { parameters }) => (
       <AppShellFrame
         teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
         nav={<BottomNav />}
+        sideNav={<SideNav />}
+        wide={parameters.shellWide}
       >
         {/* A page whose title its container sets (the Account route) names it here instead. */}
         {parameters.shellPageTitle && <PageHeader title={parameters.shellPageTitle} />}

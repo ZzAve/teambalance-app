@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.ActAs
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Invitation
@@ -80,6 +81,12 @@ private class FakeEmailGateway : EmailGateway {
     override fun sendMagicLink(email: Email, token: String, language: Language) {
         sentTokens += token
     }
+
+    // The team-request mails are not part of sign-in.
+    override fun sendTeamRequested(adminEmail: String, requesterEmail: Email, teamName: String, purpose: String) = Unit
+    override fun sendTeamRequestReceived(to: Email, teamName: String, purpose: String, language: Language) = Unit
+    override fun sendTeamRequestApproved(to: Email, teamName: String, code: CreationCode, language: Language) = Unit
+    override fun sendTeamRequestRejected(to: Email, teamName: String, reason: String?, language: Language) = Unit
 }
 
 private class FakePlatformAdminGateway : PlatformAdminGateway {

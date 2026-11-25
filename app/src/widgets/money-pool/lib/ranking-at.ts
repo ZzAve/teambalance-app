@@ -1,4 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
+import { isAttributedTopUp } from '@entities/payment/lib/payment-attribution'
 import { periodPayments, rankTotals, type Topper, type TopperPeriod } from './toppers'
 
 export interface PlaybackFrame {
@@ -13,12 +14,12 @@ export interface PlaybackFrame {
  */
 export function playbackFrames(payments: Payment[], period: TopperPeriod, today: string, nameOf: (memberId: string) => string, memberIds: readonly string[] = []): PlaybackFrame[] {
   const attributed = periodPayments(payments, period, today)
-    .filter((p) => p.direction === 'In' && p.memberId)
+    .filter(isAttributedTopUp)
     .reverse() // the API sends newest first
   const totals = new Map<string, number>()
   const frames: PlaybackFrame[] = []
   attributed.forEach((p, i) => {
-    totals.set(p.memberId!, (totals.get(p.memberId!) ?? 0) + p.amount)
+    totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
     if (attributed[i + 1]?.date !== p.date) frames.push({ date: p.date, ranking: rankTotals(totals, nameOf, memberIds) })
   })
   return frames

@@ -120,6 +120,11 @@ function CreationCodeRow({ code, status, isSaving, onRequestRevoke }: CreationCo
           name over slug: beside it, the badge started wherever the code's own width happened to end. */}
       <div className="min-w-0 flex-1">
         <p className="truncate font-mono text-small font-medium tracking-wide">{code.code}</p>
+        {code.requestedTeamName && (
+          <p className="truncate text-caption text-muted-foreground">
+            {t('creationCodes.requestedFor', { team: code.requestedTeamName, email: code.requestedBy })}
+          </p>
+        )}
         <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-caption font-semibold ${STATUS_STYLES[status]}`}>
           {creationCodeStatusLabel(status)}
         </span>

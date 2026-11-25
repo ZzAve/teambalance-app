@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-08-30
 - Amended: 2026-11-10 (§2: the Account tab is grouped into one row per scope; see below)
+- Amended: 2026-11-17 (the primary nav is a sidebar from `lg` up; see below)
 - Relates to: [ADR-0008](0008-auth-magic-link-and-shareable-invite.md) (magic-link auth + logout),
   [ADR-0019](0019-self-service-team-onboarding.md) (the teamless onboarding hub, kept unchanged),
   [ADR-0023](0023-active-team-explicit-tenant-resolution.md) (Active Team is a session property, not a URL fact),
@@ -206,3 +207,14 @@ Choices made with it:
   `/account/*` path, and the passkey prompt stays off all of them.
 
 The selector stays a pure, unit-tested function of the session, now returning these rows.
+
+## Amendment (2026-11-17): a sidebar replaces the tab bar from `lg` up
+
+The Context above calls the BottomNav the single primary navigation. That still holds per width:
+below `lg` (1024px) the bar is the only nav; from `lg` up `AppShellFrame` hides the bar and shows a
+left sidebar with the wordmark, the team switcher and the same tabs (`SideNav`). The header then
+drops its monogram and team chip, since the sidebar carries them.
+
+Both navs read one hook, `useNavTabs` (`shared/ui/BottomNav.tsx`), so the rules this ADR relies on
+stay in one place: Profile points at `/account` unconditionally, and a teamless or get-started caller
+gets Profile alone. Log out stays reachable at every width.

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiErrorOf } from './api-error'
 import { api } from './wirespec-client'
 import type { CalendarLink } from './generated/model/CalendarLink'
 import type { CalendarLinkRequest } from './generated/model/CalendarLinkRequest'
@@ -16,7 +17,7 @@ export function useCalendarLinks(options?: { enabled?: boolean }) {
     queryFn: async () => {
       const res = await api.listCalendarLinks()
       // 403 (no team, or acting as this team — ADR-0024) has no list to show: surface it as an error.
-      if (res.status !== 200) throw new Error(`Couldn't load calendar links (${res.status})`)
+      if (res.status !== 200) throw apiErrorOf(res, `Couldn't load calendar links (${res.status})`)
       return res.body.links
     },
     enabled: options?.enabled,
@@ -30,7 +31,7 @@ export function useCreateCalendarLink() {
       const res = await api.createCalendarLink({ body: request })
       // 409 is the cap of three; the View already disables Generate at three, so this only fires
       // when the list was stale. The refetch below shows the member why.
-      if (res.status !== 201) throw new Error(`Couldn't create calendar link (${res.status})`)
+      if (res.status !== 201) throw apiErrorOf(res, `Couldn't create calendar link (${res.status})`)
       return res.body
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),
@@ -43,7 +44,7 @@ export function useUpdateCalendarLink() {
   return useMutation({
     mutationFn: async ({ id, request }: { id: string; request: CalendarLinkRequest }) => {
       const res = await api.updateCalendarLink({ id, body: request })
-      if (res.status !== 200) throw new Error(`Couldn't update calendar link (${res.status})`)
+      if (res.status !== 200) throw apiErrorOf(res, `Couldn't update calendar link (${res.status})`)
       return res.body
     },
     // Written into the list straight away, so the row that closes on success already shows the new
@@ -61,7 +62,7 @@ export function useDeleteCalendarLink() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.deleteCalendarLink({ id })
-      if (res.status !== 204) throw new Error(`Couldn't delete calendar link (${res.status})`)
+      if (res.status !== 204) throw apiErrorOf(res, `Couldn't delete calendar link (${res.status})`)
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),
   })

@@ -78,6 +78,22 @@ describe('money pool queries', () => {
   })
 })
 
+// A pool marked `refreshing` holds older figures that the server is replacing.
+describe('a money pool the server is refreshing', () => {
+  type RefetchInterval = (query: { state: { data?: { refreshing: boolean } } }) => number | false
+  const refetchInterval = moneyPoolQueryOptions.refetchInterval as unknown as RefetchInterval
+  const holding = (data?: { refreshing: boolean }) => ({ state: { data } })
+
+  it('is fetched again every few seconds', () => {
+    expect(refetchInterval(holding({ refreshing: true }))).toBe(3_000)
+  })
+
+  it('is not polled once the figures are current, or before any answer', () => {
+    expect(refetchInterval(holding({ refreshing: false }))).toBe(false)
+    expect(refetchInterval(holding())).toBe(false)
+  })
+})
+
 // The top-up link, through the real client: it hands over only the statuses the contract declares
 // (200, 403, 404) and throws on any other, so every one of these ends in a rejection but 200.
 describe('fetchTopUpLink', () => {

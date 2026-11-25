@@ -228,7 +228,7 @@ class SecurityConfig(
          * - under `/api/auth/`: magic-link request and verify, `/me` (answers 401 itself), logout.
          * - under `/api/calendar/`: the webcal feed; the token in the path is the credential (ADR-0039).
          * - under `/internal/actuator/`: `InternalEndpointGuardFilter` is the boundary for these in prod.
-         * - under `/internal/e2e/`: exists only under the e2e profile.
+         * - under `/internal/e2e/`: exists only under the dev and e2e profiles, never next to prod.
          * - the WebAuthn login endpoints (`/webauthn/authenticate/options`, `/login/webauthn`) are answered by
          *   their own filters before this check; the register endpoints stay behind `authenticated()` (ADR-0045).
          */

@@ -12,6 +12,8 @@ function code(overrides: Partial<CreationCode>): CreationCode {
     consumedAt: undefined,
     consumedByUserId: undefined,
     createdTeamId: undefined,
+    requestedTeamName: undefined,
+    requestedBy: undefined,
     ...overrides,
   }
 }

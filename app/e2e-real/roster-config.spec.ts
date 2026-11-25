@@ -27,7 +27,7 @@ const TEAM_SLUG = 'e2e-test-team'
 
 test('admin configures an event type roster default and it persists', async ({ page }) => {
   // 1. The admin-only settings screen — a route guard, not merely a hidden button.
-  await page.goto(`/t/${TEAM_SLUG}/team/settings`)
+  await page.goto(`/t/${TEAM_SLUG}/team/settings/event-types`)
   await expect(page.getByRole('heading', { name: 'Event types' })).toBeVisible()
 
   // 2. Open the seeded Training type's editor — Edit sits in the row's ⋯ menu (#341).

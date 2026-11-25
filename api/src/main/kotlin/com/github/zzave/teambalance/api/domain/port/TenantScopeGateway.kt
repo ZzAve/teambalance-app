@@ -13,4 +13,7 @@ import com.github.zzave.teambalance.api.domain.model.TenantRouting
 interface TenantScopeGateway {
     /** Runs [block] with the tenant of [routing] in effect, and restores the previous one afterwards. */
     fun <T> within(routing: TenantRouting, block: () -> T): T
+
+    /** The tenant in effect now, for work that has to run in it later; null when none is. */
+    fun current(): TenantRouting?
 }

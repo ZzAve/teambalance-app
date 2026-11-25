@@ -4,7 +4,9 @@ type CreationCode {
     expiresAt: String?,
     consumedAt: String?,
     consumedByUserId: String?,
-    createdTeamId: String?
+    createdTeamId: String?,
+    requestedTeamName: String?,
+    requestedBy: String?
 }
 
 type CreationCodeList {

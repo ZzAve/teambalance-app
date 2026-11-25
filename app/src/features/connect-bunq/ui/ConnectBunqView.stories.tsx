@@ -34,7 +34,6 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading', { name: 'Connect Bunq' })).toBeInTheDocument()
     await expect(canvas.getByLabelText(/Connecting gives TeamBalance bunq’s standard app access/)).not.toBeChecked()
     await expect(canvas.getByText(/bunq’s default grant also allows creating payments and draft payments/)).toBeInTheDocument()
     await expect(canvas.getByText(/You can disconnect in TeamBalance at any time, which deletes the access it stored/)).toBeInTheDocument()

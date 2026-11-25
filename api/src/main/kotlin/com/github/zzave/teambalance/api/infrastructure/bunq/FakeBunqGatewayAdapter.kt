@@ -32,7 +32,8 @@ import java.util.concurrent.ConcurrentHashMap
  * for `fake` while the demo switch is on. A grant it never issued is accepted, which is how the demo team's seeded
  * connection works.
  *
- * Plays Bunq's OAuth too: [authorizationUrl] points at [FakeBunqAuthorizeController], which calls
+ * Plays Bunq's OAuth too: [authorizationUrl] points at `FakeBunqAuthorizeController` (devSupport source
+ * set), which calls
  * [issueCode] once the user approves and sends the browser back. A code can be exchanged once, and
  * every grant covers the same two accounts. Grants are `fake:{login}:{random}` tokens, and [revoke] makes
  * every grant issued so far to a login be rejected, as a Bunq user withdrawing access would. A grant

@@ -86,6 +86,7 @@
   },
   "nav": {
     "events": "Events",
+    "season": "Seizoen",
     "team": "Team",
     "money": "Teampot",
     "profile": "Profiel"
@@ -549,28 +550,13 @@
       "reconnect": "Bunq accepteert de koppeling van het team niet meer. Koppel hem opnieuw.",
       "reconnectInSettings": "Bunq accepteert de koppeling van het team niet meer. Koppel hem opnieuw in de teaminstellingen."
     },
-    "preview": "Voorproefje van de teampot",
-    "previewTitle": "Eén gedeelde teampot",
-    "memberCopy": "Zodra een admin de Bunq-rekening van het team koppelt, zie je hier het saldo en de betalingen.",
     "admin": {
-      "pickAccount": "Kies de rekening in de teaminstellingen. Daarna zie je hier het saldo en de betalingen.",
-      "unknown": "Hier komen het saldo en de betalingen van de Bunq-rekening van het team.",
-      "connect": "Koppel de Bunq-rekening van het team in de teaminstellingen. Daarna zie je hier het saldo en de betalingen.",
-      "comingSoon": "Binnenkort kun je de Bunq-rekening van het team koppelen. Daarna zie je hier het saldo en de betalingen."
-    },
-    "pillar": {
-      "pot": {
-        "title": "Eén gedeelde pot",
-        "blurb": "Het geld van het hele team, op één plek"
-      },
-      "chipIn": {
-        "title": "Snel inleggen",
-        "blurb": "Leg je deel in met een paar tikken"
-      },
-      "tracked": {
-        "title": "Elke euro bijgehouden",
-        "blurb": "Zie wat er is betaald, en waar het heen ging"
-      }
+      "title": "Geen bankrekening gekoppeld",
+      "pickAccount": "Kies de rekening die de teampot leest om hier het saldo te zien en leden te laten bijstorten.",
+      "unknown": "Met de Bunq-rekening van het team gekoppeld zie je hier het saldo en kunnen leden bijstorten.",
+      "connect": "Koppel de Bunq-rekening van het team om hier het saldo te zien en leden te laten bijstorten.",
+      "comingSoon": "Binnenkort kun je de Bunq-rekening van het team koppelen. Dan zie je hier het saldo en kunnen leden bijstorten.",
+      "toSettings": "Naar Bunq-instellingen"
     },
     "balance": "Saldo",
     "poolBalance": "Saldo teampot",
@@ -583,7 +569,7 @@
     "incoming": "Binnengekomen",
     "outgoing": "Uitgegeven",
     "totalIn": "Binnengekomen",
-    "toppedUp": "Bijgestort",
+    "toppedUp": "Bijgedragen",
     "totalSpent": "Uitgegeven",
     "thisSeason": "Dit seizoen",
     "last90Days": "Afgelopen 90 dagen",
@@ -598,18 +584,18 @@
       "period": "Periode",
       "season": "Seizoen",
       "last30Days": "Afgelopen 30 dagen",
-      "empty": "Nog niemand heeft bijgestort.",
+      "empty": "Nog niemand heeft bijgedragen.",
       "formerMember": "Oud-lid",
       "play": "Speel het klassement af",
       "pause": "Pauzeer",
       "reset": "Terug naar nu",
       "nowSeason": "Nu, dit seizoen",
       "nowLast30Days": "Nu, afgelopen 30 dagen",
-      "totalToppedUp": "Totaal bijgestort",
+      "totalToppedUp": "Totaal bijgedragen",
       "ranking": "Klassement toppers",
       "rankItem": "Nummer {{rank}}: {{name}}, {{amount}}",
       "resume": "Verder",
-      "emptyLast30Days": "Geen bijstortingen in de afgelopen 30 dagen.",
+      "emptyLast30Days": "Geen bijdragen in de afgelopen 30 dagen.",
       "nowLast90Days": "Nu, afgelopen 90 dagen",
       "onTop": "{{name}} staat bovenaan met {{amount}}.",
       "day": "Dag",
@@ -617,7 +603,16 @@
       "you": "Jij",
       "unmatched": "{{amount}} kwam binnen zonder een naam die we kennen."
     },
-    "graphSummary": "Het saldo van de teampot ging van {{from}} op {{fromDate}} naar {{to}} op {{toDate}}"
+    "graphSummary": "Het saldo van de teampot ging van {{from}} op {{fromDate}} naar {{to}} op {{toDate}}",
+    "paidBy": "Betaald door {{name}}",
+    "paidOutOfPocket": "Betaald door een lid",
+    "outOfPocket": "Betaald door een lid, niet uit de teampot",
+    "paidByMembers": "Voorgeschoten door leden",
+    "noExpenses": "Iets voor het team betaald met je eigen geld? Voeg het hier toe. Het telt als jouw inleg.",
+    "bankMissing": {
+      "title": "Bunq-betalingen ontbreken",
+      "body": "De koppeling met Bunq werkt nu niet. Deze lijst en de ranglijst tonen alleen wat leden zelf hebben voorgeschoten. Stortingen en uitgaven via de bank tellen pas weer mee als de koppeling werkt."
+    }
   },
   "moneySettings": {
     "title": "Teampot",
@@ -704,6 +699,7 @@
     "empty": "Nog geen aanmaakcodes. Maak er hierboven een.",
     "revokeTitle": "Code intrekken",
     "revokeDescription": "\"{{code}}\" intrekken? Daarna kan er geen team meer mee worden aangemaakt.",
+    "requestedFor": "Voor {{team}} · {{email}}",
     "revoke": "Intrekken",
     "status": {
       "active": "Actief",
@@ -854,20 +850,18 @@
     "signedInNoTeam": "Je bent ingelogd, maar zit nog niet in een team. Hoe wil je beginnen?",
     "haveInvite": "Ik heb een uitnodiging",
     "sharedLink": "Iemand heeft een uitnodigingslink met je gedeeld",
-    "createTeam": "Maak een team aan",
-    "needCode": "Je hebt een aanmaakcode nodig — teameigenaren krijgen die van ons"
+    "createTeam": "Maak een team aan"
   },
   "teams": {
     "yours": "Jouw teams",
     "joinOrCreate": "Lid worden of aanmaken",
-    "joinWithLink": "Lid worden met een uitnodigingslink",
-    "needCode": "Je hebt een aanmaakcode nodig"
+    "joinWithLink": "Lid worden met een uitnodigingslink"
   },
   "createTeam": {
     "title": "Maak je team aan",
     "intro": "Vul je aanmaakcode in en geef je team een naam — jij wordt de beheerder.",
-    "inviteOnly": "Zolang we nog opstarten kun je alleen op uitnodiging een team beginnen. Heb je een aanmaakcode? Vul hem hieronder in.",
-    "noCode": "Heb je er geen? <mail>Mail naar teams@teambalance.nl</mail>, dan helpen we je op weg.",
+    "inviteOnly": "Je krijgt een aanmaakcode zodra je teamaanvraag is goedgekeurd.",
+    "noCode": "Heb je er geen? <request>Vraag een team aan</request>, dan mailen we je een code.",
     "name": "Teamnaam",
     "namePlaceholder": "bijv. Tovo Heren 4",
     "address": "Teamadres",
@@ -925,24 +919,25 @@
       "removeNotAllowed": "Je mag deze invaller niet verwijderen.",
       "removeFailed": "De invaller is niet verwijderd — probeer het opnieuw.",
       "takeOffFailed": "De invaller is niet afgemeld — probeer het opnieuw."
+    },
+    "teamRequest": {
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "INVALID_NAME": "Vul een teamnaam in van 1 tot 100 tekens.",
+      "INVALID_PURPOSE": "Beschrijf waarvoor je het gebruikt, in 1 tot 1000 tekens."
     }
   },
   "members": {
     "heading": "Leden",
     "loadFailed": "Leden laden is mislukt. Probeer het opnieuw.",
-    "emptyManage": "Nog geen leden. Deel een uitnodigingslink om mensen erbij te halen.",
     "empty": "Nog geen leden.",
     "removeTitle": "Lid verwijderen",
     "removeDescription": "{{name}} uit het team verwijderen? Ze hebben geen toegang meer tot je ze opnieuw uitnodigt.",
-    "lastAdminHint": "Dit is de laatste admin — een team moet er minstens één houden.",
-    "displayNameFor": "Weergavenaam van {{name}}",
     "admin": "Admin",
     "positionFor": "Positie van {{name}}",
     "actionsFor": "Acties voor {{name}}",
     "rename": "Naam wijzigen",
     "makeMember": "Maak lid",
-    "makeAdmin": "Maak admin",
-    "removeMenu": "Verwijder…"
+    "makeAdmin": "Maak admin"
   },
   "positions": {
     "heading": "Posities",
@@ -974,7 +969,6 @@
   "manageSubstitutes": {
     "heading": "Invallers",
     "loadFailed": "Invallers laden is mislukt. Probeer het opnieuw.",
-    "emptyManage": "Nog geen invallers. Leden voegen ze toe als ze iemand oproepen voor een event.",
     "empty": "Nog geen invallers.",
     "removeTitle": "Invaller verwijderen",
     "removeDescription": "{{name}} verdwijnt uit elk event waaraan die is toegevoegd, ook uit eerdere. Dit kan niet ongedaan worden gemaakt.",
@@ -987,7 +981,9 @@
       "none": "{{name}} staat bij geen enkel event.",
       "some_one": "{{name}} staat bij {{count}} event.",
       "some_other": "{{name}} staat bij {{count}} events."
-    }
+    },
+    "substitute": "Invaller",
+    "faceLabel": "{{name}}, invaller"
   },
   "eventTypes": {
     "heading": "Eventtypes",
@@ -1052,7 +1048,6 @@
     "revokeDescription": "De oude link werkt niet meer en er komt geen nieuwe voor in de plaats. Niemand kan er nog admin van dit team mee worden."
   },
   "generateInvite": {
-    "trigger": "Uitnodigingslink",
     "title": "Uitnodigingslink voor het team",
     "loading": "Laden...",
     "loadFailed": "De uitnodigingslink laden is mislukt.",
@@ -1065,6 +1060,7 @@
     "share": "Deel deze link met je team. Iedereen met de link kan lid worden.",
     "copy": "Kopieer",
     "copied": "Gekopieerd!",
+    "shareButton": "Delen",
     "copyFailed": "Automatisch kopiëren lukte niet. Kopieer de link uit het veld hierboven.",
     "rotating": "Vernieuwen...",
     "rotate": "Link vernieuwen",
@@ -1089,7 +1085,10 @@
   },
   "teamPage": {
     "settings": "Teaminstellingen",
-    "back": "Terug naar team"
+    "back": "Terug naar team",
+    "invite": "Mensen uitnodigen",
+    "inviteHint": "Deel de uitnodigingslink van het team",
+    "settingsHint": "Posities, eventtypes, seizoen, geld, toegang"
   },
   "memberDetail": {
     "fallbackTitle": "Lid",
@@ -1107,7 +1106,11 @@
     "removeOther": "De foto van {{name}} verwijderen? Alleen {{name}} kan een nieuwe toevoegen.",
     "role": "Rol",
     "roleMember": "Lid",
-    "editProfile": "Profiel bewerken"
+    "editProfile": "Profiel bewerken",
+    "adminGroup": "Admin",
+    "makeAdminHint": "Kan teaminstellingen en leden wijzigen",
+    "makeMemberHint": "Kan teaminstellingen niet meer wijzigen",
+    "removeFromTeam": "Uit het team verwijderen"
   },
   "pageHeader": {
     "back": "Terug"
@@ -1261,5 +1264,181 @@
       "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
       "FAILED": "Koppelen is mislukt. Probeer het opnieuw."
     }
+  },
+  "bulletin": {
+    "heading": "Prikbord",
+    "newPost": "Nieuw bericht",
+    "loadFailed": "Het prikbord kon niet worden geladen. Probeer het opnieuw.",
+    "emptyAdmin": "Nog geen berichten. Plaats een rooster, een mededeling of teamnieuws voor alle leden.",
+    "composeHint": "Alle leden zien dit op de Team-pagina.",
+    "write": "Schrijven",
+    "preview": "Voorbeeld",
+    "markdownLabel": "Tekst van het bericht (Markdown)",
+    "post": "Plaatsen",
+    "postFailed": "Het bericht kon niet worden opgeslagen. Probeer het opnieuw.",
+    "formerMember": "Oud-lid",
+    "edited": "bewerkt",
+    "editHistory": "Bewerkingen",
+    "editedBy": "Bewerkt door {{name}}",
+    "postedBy": "Geplaatst door {{name}}",
+    "postActions": "Acties voor bericht",
+    "edit": "Bewerken",
+    "editPost": "Bericht bewerken",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "deletedPosts_one": "{{count}} verwijderd bericht",
+    "deletedPosts_other": "{{count}} verwijderde berichten",
+    "removedOn": "Definitief weg op {{date}}",
+    "restore": "Terugzetten",
+    "deleteFailed": "Het bericht kon niet worden verwijderd. Probeer het opnieuw.",
+    "restoreFailed": "Het bericht kon niet worden teruggezet. Probeer het opnieuw.",
+    "pinned": "Vastgezet",
+    "pinLabel": "Bericht vastzetten",
+    "pinHint": "Vastgezette berichten staan bovenaan en verschijnen boven elke pagina.",
+    "pinnedStrip": "Vastgezette berichten",
+    "morePinned": "+{{count}} meer",
+    "closePinned": "Vastgezette berichten sluiten",
+    "openPinned": "Vastgezette berichten tonen",
+    "until": "tot {{date}}",
+    "endedOn": "Afgelopen op {{date}}",
+    "showUntilLabel": "Tonen tot",
+    "showUntilHint": "Optioneel. Na deze dag zien leden het bericht niet meer."
+  },
+  "expense": {
+    "button": "Voorgeschoten uitgave toevoegen",
+    "title": "Voorgeschoten uitgave toevoegen",
+    "description": "Voor iets dat je met je eigen geld voor het team hebt gekocht. Het telt als uitgave van de teampot en als jouw inleg van hetzelfde bedrag. Het saldo verandert niet.",
+    "paidBy": "Betaald door",
+    "paidByPlaceholder": "Kies een lid",
+    "amount": "Bedrag (€)",
+    "amountInvalid": "Vul een bedrag in van € 0,01 tot € 10.000.",
+    "what": "Waar was het voor?",
+    "whatPlaceholder": "Nieuwe wedstrijdballen",
+    "date": "Datum",
+    "receipt": "Bonnetje",
+    "receiptHint": "Voeg een foto van het bonnetje toe zodat het team ziet waar dit aan is uitgegeven.",
+    "receiptAlt": "Het bonnetje dat je hebt toegevoegd",
+    "receiptFile": "Foto van het bonnetje",
+    "noReceiptQuestion": "Je hebt geen bonnetje toegevoegd. Voeg een foto toe, of sla op zonder bonnetje.",
+    "save": "Uitgave opslaan",
+    "saveWithoutReceipt": "Opslaan zonder bonnetje",
+    "saving": "Opslaan…",
+    "done": "Uitgave toegevoegd",
+    "error": {
+      "INVALID": "Controleer het bedrag, de omschrijving en de datum. De datum moet in de periode vallen die de teampot toont.",
+      "FORBIDDEN": "Je mag deze uitgave niet toevoegen.",
+      "NOT_FOUND": "Dit lid zit niet meer in het team.",
+      "RECEIPT_FAILED": "De uitgave is opgeslagen, maar het bonnetje uploaden is mislukt. Voeg het toe in de lijst met betalingen.",
+      "FAILED": "De uitgave opslaan is mislukt. Probeer het opnieuw.",
+      "POOL_OFF": "De teampot staat uit voor dit team."
+    },
+    "delete": {
+      "button": "Deze uitgave verwijderen",
+      "title": "Deze uitgave verwijderen?",
+      "description": "{{summary}}. De uitgave en het bonnetje worden verwijderd en het telt niet meer als inleg.",
+      "confirm": "Verwijderen",
+      "done": "Uitgave verwijderd",
+      "deleting": "Verwijderen…"
+    },
+    "editTitle": "Deze uitgave wijzigen",
+    "editButton": "Uitgave {{name}} wijzigen",
+    "saveChanges": "Wijzigingen opslaan",
+    "changed": "Uitgave gewijzigd",
+    "formerMember": "Oud-lid",
+    "receiptHintWithTotal": "Begin met een foto van het bonnetje. Het bedrag wordt eruit gelezen, en het team ziet waar dit aan is uitgegeven.",
+    "total": {
+      "reading": "Het bedrag wordt van het bonnetje gelezen…",
+      "read": "Van het bonnetje gelezen. Controleer of dit het totaal is.",
+      "notFound": "Het bedrag kon niet van het bonnetje worden gelezen. Vul het zelf in."
+    }
+  },
+  "substituteDetail": {
+    "fallbackTitle": "Invaller",
+    "notOnList": "Deze invaller staat niet op de lijst.",
+    "subline": "{{position}} · Invaller"
+  },
+  "teamSettingsHub": {
+    "seasonSetup": "Seizoensopzet",
+    "money": "Geld",
+    "access": "Toegang",
+    "bunq": "Bunq",
+    "matchFeed": "Wedstrijdfeed",
+    "seasonFrom": "Vanaf {{month}}",
+    "seasonUntil": "Tot {{month}}",
+    "notSet": "Niet ingesteld",
+    "on": "Aan",
+    "off": "Uit",
+    "onWithBeer": "Aan · biertje {{price}}",
+    "connected": "Gekoppeld",
+    "notConnected": "Niet gekoppeld",
+    "none": "Geen",
+    "visits_one": "{{count}} bezoek",
+    "visits_other": "{{count}} bezoeken",
+    "back": "Terug naar teaminstellingen"
+  },
+  "requestTeam": {
+    "title": "Vraag een team aan",
+    "intro": "Vertel welk team je wilt starten en waarvoor je het gebruikt. Je krijgt een mail zodra het is goedgekeurd.",
+    "teamName": "Teamnaam",
+    "purpose": "Waarvoor ga je het gebruiken?",
+    "purposePlaceholder": "Bijv. aanwezigheid en de teampot van ons volleybalteam",
+    "submit": "Aanvraag versturen",
+    "submitting": "Versturen…",
+    "pending": "Aanvraag verstuurd voor {{name}}, wacht op goedkeuring.",
+    "approvedHint": "Je aanvraag is goedgekeurd. Je kunt je team nu aanmaken.",
+    "approvedCta": "Goedgekeurd: maak {{name}} aan",
+    "rejected": "Deze keer niet goedgekeurd",
+    "rejectedReason": "Reden: {{reason}}",
+    "askAgain": "Je kunt hieronder een nieuwe aanvraag doen.",
+    "haveCode": "Ik heb al een code",
+    "alreadyPending": "Je hebt al een open aanvraag: een die op goedkeuring wacht, of een goedgekeurde code die je nog niet hebt gebruikt.",
+    "loadFailed": "Je teamaanvraag kon niet worden geladen. Probeer het opnieuw."
+  },
+  "teamRequests": {
+    "title": "Teamaanvragen",
+    "loadFailed": "De teamaanvragen konden niet worden geladen. Probeer het opnieuw.",
+    "nonePending": "Geen openstaande aanvragen.",
+    "decided": "Recent beoordeeld",
+    "status": {
+      "PENDING": "Open",
+      "APPROVED": "Goedgekeurd",
+      "REJECTED": "Afgewezen"
+    },
+    "alreadyDecided": "Over deze aanvraag is al besloten.",
+    "reasonLabel": "Reden (optioneel, wordt naar de aanvrager gestuurd)",
+    "confirmReject": "Aanvraag afwijzen",
+    "cancel": "Annuleren",
+    "approve": "Goedkeuren",
+    "approveConfirm": "Bij goedkeuren wordt een aanmaakcode gemaakt en naar {{email}} gemaild.",
+    "confirmApprove": "Goedkeuren en code versturen",
+    "reject": "Afwijzen"
+  },
+  "season": {
+    "title": "Seizoen",
+    "member": "Lid",
+    "attended": "Opkomst",
+    "today": "Vandaag",
+    "cell": "{{name}}, {{event}}: {{state}}",
+    "notOnEvent": "niet bij dit event",
+    "empty": "Nog geen events in dit seizoen.",
+    "loadFailed": "Kon het seizoen niet laden."
+  },
+  "palette": {
+    "search": "Zoeken",
+    "title": "Zoeken en openen",
+    "placeholder": "Zoek events, leden, pagina’s…",
+    "groups": {
+      "events": "Events",
+      "members": "Leden",
+      "goto": "Ga naar",
+      "actions": "Acties"
+    },
+    "empty": "Niets gevonden voor “{{query}}”.",
+    "loading": "Events en leden laden…",
+    "loadFailed": "Events en leden konden niet worden geladen.",
+    "teamSettings": "Teaminstellingen",
+    "answer": "{{answer}}: {{event}}",
+    "switchTeam": "Wissel naar {{team}}",
+    "answered": "Antwoord opgeslagen: {{answer}}"
   }
 }

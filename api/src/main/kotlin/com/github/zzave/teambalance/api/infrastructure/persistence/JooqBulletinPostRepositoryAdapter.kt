@@ -1,0 +1,104 @@
+package com.github.zzave.teambalance.api.infrastructure.persistence
+
+import com.github.zzave.teambalance.api.domain.model.BulletinPost
+import com.github.zzave.teambalance.api.domain.model.BulletinPostId
+import com.github.zzave.teambalance.api.domain.model.NewPostContent
+import com.github.zzave.teambalance.api.domain.model.PostEdit
+import com.github.zzave.teambalance.api.domain.model.PostMarkdown
+import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.BulletinPostRepository
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.BULLETIN_POSTS
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.BULLETIN_POST_EDITS
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.tables.records.BulletinPostsRecord
+import org.jooq.DSLContext
+import org.jooq.impl.DSL
+import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.UUID
+
+/** Bulletin Board Posts and their edit audit, tenant-schema rows (ADR-0050). */
+@Repository
+class JooqBulletinPostRepositoryAdapter(
+    private val dsl: DSLContext,
+) : BulletinPostRepository {
+
+    override fun list(includeHidden: Boolean, now: Instant): List<BulletinPost> {
+        val edits = editsByPost(postIds = null)
+        val shownToMembers = BULLETIN_POSTS.DEACTIVATED_AT.isNull
+            .and(BULLETIN_POSTS.SHOW_UNTIL.isNull.or(BULLETIN_POSTS.SHOW_UNTIL.gt(now.atOffset(ZoneOffset.UTC))))
+        return dsl.selectFrom(BULLETIN_POSTS)
+            .where(if (includeHidden) DSL.noCondition() else shownToMembers)
+            .orderBy(BULLETIN_POSTS.PINNED.desc(), BULLETIN_POSTS.POSTED_AT.desc(), BULLETIN_POSTS.ID)
+            .fetch { it.toBulletinPost(edits[it.id].orEmpty()) }
+    }
+
+    override fun create(post: NewPostContent, authorId: UserId, postedAt: Instant): BulletinPost =
+        dsl.insertInto(BULLETIN_POSTS)
+            .set(BULLETIN_POSTS.ID, UUID.randomUUID())
+            .set(BULLETIN_POSTS.MARKDOWN, post.markdown.value)
+            .set(BULLETIN_POSTS.PINNED, post.pinned)
+            .set(BULLETIN_POSTS.SHOW_UNTIL, post.showUntil?.atOffset(ZoneOffset.UTC))
+            .set(BULLETIN_POSTS.AUTHOR_ID, authorId.value)
+            .set(BULLETIN_POSTS.POSTED_AT, postedAt.atOffset(ZoneOffset.UTC))
+            .returning()
+            .fetchSingle()
+            .toBulletinPost(edits = emptyList())
+
+    @Transactional
+    override fun update(id: BulletinPostId, content: NewPostContent, editorId: UserId, editedAt: Instant): BulletinPost? {
+        val updated = dsl.update(BULLETIN_POSTS)
+            .set(BULLETIN_POSTS.MARKDOWN, content.markdown.value)
+            .set(BULLETIN_POSTS.PINNED, content.pinned)
+            .set(BULLETIN_POSTS.SHOW_UNTIL, content.showUntil?.atOffset(ZoneOffset.UTC))
+            .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNull))
+            .returning()
+            .fetchOne() ?: return null
+        dsl.insertInto(BULLETIN_POST_EDITS)
+            .set(BULLETIN_POST_EDITS.POST_ID, id.value)
+            .set(BULLETIN_POST_EDITS.EDITOR_ID, editorId.value)
+            .set(BULLETIN_POST_EDITS.EDITED_AT, editedAt.atOffset(ZoneOffset.UTC))
+            .execute()
+        return updated.toBulletinPost(editsByPost(postIds = listOf(id.value))[id.value].orEmpty())
+    }
+
+    override fun delete(id: BulletinPostId, at: Instant): Boolean =
+        dsl.update(BULLETIN_POSTS)
+            .set(BULLETIN_POSTS.DEACTIVATED_AT, at.atOffset(ZoneOffset.UTC))
+            .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNull))
+            .execute() == 1
+
+    override fun restore(id: BulletinPostId): BulletinPost? =
+        dsl.update(BULLETIN_POSTS)
+            .setNull(BULLETIN_POSTS.DEACTIVATED_AT)
+            .where(BULLETIN_POSTS.ID.eq(id.value).and(BULLETIN_POSTS.DEACTIVATED_AT.isNotNull))
+            .returning()
+            .fetchOne()
+            ?.let { it.toBulletinPost(editsByPost(postIds = listOf(id.value))[id.value].orEmpty()) }
+
+    // ON DELETE CASCADE on bulletin_post_edits takes the edits with the Post.
+    override fun removeDeletedBefore(cutoff: Instant): Int =
+        dsl.deleteFrom(BULLETIN_POSTS)
+            .where(BULLETIN_POSTS.DEACTIVATED_AT.lt(cutoff.atOffset(ZoneOffset.UTC)))
+            .execute()
+
+    /** Every Post's edits, oldest first, in one query; [postIds] null reads them all. */
+    private fun editsByPost(postIds: List<UUID>?): Map<UUID, List<PostEdit>> =
+        dsl.selectFrom(BULLETIN_POST_EDITS)
+            .where(postIds?.let { BULLETIN_POST_EDITS.POST_ID.`in`(it) } ?: DSL.noCondition())
+            .orderBy(BULLETIN_POST_EDITS.EDITED_AT, BULLETIN_POST_EDITS.ID)
+            .fetch()
+            .groupBy({ it.postId }, { PostEdit(UserId(it.editorId), it.editedAt.toInstant()) })
+
+    private fun BulletinPostsRecord.toBulletinPost(edits: List<PostEdit>) = BulletinPost(
+        id = BulletinPostId(id),
+        markdown = PostMarkdown.stored(markdown),
+        authorId = UserId(authorId),
+        postedAt = postedAt.toInstant(),
+        edits = edits,
+        pinned = pinned,
+        showUntil = showUntil?.toInstant(),
+        deletedAt = deactivatedAt?.toInstant(),
+    )
+}

@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
+import { Calendar, CalendarRange, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
 import { useAuthMe } from '@shared/api/auth'
 import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,7 @@ import { i18n } from '@shared/i18n/i18n'
 
 interface TabConfig {
   // Stable React key, independent of the language (label) and the slug (`to` is `/` for Events, Team and Money until /me loads).
-  id: 'events' | 'team' | 'money' | 'profile'
+  id: 'events' | 'season' | 'team' | 'money' | 'profile'
   icon: LucideIcon
   label: string
   to: string
@@ -15,6 +15,8 @@ interface TabConfig {
   // (that would light it on every screen); it owns the home and the screens opened from it (an
   // event's detail, the calendar links). Team owns its nested routes (e.g. .../team/settings).
   isActive: (pathname: string) => boolean
+  /** Shown in the sidebar only: the season grid needs desktop width. */
+  sideOnly?: boolean
 }
 
 // Built from the slug in the URL rather than a store, so switching Team makes every tab follow.
@@ -31,6 +33,7 @@ function tabsFor(routes: TeamRoutes, showMoney: boolean): TabConfig[] {
       isActive: (p) =>
         exact(routes.events)(p) || prefix(`${routes.events}/events`)(p) || prefix(routes.calendar)(p),
     },
+    { id: 'season', icon: CalendarRange, label: i18n.t('nav.season'), to: routes.season, isActive: prefix(routes.season), sideOnly: true },
     { id: 'team', icon: Users, label: i18n.t('nav.team'), to: routes.team, isActive: prefix(routes.team) },
     ...(showMoney ? [{ id: 'money' as const, icon: PiggyBank, label: i18n.t('nav.money'), to: routes.money, isActive: prefix(routes.money) }] : []),
     // Profile points at the team-independent /account (ADR-0027 §1) — a constant, not a slug-built
@@ -40,7 +43,12 @@ function tabsFor(routes: TeamRoutes, showMoney: boolean): TabConfig[] {
   ]
 }
 
-export function BottomNav() {
+/**
+ * The primary tabs for the current path, shared by BottomNav (phone) and SideNav (from `lg`), so the
+ * teamless/onboarding rule and the money-off rule live in one place. `pathname` is returned for the
+ * active check.
+ */
+export function useNavTabs() {
   useTranslation() // re-render the tab labels on a language change
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const me = useAuthMe().data
@@ -51,17 +59,22 @@ export function BottomNav() {
   // back to where the caller is, so they get Profile alone: the way to Log out stays (ADR-0027), the dead
   // tabs go (as Money does, ADR-0042).
   const parked = slug === null || pathname.replace(/\/$/, '') === routes.getStarted
-  const TABS = parked ? allTabs.filter((tab) => tab.id === 'profile') : allTabs
+  return { pathname, tabs: parked ? allTabs.filter((tab) => tab.id === 'profile') : allTabs }
+}
+
+export function BottomNav() {
+  const { pathname, tabs: TABS } = useNavTabs()
 
   return (
     <nav
+      data-app-chrome="nav"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/88 backdrop-blur-lg"
       // Fixed to the viewport bottom, so pad past the home-indicator inset (viewport-fit=cover) to
       // keep the tabs tappable above it. Zero on devices without an inset.
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto flex max-w-2xl items-center justify-around px-2 py-1">
-        {TABS.map(({ id, icon: Icon, label, to, isActive }) => {
+        {TABS.filter((tab) => !tab.sideOnly).map(({ id, icon: Icon, label, to, isActive }) => {
           const active = isActive(pathname)
           return (
             <Link

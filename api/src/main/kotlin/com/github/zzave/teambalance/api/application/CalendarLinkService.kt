@@ -12,7 +12,6 @@ import com.github.zzave.teambalance.api.domain.model.CalendarToken
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.CalendarLinkRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -56,7 +55,6 @@ class CalendarLinkService(
     private val teamRepository: TeamRepository,
     private val eventTypeRepository: EventTypeRepository,
     private val authorizationService: AuthorizationService,
-    private val actAsGateway: ActAsGateway,
     private val tokens: CalendarLinkTokens,
     private val clock: Clock,
     // Public origin of this API — the host a calendar client will fetch the feed from. A sibling of
@@ -152,7 +150,7 @@ class CalendarLinkService(
      * them mint a standing credential in somebody else's team (ADR-0024 §2).
      */
     private fun requireOwnAccess(callerId: UserId, teamId: TeamId) {
-        if (actAsGateway.current() != null) throw NotUnderActAsException()
+        authorizationService.requireNotUnderActAs()
         authorizationService.requireMember(callerId, teamId)
     }
 

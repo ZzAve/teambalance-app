@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from './api-error'
+import { shouldRetryWake } from './retry-policy'
 import { api } from './wirespec-client'
 
 // Pure-adapter units for the wirespec-client (the fetch handler behind `api`). Storybook owns
@@ -151,6 +153,33 @@ describe('wirespec-client adapter', () => {
       const sent = initOf(fetchMock).body as Uint8Array
       expect(JSON.parse(new TextDecoder().decode(sent))).toEqual({ email: 'a@b.nl' })
       expect(headerOf(fetchMock, 'Content-Type')).toBe('application/json')
+    })
+  })
+
+  describe('a status the contract does not declare', () => {
+    it.each([500, 503])('rejects with an ApiError that carries the %i status', async (status) => {
+      stubFetch(fakeResponse({ status }))
+
+      const error = await api.getCurrentMember().catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(ApiError)
+      expect(error).toMatchObject({ status, message: `Cannot match response with status: ${status}` })
+    })
+
+    it('is retried only for a gateway status', async () => {
+      stubFetch(fakeResponse({ status: 500 }))
+      expect(shouldRetryWake(0, await api.getCurrentMember().catch((e: unknown) => e))).toBe(false)
+      stubFetch(fakeResponse({ status: 503 }))
+      expect(shouldRetryWake(0, await api.getCurrentMember().catch((e: unknown) => e))).toBe(true)
+    })
+
+    it('leaves a network reject without a status, so it is retried', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+      const error = await api.getCurrentMember().catch((e: unknown) => e)
+
+      expect(error).not.toBeInstanceOf(ApiError)
+      expect(shouldRetryWake(0, error)).toBe(true)
     })
   })
 

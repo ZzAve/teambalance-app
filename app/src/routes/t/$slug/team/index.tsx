@@ -1,15 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
-import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
+import { SubstituteRoster } from '@features/manage-substitutes/ui/SubstituteRoster'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
 import { TeamPageView } from '@pages/team/ui/TeamPageView'
+import { BulletinBoard } from '@features/bulletin-board/ui/BulletinBoard'
 import { useCurrentUser } from '@shared/api/auth'
 
-// The team roster for every authenticated member — no admin gate (the root route already guarantees
-// authenticated + onboarded). Read-only for everyone, admins included: this is the view surface.
-// Admins additionally get the invite link + the gear on the roster heading's line, linking into
-// /team/settings, where member management lives — the team actions on the team screen, under the
-// new tab-bar nav.
+// The team page for every authenticated member — no admin gate (the root route already guarantees
+// authenticated + onboarded). The faces are the same for everyone; admins also get the invite row
+// and the row into /team/settings, and edit a person on that person's page.
 export const Route = createFileRoute('/t/$slug/team/')({
   component: TeamPage,
 })
@@ -20,9 +19,10 @@ function TeamPage() {
   return (
     <TeamPageView
       isAdmin={isAdmin}
-      inviteAction={<GenerateInviteDialog />}
-      roster={(headerActions) => <MemberRoster canManage={false} headerActions={headerActions} />}
-      substitutes={<ManageSubstitutes canManage={false} />}
+      bulletin={<BulletinBoard isAdmin={isAdmin} />}
+      invite={(trigger) => <GenerateInviteDialog trigger={trigger} />}
+      roster={<MemberRoster />}
+      substitutes={<SubstituteRoster />}
     />
   )
 }

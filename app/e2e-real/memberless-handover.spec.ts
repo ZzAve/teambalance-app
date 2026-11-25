@@ -84,7 +84,7 @@ test('a Platform Admin creates a memberless team, preps it, and hands it over as
   await expect(page.getByText('No members yet.')).toBeVisible({ timeout: 15_000 })
 
   // 5. Mint the single-use ADMIN handover link from the admin settings page (Virtual Member = ADMIN).
-  await page.goto(`/t/${TEAM_SLUG}/team/settings`)
+  await page.goto(`/t/${TEAM_SLUG}/team/settings/handover`)
   await page.getByRole('button', { name: 'Create admin handover link' }).click()
   const handoverUrl = await page.getByLabel('Admin handover link').inputValue()
   expect(handoverUrl).toContain('/invite/')

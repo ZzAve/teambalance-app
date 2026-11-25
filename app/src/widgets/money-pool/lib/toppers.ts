@@ -1,4 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
+import { countsAsIncoming, isAttributedTopUp } from '@entities/payment/lib/payment-attribution'
 
 export type TopperPeriod = 'season' | 'last30'
 
@@ -37,7 +38,7 @@ export function periodPayments(payments: Payment[], period: TopperPeriod, today:
 
 /** Everything attributed to a member that came in, in euro cents. */
 export function toppedUpTotal(payments: Payment[]): number {
-  return payments.reduce((sum, p) => (p.direction === 'In' && p.memberId ? sum + p.amount : sum), 0)
+  return payments.reduce((sum, p) => (isAttributedTopUp(p) ? sum + p.amount : sum), 0)
 }
 
 /** Who topped up most in the period, the attributed total, and the incoming money without a member. */
@@ -45,7 +46,7 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
   const totals = new Map<string, number>()
   let incoming = 0
   for (const p of periodPayments(payments, period, today)) {
-    if (p.direction !== 'In') continue
+    if (!countsAsIncoming(p)) continue
     incoming += p.amount
     if (p.memberId) totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
   }
@@ -53,8 +54,12 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
   return { ranking: rankTotals(totals, nameOf, memberIds), toppedUp, unmatched: incoming - toppedUp }
 }
 
-/** The podium is the top 3 with money; everyone else, members at zero included, goes in the list below it. */
+/**
+ * The podium is the top 3 with money; everyone else, members at zero included, goes in the list below it.
+ * Members with an equal total are never split: a tie that does not fit in the 3 places goes to the list as a whole.
+ */
 export function splitPodium(ranking: Topper[]): { podium: Topper[]; rest: Topper[] } {
-  const podium = ranking.filter((r) => r.total > 0).slice(0, 3)
+  const tiedBeyondThird = ranking[3] && ranking[3].total > 0 ? ranking[3].rank : undefined
+  const podium = ranking.slice(0, 3).filter((r) => r.total > 0 && r.rank !== tiedBeyondThird)
   return { podium, rest: ranking.slice(podium.length) }
 }

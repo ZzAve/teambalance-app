@@ -377,6 +377,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.SCW_S3_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_S3_SECRET_KEY }}
           AWS_DEFAULT_REGION: fr-par
+          # Plausible site of the landing page (see docs/ops/deploy.md). Unset: no tracker on www.
+          PLAUSIBLE_WWW_DOMAIN: ${{ vars.PLAUSIBLE_WWW_DOMAIN }}
         run: |
           set -euo pipefail
           # SPA: content-hashed assets are immutable; index.html must never cache.

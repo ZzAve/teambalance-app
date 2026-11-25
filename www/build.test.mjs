@@ -13,6 +13,39 @@ const read = (f) => readFileSync(join(out, f), 'utf8')
 
 test('build succeeds', () => assert.equal(build.status, 0, build.stderr))
 
+const PAGE_FILES = ['index.html', 'en/index.html', 'privacy/index.html', 'en/privacy/index.html']
+
+test('without PLAUSIBLE_WWW_DOMAIN: no page loads the tracker and dist has no tracker files', () => {
+  const plain = mkdtempSync(join(tmpdir(), 'www-dist-plain-'))
+  const env = { ...process.env, OUT_DIR: plain }
+  delete env.PLAUSIBLE_WWW_DOMAIN
+  const result = spawnSync('node', [join(here, 'build.mjs')], { env, encoding: 'utf8' })
+  assert.equal(result.status, 0, result.stderr)
+  for (const f of PAGE_FILES) {
+    assert.doesNotMatch(readFileSync(join(plain, f), 'utf8'), /plausible|analytics\.mjs/, f)
+  }
+  for (const f of ['plausible.js', 'analytics.mjs', 'analytics-config.mjs']) {
+    assert.ok(!existsSync(join(plain, f)), `${f} must not be in dist`)
+  }
+})
+
+test('with PLAUSIBLE_WWW_DOMAIN: every page names the site and loads the tracker from dist', () => {
+  const tracked = mkdtempSync(join(tmpdir(), 'www-dist-tracked-'))
+  const result = spawnSync('node', [join(here, 'build.mjs')], {
+    env: { ...process.env, OUT_DIR: tracked, PLAUSIBLE_WWW_DOMAIN: 'teambalance.nl' },
+    encoding: 'utf8',
+  })
+  assert.equal(result.status, 0, result.stderr)
+  for (const f of PAGE_FILES) {
+    const page = readFileSync(join(tracked, f), 'utf8')
+    assert.match(page, /<meta name="plausible-domain" content="teambalance\.nl">/, f)
+    assert.match(page, /<script type="module" src="\/analytics\.mjs"><\/script>\s*<\/head>/, f)
+  }
+  for (const f of ['plausible.js', 'analytics.mjs', 'analytics-config.mjs']) {
+    assert.ok(existsSync(join(tracked, f)), `missing ${f}`)
+  }
+})
+
 test('landing and privacy render in both languages with no placeholder left', () => {
   for (const f of ['index.html', 'en/index.html', 'privacy/index.html', 'en/privacy/index.html']) {
     assert.ok(!read(f).includes('{{'), `${f} still has a {{placeholder}}`)

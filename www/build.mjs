@@ -47,15 +47,28 @@ const copy = (from, to) => {
   copyFileSync(from, to)
 }
 
+// Plausible site of the landing page (docs/ops/deploy.md, "Analytics to Plausible"). Only the prod
+// deploy sets it; without it no page loads the tracker and dist has no tracker files.
+const plausibleDomain = process.env.PLAUSIBLE_WWW_DOMAIN?.trim()
+const ANALYTICS_FILES = [
+  ['app/node_modules/@plausible-analytics/tracker/plausible.js', 'plausible.js'],
+  ['www/analytics.mjs', 'analytics.mjs'],
+  ['www/analytics-config.mjs', 'analytics-config.mjs'],
+]
+const analyticsTags = (domain) =>
+  `  <meta name="plausible-domain" content="${render('{{domain}}', { domain })}">\n` +
+  `    <script type="module" src="/analytics.mjs"></script>\n  </head>`
+
 for (const { template, lang, out } of PAGES) {
-  const html = render(readFileSync(join(here, template), 'utf8'), strings[lang], `www/strings/${lang}.json`)
+  const rendered = render(readFileSync(join(here, template), 'utf8'), strings[lang], `www/strings/${lang}.json`)
+  const html = plausibleDomain ? rendered.replace('</head>', analyticsTags(plausibleDomain)) : rendered
   const file = join(dist, out)
   mkdirSync(dirname(file), { recursive: true })
   writeFileSync(file, html)
   console.log(`wrote ${file}`)
 }
 
-for (const [from, to] of STATIC_FILES) {
+for (const [from, to] of [...STATIC_FILES, ...(plausibleDomain ? ANALYTICS_FILES : [])]) {
   const src = join(root, from)
   if (!existsSync(src)) throw new Error(`${from} is missing`)
   copy(src, join(dist, to))

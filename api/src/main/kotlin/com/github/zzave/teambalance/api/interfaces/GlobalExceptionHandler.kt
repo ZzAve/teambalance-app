@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
 import com.github.zzave.teambalance.api.domain.exception.UnprocessableEntityException
 import com.github.zzave.teambalance.api.domain.exception.UnauthenticatedException
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -22,6 +23,8 @@ import java.time.format.DateTimeParseException
 @RestControllerAdvice
 @Suppress("TooManyFunctions")
 class GlobalExceptionHandler {
+
+    private val log = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
     @ExceptionHandler(UnauthenticatedException::class)
     fun handleUnauthenticated(ex: UnauthenticatedException): ResponseEntity<Map<String, String>> =
@@ -72,9 +75,12 @@ class GlobalExceptionHandler {
     // The generated request parsing reports a missing required query parameter as an
     // IllegalStateException, the same type a server fault has. Only an exception raised by that
     // parsing is a client error (400); any other IllegalStateException stays unhandled (500).
+    // The 400 is logged at ERROR, so it reaches error tracking: a client that leaves out a required
+    // parameter is a bug in our own SPA, or a caller we want to know about.
     @ExceptionHandler(IllegalStateException::class)
     fun handleIllegalState(ex: IllegalStateException): ResponseEntity<Map<String, String>> {
         if (!ex.isRaisedByGeneratedRequestParsing()) throw ex
+        log.error("Request rejected: a required parameter is missing", ex)
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(mapOf("error" to (ex.message ?: "Invalid request")))
     }

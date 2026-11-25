@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqAuthorizeCon
 import com.github.zzave.teambalance.api.infrastructure.bunq.UnconfiguredBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAdapter
 import com.zaxxer.hikari.HikariDataSource
+import io.sentry.IScopes
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
@@ -212,6 +213,10 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         test("the startup timing endpoint is blocked in prod by default (flag off)") {
             mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/startup"))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("without SENTRY_DSN the error tracking SDK starts disabled and sends nothing") {
+            applicationContext.getBean(IScopes::class.java).isEnabled shouldBe false
         }
     }
 

@@ -12,4 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_DEMO?: string
   /** Set in the demo build only: its guests share one persona, so passkeys are off (ADR-0045). */
   readonly VITE_NO_PASSKEYS?: string
+  /** The Bugsink DSN of the SPA project. Set in the production deploy only; unset = no error tracking. */
+  readonly VITE_BUGSINK_DSN?: string
+  /** The commit SHA of the build, sent as the release of each error event. */
+  readonly VITE_BUGSINK_RELEASE?: string
 }

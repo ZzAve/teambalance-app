@@ -120,6 +120,8 @@ make test                       # test-api + test-app
 
 **`e2e` Spring profile:** runs on its own database `teambalance_e2e` (`scripts/e2e.sh` creates it), because the demo reset step drops every schema of its database. `E2eEnvironmentInitializer` (ApplicationRunner, after Flyway) provisions the `team_test` tenant schema and runs a pure-INSERT idempotent `db/e2e/seed.sql` (one user: `e2e@example.com`). The `/internal/e2e/magic-link-token` endpoint returns the plaintext token recorded by `RecordingEmailAdapter` (@Primary @Profile("e2e")).
 
+**`devSupport` source set:** the e2e/dev-only beans (`E2eEnvironmentInitializer`, the token endpoint and its recorder, the adjustable clock, the fake Bunq approval page) live in `api/src/devSupport/kotlin`. `bootRun` and the tests load it; `bootJar` never packages it, and `verifyBootJarHasNoDevSupport` fails the build if it does. Put new dev- or e2e-only beans there, not in `src/main`.
+
 **Flows covered:** login (magic-link → verify → `/events`) + change-attendance (authed via `storageState` → open event → toggle → assert persisted transition). These two flows exercise browser→API→DB, auth handshake + session cookie, tenant-schema resolution, and a mutation round-trip.
 
 ## Gotchas

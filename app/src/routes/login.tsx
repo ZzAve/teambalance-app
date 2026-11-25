@@ -9,6 +9,7 @@ import { readLastSignInMethod } from '@shared/api/last-sign-in-method'
 import { browserPreferenceStorage } from '@shared/preferences/preferences'
 import { LastUsedPill } from '@shared/ui/LastUsedPill'
 import { PasskeyLogin } from '@features/passkey-login/ui/PasskeyLogin'
+import { DevMagicLink } from '@features/dev-magic-link/ui/DevMagicLink'
 import { Trans, useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/login')({
@@ -48,6 +49,7 @@ function LoginPage() {
             <a href="mailto:">{t('auth.login.openEmailApp')}</a>
           </Button>
         </div>
+        {import.meta.env.DEV && <DevMagicLink email={email} />}
       </div>
     )
   }

@@ -10,12 +10,12 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 /**
- * E2e-profile-only decorator: records the plaintext token in [E2eMagicLinkTokenRecorder]
+ * Dev/e2e-only decorator: records the plaintext token in [E2eMagicLinkTokenRecorder]
  * (for the e2e support endpoint) and still logs it via [ConsoleEmailAdapter].
  */
 @Component
 @Primary
-@Profile("e2e")
+@Profile("(dev | e2e) & !prod")
 class RecordingEmailAdapter(
     private val delegate: ConsoleEmailAdapter,
     private val recorder: E2eMagicLinkTokenRecorder,

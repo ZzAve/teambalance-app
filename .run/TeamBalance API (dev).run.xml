@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Runs on the devSupport module's classpath (main + the dev/e2e-only beans), the same classpath `make api` (bootRun) uses. -->
+  <configuration default="false" name="TeamBalance API (dev)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="dev" />
+    <module name="teambalance.api.devSupport" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.github.zzave.teambalance.api.TeamBalanceApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -2,7 +2,9 @@ import community.flock.wirespec.integration.spring.extension.SpringMappingAnnota
 import community.flock.wirespec.plugin.gradle.CompileWirespecTask
 import community.flock.wirespec.plugin.Language
 import org.springframework.boot.gradle.tasks.aot.ProcessAot
+import org.springframework.boot.gradle.tasks.bundling.BootJar
 import org.springframework.boot.gradle.tasks.run.BootRun
+import java.util.zip.ZipFile
 
 val wirespecVersion = project.property("wirespecVersion") as String
 val testcontainersVersion = project.property("testcontainersVersion") as String
@@ -145,13 +147,24 @@ tasks.named<BootRun>("bootRun") {
     // Rebuild the run classpath from just the plain main output + resolved runtime dependencies.
     // (main.runtimeClasspath carries a task dependency on `processAot`, and FileCollection.minus
     // would keep that `builtBy` edge — so we reconstruct instead of subtract.)
-    classpath = files(sourceSets.main.get().output, configurations.named("runtimeClasspath"))
+    classpath = files(
+        sourceSets.main.get().output,
+        sourceSets["devSupport"].output,
+        configurations.named("runtimeClasspath"),
+    )
 }
 
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$projectDir/detekt.yml"))
-    source.setFrom("src/main/java", "src/main/kotlin", "src/test/java", "src/test/kotlin", "src/jooqCodegen/kotlin")
+    source.setFrom(
+        "src/main/java",
+        "src/main/kotlin",
+        "src/devSupport/kotlin",
+        "src/test/java",
+        "src/test/kotlin",
+        "src/jooqCodegen/kotlin",
+    )
 }
 
 // Wirespec code generation
@@ -182,6 +195,12 @@ val migrationsDirectory = layout.projectDirectory.dir("src/main/resources/db")
 
 sourceSets {
     create("jooqCodegen")
+    // Dev/e2e-only beans (token endpoint, e2e seed and clock, fake Bunq approval page). On the bootRun and
+    // test classpaths; never in bootJar, so the prod and demo images do not contain these classes at all.
+    create("devSupport") {
+        compileClasspath += main.get().output
+        runtimeClasspath += main.get().output
+    }
     main {
         kotlin {
             srcDir(layout.buildDirectory.dir("generated/wirespec/kotlin"))
@@ -244,3 +263,30 @@ tasks.register<JavaExec>("jooqCodegen") {
     outputs.dir(jooqGeneratedSources)
     outputs.cacheIf { true }
 }
+
+// devSupport compiles against everything main does and is a separate Kotlin module, so it may use main's internals.
+configurations["devSupportImplementation"].extendsFrom(configurations.implementation.get())
+configurations["devSupportRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+kotlin.target.compilations.named("devSupport") { associateWith(kotlin.target.compilations.getByName("main")) }
+dependencies { testImplementation(sourceSets["devSupport"].output) }
+
+// Proves the devSupport classes stay out of the prod jar: fails the build if bootJar packages any of them.
+val verifyBootJarHasNoDevSupport by tasks.registering {
+    description = "Fails if a devSupport class is packaged in bootJar"
+    group = "verification"
+    val jar = tasks.named<BootJar>("bootJar").flatMap { it.archiveFile }
+    val devClassDirs = sourceSets["devSupport"].output.classesDirs
+    inputs.file(jar)
+    inputs.files(devClassDirs)
+    doLast {
+        val devClasses = devClassDirs.files.flatMap { dir ->
+            dir.walk().filter { it.extension == "class" }
+                .map { "BOOT-INF/classes/" + it.relativeTo(dir).invariantSeparatorsPath }.toList()
+        }.toSet()
+        check(devClasses.isNotEmpty()) { "No devSupport classes were compiled, so this check proves nothing" }
+        val leaked = ZipFile(jar.get().asFile).use { zip -> zip.entries().asSequence().map { it.name }.filter { it in devClasses }.toList() }
+        check(leaked.isEmpty()) { "bootJar contains devSupport classes: $leaked" }
+    }
+}
+tasks.named("bootJar") { finalizedBy(verifyBootJarHasNoDevSupport) }
+tasks.named("check") { dependsOn(verifyBootJarHasNoDevSupport) }

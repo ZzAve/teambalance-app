@@ -7,7 +7,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 
-/** Guards that the e2e-only support endpoint never leaks outside the e2e profile. */
+/** Guards that the dev/e2e-only support endpoint is absent under the test profile (wiring per profile: E2eSupportProfileTest). */
 @AutoConfigureMockMvc
 class E2eSupportDisabledIT : TeamBalanceIT() {
 
@@ -15,7 +15,7 @@ class E2eSupportDisabledIT : TeamBalanceIT() {
     lateinit var mockMvc: MockMvc
 
     init {
-        test("e2e magic-link token endpoint is absent outside the e2e profile") {
+        test("e2e magic-link token endpoint is absent under the test profile") {
             mockMvc.perform(
                 MockMvcRequestBuilders.get("/internal/e2e/magic-link-token").param("email", "e2e@example.com"),
             ).andExpect(MockMvcResultMatchers.status().isNotFound)

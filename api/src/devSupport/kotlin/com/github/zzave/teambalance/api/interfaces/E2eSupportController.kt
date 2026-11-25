@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * E2e-profile-only support endpoint under `/internal` (like the actuator): lets Playwright
- * fetch the plaintext magic-link token that a login flow just requested, instead of grepping
- * backend logs. Deliberately not part of the Wirespec contract — it is test scaffolding, not
- * API surface, and never ships in prod.
+ * Dev/e2e-only support endpoint under `/internal` (like the actuator): lets Playwright, and the
+ * login page in a Vite dev build, fetch the plaintext magic-link token that a login flow just
+ * requested, instead of grepping backend logs. Deliberately not part of the Wirespec contract — it
+ * is dev and test scaffolding, not API surface, and never ships in prod.
  */
 @RestController
-@Profile("e2e")
+@Profile("(dev | e2e) & !prod")
 class E2eSupportController(private val recorder: E2eMagicLinkTokenRecorder) {
 
     data class MagicLinkTokenResponse(val token: String)

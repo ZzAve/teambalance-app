@@ -6,6 +6,7 @@ import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Trans, useTranslation } from 'react-i18next'
+import { DevMagicLink } from '@features/dev-magic-link/ui/DevMagicLink'
 
 export const Route = createFileRoute('/invite/$token')({
   component: InvitePage,
@@ -87,6 +88,7 @@ function InvitePage() {
             components={{ b: <span className="font-medium text-foreground" /> }}
           />
         </p>
+        {import.meta.env.DEV && <DevMagicLink email={email} />}
       </div>
     )
   }

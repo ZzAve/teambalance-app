@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 /**
  * Dev/test adapter: logs the magic link instead of sending a real email.
  * Active in every profile except prod, where [ScalewayTemEmailAdapter] takes over.
- * In e2e it is decorated by [RecordingEmailAdapter].
+ * In dev and e2e it is decorated by `RecordingEmailAdapter` (devSupport source set).
  */
 @Component
 @Profile("!prod")

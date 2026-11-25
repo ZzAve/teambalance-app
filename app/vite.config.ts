@@ -74,6 +74,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // Dev-profile magic-link token for the login page's dev link (DevMagicLink).
+      '/internal/e2e': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

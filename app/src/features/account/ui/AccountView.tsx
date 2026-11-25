@@ -1,13 +1,11 @@
-import type { ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
-import { ChevronRight, KeyRound, LogOut, Settings2, Shirt, ShieldCheck, UserRound, Users } from 'lucide-react'
+import { KeyRound, LogOut, Settings2, Shirt, ShieldCheck, UserRound, Users } from 'lucide-react'
 import { personalPhotoUrl } from '@shared/api/photos'
 import { Avatar } from '@shared/ui/avatar'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { teamRoutes } from '@shared/lib/team-routes'
 import type { AccountSection } from '../lib/account-sections'
 import { useTranslation } from 'react-i18next'
-import { CARD, ICON, ROW_INTERACTIVE } from './account-styles'
+import { CARD, NavRow, ROW_INTERACTIVE } from '@shared/ui/settings-list'
 
 interface AccountViewProps {
   /** The visible rows for this session, from {@link accountSections}. */
@@ -122,18 +120,5 @@ export function AccountView({
         </button>
       </div>
     </div>
-  )
-}
-
-function NavRow({ to, icon, title, hint }: { to: string; icon: ReactNode; title: string; hint?: string }) {
-  return (
-    <Link to={to} className={ROW_INTERACTIVE}>
-      <span className={ICON} aria-hidden="true">{icon}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{title}</span>
-        {hint && <span className="block text-caption text-muted-foreground">{hint}</span>}
-      </span>
-      <ChevronRight size={16} className="shrink-0 text-muted-foreground/60" aria-hidden="true" />
-    </Link>
   )
 }

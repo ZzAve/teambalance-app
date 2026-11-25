@@ -26,7 +26,7 @@ export function BulkAttendBarView({ groups, onAttend, pendingTypeId = null }: Bu
   if (groups.length === 0) return null
 
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+    <div data-bulk-bar="" className="mt-3 flex flex-wrap items-center justify-end gap-2">
       {groups.map((group) => (
         <Button
           key={group.typeId}

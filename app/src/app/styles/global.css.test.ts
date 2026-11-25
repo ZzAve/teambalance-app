@@ -20,6 +20,20 @@ describe('global.css prefers-reduced-motion', () => {
   })
 })
 
+// The events page's list motion (useViewTransitionValue) is switched on only for users who have not
+// asked for less motion: every rule naming `.list-motion` sits inside that media block.
+describe('global.css list motion', () => {
+  it('keeps every .list-motion rule inside the no-preference block', () => {
+    const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    const block = stripped.match(/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\n\}/)
+    expect(block).not.toBeNull()
+
+    const outside = stripped.replace(block![0], '')
+    expect(block![0]).toContain('.list-motion')
+    expect(outside).not.toContain('.list-motion')
+  })
+})
+
 describe('global.css button cursor', () => {
   it('gives every enabled button the pointer, in the base layer so utilities still override it', () => {
     const match = css.match(/@layer base \{[\s\S]*?\n\}/)

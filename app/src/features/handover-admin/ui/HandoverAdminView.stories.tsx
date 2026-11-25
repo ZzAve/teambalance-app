@@ -61,6 +61,8 @@ export const Shells: Story = {
         'Load error': <HandoverAdminView {...args} isError />,
         'No link yet': <HandoverAdminView {...args} />,
         Creating: <HandoverAdminView {...args} isCreating />,
+        // Phones (navigator.share present): the button opens the share sheet instead of copying.
+        'Share available': <HandoverAdminView {...args} link={LINK} canShare />,
         Copied: <HandoverAdminView {...args} link={LINK} copied />,
         'Copy refused': <HandoverAdminView {...args} link={LINK} copyFailed />,
         'Just revoked': <HandoverAdminView {...args} justRevoked />,
@@ -88,6 +90,7 @@ export const Shells: Story = {
 
     await expect(region('Creating').getByRole('button', { name: 'Creating…' })).toBeDisabled()
 
+    await expect(region('Share available').getByRole('button', { name: 'Share' })).toBeInTheDocument()
     await expect(region('Copied').getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
     // The browser refused the clipboard write: say so, and point at the link field beside the button.
     await expect(region('Copy refused').getByRole('alert')).toHaveTextContent(
@@ -132,6 +135,7 @@ export const Interactions: Story = {
       items={{
         'No link': <HandoverAdminView {...args} />,
         'Active link': <HandoverAdminView {...args} link={LINK} />,
+        'Share available': <HandoverAdminView {...args} link={LINK} canShare />,
       }}
     />
   ),
@@ -145,7 +149,10 @@ export const Interactions: Story = {
     await expect(args.onCreate).toHaveBeenCalled()
 
     await userEvent.click(region('Active link').getByRole('button', { name: 'Copy' }))
-    await expect(args.onCopy).toHaveBeenCalled()
+    await expect(args.onCopy).toHaveBeenCalledTimes(1)
+    // Share and Copy are one action (the container shares, or copies where it can't): same callback.
+    await userEvent.click(region('Share available').getByRole('button', { name: 'Share' }))
+    await expect(args.onCopy).toHaveBeenCalledTimes(2)
 
     await userEvent.click(region('Active link').getByRole('button', { name: 'Rotate link' }))
     await expect(args.onRotate).toHaveBeenCalled()

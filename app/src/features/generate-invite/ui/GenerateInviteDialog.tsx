@@ -1,14 +1,13 @@
 import { useTranslation } from 'react-i18next'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@shared/ui/dialog'
-import { Button } from '@shared/ui/button'
 import {
   useActiveInvitation,
   useCreateInvitation,
   useExpireInvitations,
   useRotateInvitation,
 } from '@shared/api/invitations'
-import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
+import { canShare, useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { GenerateInviteContent } from './GenerateInviteContent'
 
 /**
@@ -20,8 +19,9 @@ import { GenerateInviteContent } from './GenerateInviteContent'
  * live link behind that no screen could show or revoke (ADR-0025). Minting is now an explicit click.
  *
  * The Dialog wrapper stays here: Radix unmounts the content on close, so no extra reset is needed.
+ * `trigger` is the element that opens it (the Team page's "Invite people" row); it must take a ref.
  */
-export function GenerateInviteDialog() {
+export function GenerateInviteDialog({ trigger }: { trigger: ReactNode }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const clipboard = useCopyToClipboard()
@@ -64,9 +64,7 @@ export function GenerateInviteDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline">{t('generateInvite.trigger')}</Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('generateInvite.title')}</DialogTitle>
@@ -84,7 +82,8 @@ export function GenerateInviteDialog() {
           actionError={
             createInvitation.isError || rotateInvitation.isError || expireInvitation.isError
           }
-          onCopy={() => link && clipboard.copy(link)}
+          canShare={canShare()}
+          onCopy={() => link && clipboard.share({ title: t('generateInvite.title'), url: link })}
           onGenerate={handleGenerate}
           onRotate={handleRotate}
           onExpire={handleExpire}

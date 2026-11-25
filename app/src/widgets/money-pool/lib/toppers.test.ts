@@ -11,6 +11,7 @@ const pay = (date: string, amount: number, memberId?: string, direction: Payment
   memberId,
   counterpartyName: undefined,
   receiptVersion: undefined,
+  outOfPocket: false,
 })
 const names: Record<string, string> = { a: 'Anna', b: 'Bram', c: 'Cleo', d: 'Dirk' }
 const nameOf = (id: string) => names[id] ?? 'Former member'
@@ -43,6 +44,33 @@ describe('toppers with a roster', () => {
     const { podium, rest } = splitPodium(toppers(four, 'season', TODAY, nameOf, ['e']).ranking)
     expect(podium.map((x) => x.memberId)).toEqual(['a', 'b', 'c'])
     expect(rest.map((x) => x.memberId)).toEqual(['d', 'e'])
+  })
+
+  it('splitPodium leaves a tie for third place that does not fit on the podium to the list', () => {
+    const tied = [pay('2026-10-01', 500, 'a'), pay('2026-10-01', 400, 'b'), pay('2026-10-01', 300, 'c'), pay('2026-10-01', 300, 'd')]
+    const { podium, rest } = splitPodium(toppers(tied, 'season', TODAY, nameOf, ['e']).ranking)
+    expect(podium.map((x) => x.memberId)).toEqual(['a', 'b'])
+    expect(rest.map((x) => [x.memberId, x.rank])).toEqual([['c', 3], ['d', 3], ['e', 5]])
+  })
+
+  it('splitPodium leaves a tie for second place of three members to the list', () => {
+    const tied = [pay('2026-10-01', 500, 'a'), ...['b', 'c', 'd'].map((id) => pay('2026-10-01', 300, id))]
+    const { podium, rest } = splitPodium(toppers(tied, 'season', TODAY, nameOf).ranking)
+    expect(podium.map((x) => x.memberId)).toEqual(['a'])
+    expect(rest.map((x) => x.memberId)).toEqual(['b', 'c', 'd'])
+  })
+
+  it('splitPodium has no podium when more than three members share first place', () => {
+    const tied = ['a', 'b', 'c', 'd'].map((id) => pay('2026-10-01', 500, id))
+    const { podium, rest } = splitPodium(toppers(tied, 'season', TODAY, nameOf).ranking)
+    expect(podium).toEqual([])
+    expect(rest.map((x) => x.memberId)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('splitPodium keeps a tie that fits on the podium', () => {
+    const tied = [pay('2026-10-01', 500, 'a'), pay('2026-10-01', 300, 'b'), pay('2026-10-01', 300, 'c'), pay('2026-10-01', 100, 'd')]
+    const { podium } = splitPodium(toppers(tied, 'season', TODAY, nameOf).ranking)
+    expect(podium.map((x) => [x.memberId, x.rank])).toEqual([['a', 1], ['b', 2], ['c', 2]])
   })
 })
 
@@ -89,5 +117,21 @@ describe('toppers', () => {
 
   it('toppedUpTotal sums attributed incoming payments only', () => {
     expect(toppedUpTotal([pay('2026-10-01', 5, 'a'), pay('2026-10-01', 7), pay('2026-10-01', 9, 'a', 'Out')])).toBe(5)
+  })
+})
+
+describe('out-of-pocket expenses', () => {
+  const outOfPocket = (date: string, amount: number, memberId: string): Payment => ({ ...pay(date, amount, memberId, 'Out'), outOfPocket: true })
+  const payments = [outOfPocket('2026-11-05', 1250, 'b'), pay('2026-10-01', 500, 'a'), pay('2026-10-02', 4500, undefined, 'Out')]
+
+  it('count as a contribution of the member who paid', () => {
+    expect(toppedUpTotal(payments)).toBe(1750)
+    const r = toppers(payments, 'season', TODAY, nameOf)
+    expect(r.ranking.map((x) => [x.memberId, x.total])).toEqual([
+      ['b', 1250],
+      ['a', 500],
+    ])
+    expect(r.toppedUp).toBe(1750)
+    expect(r.unmatched).toBe(0)
   })
 })

@@ -175,6 +175,14 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   disappear when nothing is left to fill. Contrast with the per-event **Attendance Toggle**.
   _Avoid_: Accept All, Attend All (overclaims — it's all *shown, unanswered, future*), Bulk RSVP.
 
+### Bulletin board ([ADR-0050](docs/adr/0050-bulletin-board-markdown-posts-with-an-edit-audit.md))
+
+- **Bulletin Board** — The Team's notices: messages an **Admin** posts for all **Members**, such as a
+  rotation for taking the balls home or a clubhouse closing time. Shown at the top of the Team page.
+  _Avoid_: news feed, announcements, chat (Members cannot reply).
+- **Post** — One message on the Bulletin Board, written in Markdown by an Admin. Records its author and
+  every **Edit** (who and when, not the old text). _Avoid_: notice, message, announcement.
+
 ### Money pool
 
 - **Money Pool** — A team's shared pot of money, backed by a real bank account (Bunq).
@@ -185,11 +193,21 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Bunq Connection** — The access an Admin grants the Team to one of their Bunq accounts,
   by signing in to Bunq and approving it. The Money Pool shows that one account. Bunq
   remains the record of every payment; the app keeps none of them, only a **Receipt** per expense.
+  An **Out-of-pocket Expense** is not a Bunq payment and is the one thing the app records itself.
   _Avoid_: Bunq integration, Bunq config, API key.
 - **Receipt** — A picture of what an expense (an outgoing payment) was spent on. Any Member adds,
   replaces or removes it; every Member can see it. One per expense, stored under Bunq's payment id
   ([ADR-0044](docs/adr/0044-receipts-on-expenses-stored-by-bunq-payment-id.md)).
   _Avoid_: Attachment, invoice, proof.
+- **Out-of-pocket Expense** — Something a Member paid for the Team with their own money. The Member
+  (or an Admin for them) records the amount, the date and what it was for, and is asked for a
+  **Receipt**. It counts as an expense of the pool and as that Member's contribution of the same
+  amount, so the balance does not change and nobody has to be paid back. Stored by the app, not by Bunq,
+  and usable without a **Bunq Connection**: the Money Pool then shows these expenses alone, without a
+  balance. The amount is read from the photo of the Receipt as a suggestion
+  ([ADR-0048](docs/adr/0048-out-of-pocket-expenses-stored-by-the-app.md),
+  [ADR-0049](docs/adr/0049-receipt-total-read-in-the-browser.md)).
+  _Avoid_: Reimbursement, declaration, manual payment, cash payment.
 - **Payment Alias** — How a Member appears on Bunq payments: a name, an IBAN or both, several
   per Member. It lets the Money Pool say which Member a payment came from. Seen and edited only by
   the Member and Team Admins; unique within the Team; deleted when the Member leaves. The app keeps
@@ -200,6 +218,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   custom, opening a bunq.me deep link (mobile-first, no QR). The payment's description
   names the app, the Team and the Member, and carries the Member's id, so both the payer and
   the Team can tell whose contribution it was and to which Team.
+  Offered only while the pool is Connected: the connected account is where the money goes (ADR-0048).
 - **Hall of Fame (Toppers 🏆)** / **Hall of Shame (Floppers 🐷)** — Side-by-side
   contributor rankings over a period (last 30 days or full season).
 
@@ -226,6 +245,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   Back-office onboarding is now just minting a creation code. A **Platform Admin** may also
   create a Team **memberless** — no founding Admin — and hand it over with an Admin-granting
   **Invite Link** ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)).
+
+- **Team Request** — A signed-in user's request for a Team: a team name and what they would use TeamBalance
+  for. One open request per user: pending, or approved with a creation code that is unused and unexpired.
+  A **Platform Admin** approves it, which mints a **creation code** (valid 30 days) for the requester, or
+  rejects it with an optional reason
+  ([ADR-0047](docs/adr/0047-team-requests-in-the-app.md)). The code stays the only gate to a tenant schema.
 
 ### Platform & integrations
 
@@ -286,6 +311,8 @@ code and docs only; in the Dutch UI it is the right word.
 | Event | Event | Event |
 | Match / Training | Match / Training | Wedstrijd / Training |
 | Match Feed | Match feed | Wedstrijdfeed |
+| Bulletin Board | Bulletin board | Prikbord |
+| Post | Post | Bericht |
 
 User content (event titles, team names, Position names, notes) is never translated.
 

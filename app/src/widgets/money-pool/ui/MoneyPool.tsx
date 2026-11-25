@@ -4,10 +4,11 @@ import { useMembers } from '@shared/api/members'
 import { useSeason } from '@shared/api/season'
 import { useMoneyPool } from '@shared/api/money-pool'
 import { ClaimPayment } from '@features/claim-payment/ui/ClaimPayment'
+import { EditExpense } from '@features/record-expense/ui/EditExpense'
+import { RecordExpense } from '@features/record-expense/ui/RecordExpense'
 import { claimVariant } from '@features/claim-payment/lib/claim-variant'
 import { ReceiptButton } from '@features/attach-receipt/ui/ReceiptButton'
 import { TopUp } from '@features/top-up/ui/TopUp'
-import { formatEuro } from '../lib/format'
 import { paymentsFollowSeason } from '../lib/season-period'
 import { MoneyPoolView } from './MoneyPoolView'
 
@@ -43,18 +44,23 @@ export function MoneyPool() {
       accountPending={connection?.connected === true && !connection.accountPicked}
       // The payment description carries the caller's id, so the server refuses top-ups under act-as.
       topUp={user?.actAs ? null : <TopUp />}
+      recordExpense={<RecordExpense today={today} />}
+      // The member who paid and an Admin may change or delete it; the server enforces the same rule.
+      editExpense={(expense) =>
+        (isAdmin || (!user?.actAs && expense.memberId === user?.id)) && <EditExpense expense={expense} today={today} />
+      }
       receipt={(expense) => (
         <ReceiptButton
           paymentId={expense.id}
           // The server writes no receipt as null, which the generated type calls undefined.
           receiptVersion={expense.receiptVersion ?? undefined}
           name={expense.name}
-          amount={formatEuro(expense.amount)}
+          amount={expense.amount}
         />
       )}
       claim={(payment) => {
         const variant = claimVariant(user, payment)
-        return variant && <ClaimPayment payment={payment} variant={variant} amount={formatEuro(payment.amount)} />
+        return variant && <ClaimPayment payment={payment} variant={variant} />
       }}
     />
   )

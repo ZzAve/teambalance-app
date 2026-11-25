@@ -6,7 +6,7 @@ import java.time.Duration
 /** How long the money pool answers from memory, bound from `teambalance.bunq.read-cache.*`. */
 @ConfigurationProperties(prefix = "teambalance.bunq.read-cache")
 data class BunqReadCacheProperties(
-    /** After this long the next read asks Bunq again, within that request. */
+    /** After this long the next read has Bunq asked again, in the background. */
     val refresh: Duration,
     /** The last known balance is dropped this long after it was read. Must be at least [refresh]. */
     val expire: Duration,

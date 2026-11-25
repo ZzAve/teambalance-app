@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountExcep
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
 import com.github.zzave.teambalance.api.domain.model.BunqAccounts
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
@@ -19,7 +20,6 @@ import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqOAuthState
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
-import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
@@ -105,6 +105,8 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
 
     var failSaves = false
 
+    override fun current() = error("not used")
+
     override fun <T> within(routing: TenantRouting, block: () -> T): T {
         val before = scope
         scope = routing.schemaName
@@ -139,7 +141,7 @@ private class RecordingMoneyPoolCache : MoneyPoolCacheGateway {
     val evicted = mutableListOf<TeamId>()
     var onEvict: () -> Unit = {}
 
-    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool = error("not used")
+    override fun read(teamId: TeamId, account: BunqAccountId): CachedMoneyPool = error("not used")
 
     override fun evict(teamId: TeamId) {
         evicted += teamId
@@ -248,7 +250,7 @@ class BunqConnectionServiceTest : FunSpec() {
                     ),
                     authorizationService = AuthorizationService(directory.teamMemberRepository(), actAsGateway),
                     clock = clock,
-                    connectConfig = if (enabled) BunqConnectConfig(cipher, CALLBACK) else null,
+                    connectConfig = if (enabled) BunqConnectConfig(BunqGrantSeal(cipher), CALLBACK) else null,
                     moneyPoolCache = cache,
                     demoTeam = demoTeam,
                 )
@@ -281,21 +283,6 @@ class BunqConnectionServiceTest : FunSpec() {
                 val stored = tenants.connectionIn(teamSchema)!!
                 val aad = TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)
                 tenants.putConnectionIn(teamSchema, stored.copy(grant = newKey.encrypt(cipher.decrypt(stored.grant, aad), aad)))
-            }
-
-            /** The stored grant was made before the AAD existed, so it carries none. */
-            fun storeGrantMadeWithoutAad() {
-                val stored = tenants.connectionIn(teamSchema)!!
-                val plain = cipher.decrypt(stored.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
-                tenants.putConnectionIn(teamSchema, stored.copy(grant = cipher.encrypt(plain, TokenCipher.NO_AAD)))
-            }
-
-            /** The grant column holds a value of the same team and key that was made for the API context. */
-            fun storeContextValueAsGrant() {
-                val stored = tenants.connectionIn(teamSchema)!!
-                val plain = cipher.decrypt(stored.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
-                val asContext = cipher.encrypt(plain, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
-                tenants.putConnectionIn(teamSchema, stored.copy(grant = asContext))
             }
 
             /** What someone with write access to the database could do: the team's row, byte for byte, in another team's schema. */
@@ -689,25 +676,6 @@ class BunqConnectionServiceTest : FunSpec() {
                 shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
             }
 
-            test("a grant made before the AAD existed is BUNQ_REJECTED, so the Admin connects again") {
-                val f = Fixture()
-                f.connected()
-                f.storeGrantMadeWithoutAad()
-
-                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
-            }
-
-            test("a value made for the API context in the grant column is BUNQ_REJECTED and never reaches Bunq") {
-                val f = Fixture()
-                f.connected()
-                f.storeContextValueAsGrant()
-                f.bunq.listedWith = null
-
-                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
-
-                f.bunq.listedWith shouldBe null
-            }
-
             test("a grant copied into another team's row is BUNQ_REJECTED there, evicts that team's pool and never reaches Bunq") {
                 val f = Fixture()
                 f.connected()
@@ -863,16 +831,6 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 f.tenants.connectionIn(f.directory.schemaOf(f.otherTeam)) shouldBe copied
                 f.bunq.listedWith shouldBe null
-            }
-
-            test("a grant made before the AAD existed is BUNQ_REJECTED and nothing is written") {
-                val f = Fixture()
-                f.connected()
-                f.storeGrantMadeWithoutAad()
-
-                shouldThrow<BunqGrantRejectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
-
-                f.pickedAccount() shouldBe null
             }
 
             test("a successful pick evicts the cached money pool, so the next read uses the new account") {

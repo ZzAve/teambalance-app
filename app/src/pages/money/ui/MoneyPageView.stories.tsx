@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Pencil } from 'lucide-react'
 import { expect, fn, within } from 'storybook/test'
 import { ReceiptButtonView } from '@features/attach-receipt/ui/ReceiptButtonView'
 import { RECEIPT_IMAGE } from '@features/attach-receipt/ui/receipt-image.fixture'
@@ -38,11 +39,22 @@ const meta = {
         members={MEMBERS}
         youId="u-mia"
         topUp={<Button size="lg">Top up</Button>}
+        recordExpense={
+          <Button size="lg" variant="outline">
+            Add an expense you paid
+          </Button>
+        }
+        editExpense={(expense) => (
+          <Button variant="ghost" size="icon" aria-label={`Change expense ${expense.name}`} className="shrink-0 text-muted-foreground">
+            <Pencil size={18} aria-hidden="true" />
+          </Button>
+        )}
         payments={[
-          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined },
-          { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
-          { id: '1007', date: '2026-10-01', name: 'Drankenhandel Smit', amount: 3250, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
-          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: 'u-tom', counterpartyName: undefined, receiptVersion: undefined },
+          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false },
+          { id: 'oop-1', date: '2026-10-05', name: 'Match balls', amount: 1250, direction: 'Out', memberId: 'u-mia', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: true },
+          { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2', outOfPocket: false },
+          { id: '1007', date: '2026-10-01', name: 'Drankenhandel Smit', amount: 3250, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false },
+          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: 'u-tom', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false },
         ]}
         receipt={(expense) => (
           <ReceiptButtonView
@@ -83,6 +95,9 @@ export const Data: Story = {
     await expect(canvas.getByText(/covers 69 beers/)).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Receipt for Sporthal De Kuil' })).toBeInTheDocument()
+    // The viewer's own out-of-pocket expense: named as theirs, with the control that changes it.
+    await expect(canvas.getByText(/^Paid by Mia \(you\) · /)).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Change expense Match balls' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('aria-current', 'page')
   },
 }

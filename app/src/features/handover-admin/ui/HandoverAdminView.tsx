@@ -13,6 +13,8 @@ interface HandoverAdminViewProps {
   /** The team's current single-use admin handover link, or null if it has none. */
   link: string | null
   copied: boolean
+  /** The browser has a native share sheet: the button says Share and opens it instead of copying. */
+  canShare?: boolean
   /** The browser refused the clipboard write; the link is still in the field to copy by hand. */
   copyFailed?: boolean
   /** Set only for the moment after a revoke, to confirm the link is gone before offering a new one. */
@@ -46,6 +48,7 @@ export function HandoverAdminView({
   link,
   copied,
   copyFailed,
+  canShare,
   justRevoked,
   isCreating,
   isRotating,
@@ -60,7 +63,6 @@ export function HandoverAdminView({
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const heading = (
     <div>
-      <h2 className="font-display text-title font-bold">{t('handover.heading')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
         {t('handover.intro')}
       </p>
@@ -100,7 +102,9 @@ export function HandoverAdminView({
           <div className="flex gap-2">
             <Input aria-label={t('handover.linkLabel')} readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
             <Button type="button" onClick={onCopy}>
-              {copied ? t('generateInvite.copied') : t('generateInvite.copy')}
+              {copied
+                ? t('generateInvite.copied')
+                : canShare ? t('generateInvite.shareButton') : t('generateInvite.copy')}
             </Button>
           </div>
           {copyFailed && <FormError>{t('generateInvite.copyFailed')}</FormError>}

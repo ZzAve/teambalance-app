@@ -1,20 +1,28 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
-import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.benmanes.caffeine.cache.Expiry
+import com.github.zzave.teambalance.api.application.MoneyPoolReader
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
+import com.github.zzave.teambalance.api.domain.model.MoneyPoolRetention
+import com.github.zzave.teambalance.api.domain.model.RememberedMoneyPool
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
+import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.time.Clock
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Per-instance, in-memory [MoneyPoolCacheGateway] (ADR-0037 makes the same trade for the rate limiter).
@@ -23,18 +31,17 @@ import java.util.concurrent.atomic.AtomicLong
  * A cached [MoneyPool.Rejected] has no time limit, so on another instance it lasts until that instance
  * restarts or one of its own connect, pick, disconnect or rejected list or pick evicts it.
  *
- * A read after [BunqReadCacheProperties.refresh] asks Bunq inside that request, and not through
- * Caffeine's refreshAfterWrite: that reloads on a pool thread, where the tenant of the request is gone.
- * While one request does so, concurrent readers get the stale value. A failed attempt leaves
- * Caffeine's view of the entry unchanged (the retry time is set on the entry itself), so its expiry keeps
- * counting from the last successful read.
+ * A Caffeine [AsyncLoadingCache]: [load] runs on [executor], never on the thread of the request, so it has
+ * to set the tenant itself. It gets the tenant of the request that made the entry, which [tenantSchema]
+ * reads at that moment and the key keeps. A read with nothing remembered waits for it. A read after
+ * [BunqReadCacheProperties.refresh] returns the remembered value and Caffeine reloads the entry, once however
+ * many readers there are. A reload that finds Bunq unavailable keeps the value with its age, so its expiry
+ * keeps counting from the last successful read, and notes when Bunq may be asked again; [read] starts that
+ * next reload, because Caffeine counts its refresh interval from the failed one.
  *
- * An [evict] during a read that is in flight must not be undone by that read, which may have used the
- * grant that was just replaced. A refresh stores its answer only if its entry is still the mapped one
- * (so an evict, which removes it, wins). A cold read has no entry to compare, so [evict] also bumps a
- * per-team generation, and a cold read that sees it change removes the entry it just stored. Either the
- * evict's removal sees that entry or the read sees the new generation. The generations are one [Long]
- * per team that was ever evicted: bounded by the number of teams, which is small.
+ * Caffeine drops the result of a load or reload whose entry was removed or replaced meanwhile, so an
+ * [evict] during a read that is in flight is not undone by that read, which may have used the grant that
+ * was just replaced.
  *
  * Bridges Caffeine's clock to the injected [Clock], as [com.github.zzave.teambalance.api.infrastructure.ratelimit.RateLimiter]
  * does for Bucket4j, so timing is deterministic under a test clock.
@@ -43,106 +50,85 @@ import java.util.concurrent.atomic.AtomicLong
 class CaffeineMoneyPoolCacheAdapter(
     private val clock: Clock,
     private val properties: BunqReadCacheProperties,
+    executor: Executor,
+    private val tenantSchema: () -> SchemaName,
+    private val load: (TenantRouting, BunqAccountId) -> MoneyPool,
 ) : MoneyPoolCacheGateway {
 
-    private data class Key(val teamId: TeamId, val account: BunqAccountId)
+    /**
+     * Bunq reads block on the network, so each one gets a virtual thread and none holds up a shared pool.
+     * The money pool is read only in a request of a team, so a tenant is in effect whenever the cache is read.
+     */
+    @Autowired
+    constructor(clock: Clock, properties: BunqReadCacheProperties, tenantScope: TenantScopeGateway, reader: MoneyPoolReader) : this(
+        clock = clock,
+        properties = properties,
+        executor = Executors.newVirtualThreadPerTaskExecutor(),
+        tenantSchema = { checkNotNull(tenantScope.current()) { "The money pool is read outside a tenant" }.schemaName },
+        load = reader::read,
+    )
 
-    private class Entry(val value: MoneyPool, val readAt: Instant) {
-        /** Set when a refresh found Bunq unavailable; no new attempt before then. */
-        @Volatile
-        var retryNotBefore: Instant? = null
-        val refreshing = AtomicBoolean(false)
-    }
+    private data class Key(val tenant: TenantRouting, val account: BunqAccountId)
 
-    private val generations = ConcurrentHashMap<TeamId, AtomicLong>()
+    private val retention = MoneyPoolRetention(refresh = properties.refresh, expire = properties.expire, retryAfter = properties.retryAfter)
 
-    private val entries: Cache<Key, Entry> = Caffeine.newBuilder()
+    private val entries: AsyncLoadingCache<Key, RememberedMoneyPool> = Caffeine.newBuilder()
         .maximumSize(MAX_ENTRIES)
+        .executor(executor)
         .ticker { TimeUnit.MILLISECONDS.toNanos(clock.millis()) }
+        .refreshAfterWrite(retention.refresh)
         .expireAfter(
-            object : Expiry<Key, Entry> {
-                override fun expireAfterCreate(key: Key, entry: Entry, currentTime: Long) = lifetimeNanos(entry.value)
+            object : Expiry<Key, RememberedMoneyPool> {
+                override fun expireAfterCreate(key: Key, entry: RememberedMoneyPool, currentTime: Long) = lifetimeNanos(entry)
 
-                override fun expireAfterUpdate(key: Key, entry: Entry, currentTime: Long, currentDuration: Long) =
-                    lifetimeNanos(entry.value)
+                override fun expireAfterUpdate(key: Key, entry: RememberedMoneyPool, currentTime: Long, currentDuration: Long) =
+                    lifetimeNanos(entry)
 
-                override fun expireAfterRead(key: Key, entry: Entry, currentTime: Long, currentDuration: Long) = currentDuration
+                override fun expireAfterRead(key: Key, entry: RememberedMoneyPool, currentTime: Long, currentDuration: Long) =
+                    currentDuration
             },
         )
-        .build()
+        .buildAsync(
+            object : AsyncCacheLoader<Key, RememberedMoneyPool> {
+                override fun asyncLoad(key: Key, executor: Executor): CompletableFuture<RememberedMoneyPool> =
+                    CompletableFuture.supplyAsync({ RememberedMoneyPool.readNow(readFromBunq(key), clock.instant()) }, executor)
 
-    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool {
-        val key = Key(teamId, account)
-        val entry = entries.getIfPresent(key) ?: return coldRead(key, load)
-        return if (entry.value is MoneyPool.Connected && refreshIsDue(entry)) refresh(key, entry, load) else entry.value
+                override fun asyncReload(key: Key, old: RememberedMoneyPool, executor: Executor): CompletableFuture<RememberedMoneyPool> =
+                    if (old.mayBeReloaded()) {
+                        CompletableFuture.supplyAsync({ reloaded(key, old) }, executor)
+                    } else {
+                        CompletableFuture.completedFuture(old)
+                    }
+            },
+        )
+
+    override fun read(teamId: TeamId, account: BunqAccountId): CachedMoneyPool {
+        val key = Key(TenantRouting(teamId, tenantSchema()), account)
+        val entry = entries.synchronous().get(key)
+        val now = clock.instant()
+        if (entry.retryIsDue(now)) entries.synchronous().refresh(key)
+        return CachedMoneyPool(entry.value, entry.isRefreshing(now, retention))
     }
 
     override fun evict(teamId: TeamId) {
-        // Bump before removing: a cold read re-checks the generation after storing, so either this removal
-        // sees the stored entry or that read sees the new generation.
-        generations.computeIfAbsent(teamId) { AtomicLong() }.incrementAndGet()
-        entries.asMap().keys.removeIf { it.teamId == teamId }
+        entries.asMap().keys.removeIf { it.tenant.teamId == teamId }
     }
 
-    private fun generationOf(teamId: TeamId): Long = generations[teamId]?.get() ?: 0L
-
-    /**
-     * Concurrent cold readers wait for the one read that computes the entry: there is nothing to show them
-     * meanwhile. An answer that an [evict] overtook is removed again; the reader that loaded it still gets it.
-     */
-    private fun coldRead(key: Key, load: () -> MoneyPool): MoneyPool {
-        var generation = 0L
-        var loadedHere: Entry? = null
-        val entry = entries.get(key) {
-            generation = generationOf(key.teamId)
-            Entry(readFromBunq(key.teamId, load), clock.instant()).also { loadedHere = it }
-        }
-        if (entry === loadedHere && generationOf(key.teamId) != generation) entries.asMap().remove(key, entry)
-        return entry.value
-    }
-
-    private fun refreshIsDue(entry: Entry): Boolean = !clock.instant().isBefore(entry.readAt.plus(properties.refresh))
-
-    /**
-     * The claim is taken before anything is decided, so a reader that takes the claim after another
-     * released it sees what that one left: a replaced or evicted entry, or a retry time.
-     */
-    private fun refresh(key: Key, entry: Entry, load: () -> MoneyPool): MoneyPool {
-        if (!entry.refreshing.compareAndSet(false, true)) return entry.value
-        return try {
-            val retryNotBefore = entry.retryNotBefore
-            when {
-                entries.getIfPresent(key) !== entry -> read(key.teamId, key.account, load)
-                retryNotBefore != null && clock.instant().isBefore(retryNotBefore) -> entry.value
-                else -> loadAndStore(key, entry, load)
+    private fun reloaded(key: Key, old: RememberedMoneyPool): RememberedMoneyPool =
+        runCatching { readFromBunq(key) }
+            .map { old.reloaded(it, clock.instant(), retention) }
+            .getOrElse {
+                log.warn("Refreshing the money pool failed: {}", it.javaClass.simpleName)
+                old.reloadFailed(clock.instant(), retention)
             }
-        } finally {
-            entry.refreshing.set(false)
-        }
+
+    private fun readFromBunq(key: Key): MoneyPool {
+        log.debug("Reading the money pool from Bunq for team {}", key.tenant.teamId)
+        return load(key.tenant, key.account)
     }
 
-    private fun loadAndStore(key: Key, entry: Entry, load: () -> MoneyPool): MoneyPool {
-        val answer = readFromBunq(key.teamId, load)
-        if (answer == MoneyPool.Unavailable) {
-            entry.retryNotBefore = clock.instant().plus(properties.retryAfter)
-            return entry.value
-        }
-        entries.asMap().replace(key, entry, Entry(answer, clock.instant()))
-        return answer
-    }
-
-    private fun readFromBunq(teamId: TeamId, load: () -> MoneyPool): MoneyPool {
-        log.debug("Reading the money pool from Bunq for team {}", teamId)
-        return load()
-    }
-
-    /** A value is remembered for [BunqReadCacheProperties.expire], an Unavailable for the retry interval, a Rejected for good. */
-    private fun lifetimeNanos(value: MoneyPool): Long =
-        when (value) {
-            is MoneyPool.Connected -> properties.expire.toNanos()
-            MoneyPool.Unavailable -> properties.retryAfter.toNanos()
-            else -> Long.MAX_VALUE
-        }
+    private fun lifetimeNanos(entry: RememberedMoneyPool): Long =
+        entry.keptFor(clock.instant(), retention)?.toNanos() ?: Long.MAX_VALUE
 
     private companion object {
         const val MAX_ENTRIES = 1_000L

@@ -91,6 +91,7 @@ export function NextEventHeroView({
   return (
     <section
       aria-label={t('hero.label')}
+      data-event-hero=""
       className="relative mt-4 overflow-hidden rounded-lg p-4 text-hero-ink"
       style={{
         '--hero-ink': ink,

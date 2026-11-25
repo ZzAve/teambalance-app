@@ -1,21 +1,18 @@
 import type { Substitute } from './generated/model/Substitute'
 import type { SubstituteEntry } from './generated/model/SubstituteEntry'
+import { patchCachedEvent, type CachedEvents as CachedEventShapes } from './event-cache'
 
 type SubstituteState = SubstituteEntry['state']
 type WithSubstitutes = { id: string; substitutes: SubstituteEntry[] }
-/** One event's detail, a list of events, or the list query's raw `{ events }` response. */
-type CachedEvents = WithSubstitutes | WithSubstitutes[] | { events: WithSubstitutes[] }
+type CachedEvents = CachedEventShapes<WithSubstitutes>
 
-/** Applies [patch] to the event with [eventId], whichever of the cached shapes holds it. */
+/** Applies [patch] to the substitutes of the event with [eventId], whichever cached shape holds it. */
 function patchEvent<T extends CachedEvents>(
   cached: T,
   eventId: string,
   patch: (substitutes: SubstituteEntry[]) => SubstituteEntry[],
 ): T {
-  const one = (e: WithSubstitutes) => (e.id === eventId ? { ...e, substitutes: patch(e.substitutes) } : e)
-  if (Array.isArray(cached)) return cached.map(one) as T
-  if ('events' in cached) return { ...cached, events: cached.events.map(one) } as T
-  return one(cached) as T
+  return patchCachedEvent<WithSubstitutes, T>(cached, eventId, (e) => ({ ...e, substitutes: patch(e.substitutes) }))
 }
 
 /**

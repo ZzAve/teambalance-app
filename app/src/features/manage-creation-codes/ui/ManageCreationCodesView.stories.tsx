@@ -9,11 +9,13 @@ const NOW = new Date('2026-08-03T12:00:00Z')
 
 const CODES: CreationCode[] = [
   // Active: no expiry, unconsumed.
-  { code: 'AAAA-BBBB-CCCC', createdAt: '2026-08-01T00:00:00Z', expiresAt: undefined, consumedAt: undefined, consumedByUserId: undefined, createdTeamId: undefined },
+  { code: 'AAAA-BBBB-CCCC', createdAt: '2026-08-01T00:00:00Z', expiresAt: undefined, consumedAt: undefined, consumedByUserId: undefined, createdTeamId: undefined, requestedTeamName: undefined, requestedBy: undefined },
   // Expired: expiry already in the past, unconsumed → still revocable.
-  { code: 'DDDD-EEEE-FFFF', createdAt: '2026-07-01T00:00:00Z', expiresAt: '2026-07-15T00:00:00Z', consumedAt: undefined, consumedByUserId: undefined, createdTeamId: undefined },
+  { code: 'DDDD-EEEE-FFFF', createdAt: '2026-07-01T00:00:00Z', expiresAt: '2026-07-15T00:00:00Z', consumedAt: undefined, consumedByUserId: undefined, createdTeamId: undefined, requestedTeamName: undefined, requestedBy: undefined },
+  // Minted by approving a team request: names the team and who asked.
+  { code: 'KKKK-MMMM-NNNN', createdAt: '2026-08-02T00:00:00Z', expiresAt: '2026-09-01T00:00:00Z', consumedAt: undefined, consumedByUserId: undefined, createdTeamId: undefined, requestedTeamName: 'VC Testteam', requestedBy: 'nieuw@example.com' },
   // Used: redeemed → not revocable.
-  { code: 'GGGG-HHHH-JJJJ', createdAt: '2026-07-20T00:00:00Z', expiresAt: undefined, consumedAt: '2026-07-21T00:00:00Z', consumedByUserId: 'u1', createdTeamId: 't1' },
+  { code: 'GGGG-HHHH-JJJJ', createdAt: '2026-07-20T00:00:00Z', expiresAt: undefined, consumedAt: '2026-07-21T00:00:00Z', consumedByUserId: 'u1', createdTeamId: 't1', requestedTeamName: undefined, requestedBy: undefined },
 ]
 
 // Three stories (ADR-0032 §1): Data is the populated list and carries the snapshot. Shells stacks
@@ -34,11 +36,12 @@ type Story = StoryObj<typeof meta>
 export const Data: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText('AAAA-BBBB-CCCC')).toBeInTheDocument()
-    await expect(canvas.getByText('Active')).toBeInTheDocument()
+    await expect(canvas.getAllByText('Active')).toHaveLength(2)
+    await expect(canvas.getByText('For VC Testteam · nieuw@example.com')).toBeInTheDocument()
     await expect(canvas.getByText('Expired')).toBeInTheDocument()
     await expect(canvas.getByText('Used')).toBeInTheDocument()
-    // Only the two unconsumed codes (active + expired) expose a Revoke button.
-    await expect(canvas.getAllByRole('button', { name: 'Revoke' })).toHaveLength(2)
+    // Only the three unconsumed codes (two active + expired) expose a Revoke button.
+    await expect(canvas.getAllByRole('button', { name: 'Revoke' })).toHaveLength(3)
   },
 }
 

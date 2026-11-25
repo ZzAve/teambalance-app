@@ -11,7 +11,7 @@ import { EventLineupPanel } from './EventLineupPanel'
  *
  * Prop-only (ADR-0017), so every state below is an argument rather than a fetch: what the panel does
  * with a squad is decided entirely by `attendances` and `roster`. The container seam — the write, its
- * rollback, and the optimistic hold — is the events route's, covered by the attendance e2e.
+ * rollback, and the optimistic cache patch — belongs to the attendance write, covered by its unit tests and the attendance e2e.
  *
  * The interactive stories pass `fn()` spies and assert `toHaveBeenCalledWith`, because the thing
  * worth pinning here is not that a chip renders but that tapping one reaches the right *member*: the
@@ -78,7 +78,7 @@ const POSITIONS = [
   { id: 'p-coach', label: 'Coach', required: undefined, attending: 1, kind: 'STAFF' as const },
 ]
 
-/** Feeds the answer back in as a prop, which is what the events route's optimistic hold does. */
+/** Feeds the answer back in as a prop, which is what the attendance write's cache patch does. */
 function LivePanel(props: ComponentProps<typeof EventLineupPanel>) {
   const [attendances, setAttendances] = useState(props.attendances)
   return (

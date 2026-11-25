@@ -5,15 +5,6 @@ export function toggleRole(role: Role): Role {
   return role === 'ADMIN' ? 'USER' : 'ADMIN'
 }
 
-/**
- * True when `userId` is the sole remaining ADMIN. The backend refuses to demote or remove them
- * (409 LAST_ADMIN); this only drives a UI hint, so the backend stays the source of truth.
- */
-export function isLastAdmin(members: Member[], userId: string): boolean {
-  const admins = members.filter((m) => m.role === 'ADMIN')
-  return admins.length === 1 && admins[0].userId === userId
-}
-
 /** The roster order on /team: by Shirt Number, members without one last (ADR-0038). */
 export function sortByShirtNumber(members: Member[]): Member[] {
   const key = (m: Member) => m.shirtNumber ?? Number.MAX_SAFE_INTEGER

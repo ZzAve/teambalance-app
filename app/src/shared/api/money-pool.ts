@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiErrorOf } from './api-error'
 import { authMeQueryOptions } from './auth'
 import type { MoneyPoolSettings } from './generated/model/MoneyPoolSettings'
 import { topUpUrlOf } from './top-up-link'
@@ -16,14 +17,20 @@ export function nullsToUndefined<T extends object>(body: T): T {
   return Object.fromEntries(Object.entries(body).map(([key, value]) => [key, value ?? undefined])) as T
 }
 
+const REFRESHING_REFETCH_MS = 3_000
+
 // The current team's money pool. Readable by any member; `state` says whether the pool is switched
 // off, not connected, unreachable, or connected (then balance and payments are set).
+//
+// `refreshing` means the server answered with older figures and is asking Bunq again. A screen that
+// shows such an answer fetches again every few seconds until the server has the new figures.
 export const moneyPoolQueryOptions = queryOptions({
   queryKey: ['money-pool'],
   queryFn: async () => {
     const res = await api.getMoneyPool()
     return nullsToUndefined(res.body)
   },
+  refetchInterval: (query) => (query.state.data?.refreshing ? REFRESHING_REFETCH_MS : false),
 })
 
 export function useMoneyPool() {
@@ -36,7 +43,7 @@ export const moneyPoolSettingsQueryOptions = queryOptions({
   queryKey: ['money-pool', 'settings'],
   queryFn: async () => {
     const res = await api.getMoneyPoolSettings()
-    if (res.status === 403) throw new Error('You are not allowed to see the money pool settings.')
+    if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to see the money pool settings.')
     return nullsToUndefined(res.body)
   },
 })
@@ -52,7 +59,7 @@ export function useSetMoneyPoolSettings() {
   return useMutation({
     mutationFn: async (settings: MoneyPoolSettings) => {
       const res = await api.putMoneyPoolSettings({ body: settings })
-      if (res.status === 403) throw new Error('You are not allowed to change the money pool settings.')
+      if (res.status === 403) throw apiErrorOf(res, 'You are not allowed to change the money pool settings.')
       return res.body
     },
     onSuccess: () =>

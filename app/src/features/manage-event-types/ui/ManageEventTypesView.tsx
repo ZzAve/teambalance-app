@@ -125,7 +125,6 @@ export function ManageEventTypesView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">{t('eventTypes.heading')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
         {t('eventTypes.intro')}
       </p>

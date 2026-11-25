@@ -110,6 +110,26 @@ class OtlpTracesExportIT : TeamBalanceIT() {
             }
         }
 
+        test("a log line written after withContext(Dispatchers.IO) still carries the trace ID of the request's span") {
+            val logged = ListAppender<ILoggingEvent>().apply { start() }
+            (SuspendLoggingController.log as Logger).addAppender(logged)
+
+            val started = mockMvc.perform(
+                MockMvcRequestBuilders.get(SuspendLoggingController.PATH_AFTER_DISPATCHER_SWITCH)
+                    .with(loginAs(CalendarLinkFixture.ALPHA_MEMBER)),
+            ).andReturn()
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
+
+            val line = logged.list.single { it.message.startsWith("after a dispatcher switch") }
+            line.threadName shouldNotBe line.argumentArray.single()
+            val traceId = line.mdcPropertyMap["traceId"]
+            traceId shouldNotBe null
+            eventually(15.seconds) {
+                receiver.serverSpans().single { it.attribute("uri") == SuspendLoggingController.PATH_AFTER_DISPATCHER_SWITCH }
+                    .traceIdHex() shouldBe traceId
+            }
+        }
+
         test("the health probe makes no spans, so it does not fill Tempo every 10 seconds") {
             val before = receiver.spans().size
 

@@ -338,6 +338,11 @@ What to look for in Cockpit's Grafana (Explore → the traces data source):
   spans (`security filterchain before`/`after`, `authorize request`, `secured request`).
 - **Log correlation:** each log line of a request shows `[<traceId>-<spanId>]` after the thread name.
   Search Tempo for that trace ID to see the request, or copy a trace ID from Tempo into a log search.
+  This also holds after a `suspend` handler switches thread (`withContext(Dispatchers.IO)`):
+  `CoroutineContextPropagationConfiguration` switches on Reactor's automatic context propagation, so
+  Spring copies the trace context into the coroutine. `OtlpTracesExportIT` checks both cases.
+- **Request paths:** a span's `http.url` is the route template, not the real path
+  (`RouteTemplateObservationConvention`), so calendar-feed and invite tokens stay out of Tempo.
 - **Not traced:** the health probe (`/internal/actuator/health`). It is also not in the endpoint
   metrics. `HealthProbeObservationConfiguration` skips it.
 - **Also traced:** the hourly match-feed task (`task matchFeedScheduler.checkDueFeeds`), and the

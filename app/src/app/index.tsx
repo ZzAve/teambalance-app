@@ -11,6 +11,7 @@ import { installChunkErrorHandler, markAppLoaded } from '@shared/lib/chunk-reloa
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
 import { startLanguage } from '@shared/i18n/language'
 import { reportError, startErrorReporting } from '@shared/lib/error-reporting'
+import { startAnalytics } from '@shared/lib/analytics'
 import './styles/global.css'
 
 // First, so an error anywhere below reaches Bugsink. Starts only in a build with VITE_BUGSINK_DSN (prod).
@@ -58,6 +59,10 @@ const router = createRouter({
 })
 
 router.subscribe('onResolved', markAppLoaded)
+
+// One Plausible pageview per path change, with the route template as the URL (no slug, ID or token).
+// Starts only in a build with VITE_PLAUSIBLE_DOMAIN (prod); other builds do not contain the tracker.
+startAnalytics(router)
 
 declare module '@tanstack/react-router' {
   interface Register {

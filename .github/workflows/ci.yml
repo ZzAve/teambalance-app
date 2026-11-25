@@ -326,7 +326,7 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       # `vite build` runs in production mode and auto-loads app/.env.production
-      # (VITE_API_URL=https://api.teambalance.nl). Only this prod build gets the Bugsink DSN (a
+      # (VITE_API_URL=https://api.teambalance.nl). Only this prod build gets the Plausible domain and the Bugsink DSN (a
       # repository variable: a DSN is public, it is in the bundle) and writes hidden source maps.
       - name: Build SPA
         run: npm run build
@@ -335,6 +335,9 @@ jobs:
           VITE_BUGSINK_DSN: ${{ vars.BUGSINK_SPA_DSN }}
           VITE_BUGSINK_RELEASE: ${{ github.sha }}
           BUGSINK_SOURCEMAPS: 'true'
+          # Plausible page analytics (see docs/ops/deploy.md). Unset: no tracker is loaded.
+          VITE_PLAUSIBLE_DOMAIN: ${{ vars.PLAUSIBLE_DOMAIN }}
+          VITE_PLAUSIBLE_ENDPOINT: ${{ vars.PLAUSIBLE_ENDPOINT }}
 
       # Bugsink matches a minified frame to its source map by debug ID. `inject` writes the ID into each
       # chunk and its map; hashed chunks are precached with `revision: null`, so the edit after the
